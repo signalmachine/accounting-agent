@@ -16,10 +16,26 @@ Do **NOT** use the legacy `client.Chat.Completions.New` API.
 - It lacks the strict schema enforcement guarantees of the Responses API.
 - It often leads to "hallucinated" structures that fail Go's strict unmarshaling.
 
-## 2. Minimum Supported SDK Version
-This integration targets `github.com/openai/openai-go v0.1.0-alpha.55` (or newer implementations of the Responses API). 
-- Upgrading the SDK requires re-validating struct shapes and streaming events, as beta fields occasionally change names.
-- **Reference Code**: A copy of the OpenAI Go SDK is available in the `examples` folder. This copy is provided strictly for **reference purposes only** and should not be used as an active dependency.
+---
+
+## Quick Reference: Canonical Patterns
+
+Four patterns that **every agent in this codebase must follow**. These are the non-negotiable building blocks.
+
+| Pattern | Rule |
+|---------|------|
+| **Strict JSON schema** | Always set `Strict: openai.Bool(true)`. Use `GenerateSchema[T]()` for **simple flat structs** (no pointer fields, no omitempty). For **union/variant types** (e.g. `AgentResponse` with `*Proposal` or `*ClarificationRequest`), you **must** hand-build a `map[string]any` — the reflector cannot produce a valid strict schema for these. |
+| **Tool union construction** | Use `responses.ToolUnionParam{{OfFunction: &responses.FunctionToolParam{...}}}`. Never use the removed `openai.F()` or the old `ToolFunctionParam` struct. |
+| **Multi-turn context** | Pass `PreviousResponseID: openai.String(resp.ID)` to chain turns. Never build raw message history arrays manually. |
+| **API error inspection** | Wrap errors with `errors.As(err, &apierr)` on `*openai.Error` to read `StatusCode` and `DumpResponse()`. |
+
+---
+
+## 2. Minimum SDK Version
+This integration targets **`github.com/openai/openai-go v1.12.0`** (stable — graduated from the alpha/beta era).
+- The `go.mod` module path stays as `github.com/openai/openai-go` (no `/v3` suffix in application imports — standard Go v1 module semantics).
+- Upgrading the SDK requires re-validating struct shapes and streaming events; consult the `MIGRATION.md` in the reference copy for breaking changes from earlier alpha versions.
+- **Reference Code**: A copy of the OpenAI Go SDK is available in the `examples/openai-go-sdk-reference` folder. This copy is provided strictly for **reference purposes only** and should not be used as an active dependency.
 
 ## 3. Implementation Pattern
 Refer to `internal/ai/agent.go` for the canonical implementation.
@@ -109,28 +125,91 @@ As the application scales, the following patterns must be adopted to ensure reli
 Based on the official `openai-go` repository, the following patterns are recommended for production systems:
 
 ### 7.1 Schema Generation
-While manual JSON schema construction works for simple cases, `github.com/invopop/jsonschema` is recommended for complex types to ensure the Go struct and JSON schema stay in sync.
 
-> [!WARNING]
-> **CRITICAL: Avoid using `omitempty` in JSON struct tags for Structured Outputs.**
-> The `jsonschema` library interprets `omitempty` as an "optional" field, excluding it from the schema's `required` array. This causes `openai-go` API rejections when `Strict: true` is enabled, or causes the model to silently skip generating those fields. Always define all expected fields structurally.
+OpenAI strict mode enforces two hard rules on every schema:
+1. **Every property must be in the `required` array** — no exceptions.
+2. **Nullable (pointer) fields must use `anyOf: [{schema}, {type: "null"}]`** — not omission from `required`.
+
+There are two approaches depending on the response type:
+
+#### Simple flat structs — Use `GenerateSchema[T]()`
+For types where **all fields are non-pointer and have no `omitempty`**, the reflector works:
 
 ```go
-import "github.com/invopop/jsonschema"
-
-func GenerateSchema[T any]() interface{} {
+func GenerateSchema[T any]() map[string]any {
     reflector := jsonschema.Reflector{
         AllowAdditionalProperties: false,
         DoNotReference:            true,
     }
     var v T
-    return reflector.Reflect(v)
+    schema := reflector.Reflect(v)
+    data, _ := json.Marshal(schema)
+    var result map[string]any
+    json.Unmarshal(data, &result)
+    delete(result, "$schema") // OpenAI strict mode rejects the $schema field
+    return result
 }
 ```
 
+> [!CAUTION]
+> **Do NOT use `omitempty` in JSON struct tags for Structured Outputs.** The reflector interprets `omitempty` as optional, excluding the field from `required`. This causes OpenAI to reject the schema with HTTP 400: `'required' must include every key in properties`.
+
+#### Union / variant response types — Hand-build the schema
+
+When your response type has **pointer fields** (`*Proposal`, `*ClarificationRequest`) that can be null, the reflector **cannot produce a valid strict schema**. It will either omit those fields from `required`, or not emit the `anyOf: [{schema}, {type: "null"}]` pattern that OpenAI requires.
+
+**Proven failure case:** `AgentResponse` with `*Proposal` and `*ClarificationRequest` — reflector generated a schema that was immediately rejected by OpenAI with:
+> `'required' is required to be supplied and to be an array including every key in properties. Missing 'clarification'.`
+
+**Solution:** Build the schema as a `map[string]any` directly:
+
+```go
+// All three properties are in required.
+// Nullable pointer fields use anyOf with {type: "null"}.
+func generateSchema() map[string]any {
+    return map[string]any{
+        "type":                 "object",
+        "additionalProperties": false,
+        "required":             []string{"is_clarification_request", "clarification", "proposal"},
+        "properties": map[string]any{
+            "is_clarification_request": map[string]any{
+                "type": "boolean",
+            },
+            "clarification": map[string]any{
+                "anyOf": []any{
+                    map[string]any{
+                        "type":                 "object",
+                        "additionalProperties": false,
+                        "required":             []string{"message"},
+                        "properties": map[string]any{
+                            "message": map[string]any{"type": "string"},
+                        },
+                    },
+                    map[string]any{"type": "null"},
+                },
+            },
+            "proposal": map[string]any{
+                "anyOf": []any{
+                    proposalSchema(), // inline the full Proposal schema
+                    map[string]any{"type": "null"},
+                },
+            },
+        },
+    }
+}
+```
+
+Key rules for hand-built schemas:
+- `additionalProperties: false` on **every** nested object, not just the root
+- `required` must list **every** key in `properties` at every level
+- Pointer/optional fields: use `anyOf: [{full schema}, {"type": "null"}]`
+
+> [!NOTE]
+> The SDK also provides a convenience constructor `responses.ResponseFormatTextConfigParamOfJSONSchema(name, schema)` that can further simplify the `Text.Format` field. However, it does **not** expose `Strict: openai.Bool(true)` — so for this project the verbose struct literal must be used to ensure strict enforcement.
+
 ### 7.2 Streaming Responses
-For lower latency processing, use the `Responses.NewStreaming` API. Carefully check the structs `Valid()` flags to verify chunk completion across events.
-*Note: Streaming structs and internal fields (like `JSON.Text.Valid()`) frequently evolve in Beta versions. Always verify field names against your installed SDK version.*
+For lower latency processing, use the `Responses.NewStreaming` API. Check `event.JSON.Text.Valid()` to know when the full text payload has materialised.
+*Note: The field names shown (`event.Delta`, `event.JSON.Text.Valid()`, `event.Text`) are confirmed against the stable SDK reference copy. Re-verify them after any SDK upgrade by checking `examples/openai-go-sdk-reference/examples/responses-streaming/main.go`.*
 
 ```go
 stream := client.Responses.NewStreaming(ctx, params)
@@ -171,7 +250,7 @@ defer cancel()
 
 ## 8. Minimal Complete Working Example
 
-The following standalone Go program demonstrates initializing the client properly, creating a schema with `github.com/invopop/jsonschema`, enforcing strict JSON parsing via the `Responses API`, and decoding the result.
+The following standalone Go program demonstrates initializing the client properly, using the `GenerateSchema[T]()` helper, enforcing strict JSON parsing via the `Responses API`, and decoding the result.
 
 ```go
 package main
@@ -196,6 +275,17 @@ type SimpleResponse struct {
 	LuckyNumber int    `json:"lucky_number" jsonschema_description:"A random lucky number"`
 }
 
+// GenerateSchema is defined in Section 7.1. Include it (or import it) in your package.
+func GenerateSchema[T any]() map[string]any {
+	reflector := jsonschema.Reflector{AllowAdditionalProperties: false, DoNotReference: true}
+	var v T
+	schema := reflector.Reflect(v)
+	data, _ := json.Marshal(schema)
+	var result map[string]any
+	json.Unmarshal(data, &result)
+	return result
+}
+
 func main() {
 	client := openai.NewClient(
 		option.WithAPIKey(os.Getenv("OPENAI_API_KEY")),
@@ -205,21 +295,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	reflector := jsonschema.Reflector{
-		AllowAdditionalProperties: false,
-		DoNotReference:            true,
-	}
-	var v SimpleResponse
-	schemaStruct := reflector.Reflect(v)
-
-	schemaJSON, err := json.Marshal(schemaStruct)
-	if err != nil {
-		log.Fatalf("Failed to marshal schema: %v", err)
-	}
-	var schemaMap map[string]any
-	if err := json.Unmarshal(schemaJSON, &schemaMap); err != nil {
-		log.Fatalf("Failed to decode schema map: %v", err)
-	}
+	// One-liner schema generation — no manual marshal/unmarshal needed here.
+	schemaMap := GenerateSchema[SimpleResponse]()
 
 	params := responses.ResponseNewParams{
 		Model: openai.ChatModelGPT4o,
@@ -256,7 +333,7 @@ func main() {
 	fmt.Printf("Greeting: %s\n", parsed.Greeting)
 	fmt.Printf("Lucky Number: %d\n", parsed.LuckyNumber)
 
-	// Logging Usage
+	// Log usage metadata for cost tracking (see §6.4)
 	if usage := resp.Usage; usage != nil {
 		log.Printf("Usage: %d total tokens", usage.TotalTokens)
 	}
@@ -282,7 +359,6 @@ import (
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/responses"
-	"github.com/openai/openai-go/shared/constant"
 )
 
 // mockGoFunction simulates an external service
@@ -296,24 +372,23 @@ func runToolLoop(ctx context.Context, client *openai.Client) error {
 		Input: responses.ResponseNewParamsInputUnion{
 			OfString: openai.String("Fetch the current weather in Tokyo, and format it nicely."),
 		},
-		Tools: []responses.ToolUnionParam{
-			responses.ToolFunctionParam{
-				Type: constant.ToolTypeFunction("function"),
-				Function: responses.FunctionDefinitionParam{
-					Name:        openai.String("get_weather"),
-					Description: openai.String("Get the current weather for a location."),
-					Parameters: openai.F(map[string]any{
-						"type": "object",
-						"properties": map[string]any{
-							"location": map[string]any{
-								"type": "string",
-							},
+		// Tool union: set OfFunction pointer — SDK infers type from the non-nil field.
+		// Do NOT use openai.F() — it was removed in the stable SDK.
+		Tools: []responses.ToolUnionParam{{
+			OfFunction: &responses.FunctionToolParam{
+				Name:        "get_weather",
+				Description: openai.String("Get the current weather for a location."),
+				Parameters: map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"location": map[string]any{
+							"type": "string",
 						},
-						"required": []string{"location"},
-					}),
+					},
+					"required": []string{"location"},
 				},
 			},
-		},
+		}},
 	}
 
 	maxLoops := 5
@@ -437,6 +512,18 @@ When working directly with Agents reading accounting events, fail safely.
 * **Infinite Tool Loops**: Cap your loop (e.g., `maxLoops := 5`). Returning to the user gracefully is safer than creating an infinite API spin logic.
 * **Safe Retries**: Opt into the SDK's retry mechanisms using `option.WithMaxRetries(3)`. For errors returned by `client`, use Go's robust `errors.Is` to catch network specific issues over standard parsing glitches.
 * **Malformed Structured Outputs**: Use `val.Normalize()` pattern mentioned earlier to sanitize `\n` or blank whitespace fields that accidentally got injected upstream.
+* **API-Level Error Inspection**: Distinguish transport errors from API errors using the typed `*openai.Error`:
+
+```go
+if err != nil {
+    var apierr *openai.Error
+    if errors.As(err, &apierr) {
+        // apierr.StatusCode holds the HTTP status (e.g. 400 schema rejection, 429 rate limit)
+        log.Printf("OpenAI API error %d: %s", apierr.StatusCode, apierr.DumpResponse(true))
+    }
+    return err
+}
+```
 
 ---
 
@@ -446,10 +533,10 @@ These rules are strict, assertive, and must be followed relentlessly.
 
 * **Only use `client.Responses.New` or `NewStreaming`**: Agents must strictly abide by Response boundaries.
 * **Never use Chat Completions**: Bypassing the Beta `Responses` struct creates fragmented behavior across the repo and forfeits schema guarantees.
-* **Never construct raw JSON manually**: Always generate JSON schemas dynamically via `github.com/invopop/jsonschema` (`Reflector{...}`).
+* **Schema generation strategy**: Use `GenerateSchema[T]()` for simple flat structs. For union/variant types (pointer fields, nullable branches), hand-build a `map[string]any` — the reflector cannot produce valid strict schemas for those. See §7.1.
 * **Always use `openai.String()` / `openai.Bool()` for optional fields**: SDK Pointers will panic. Protect boundaries with designated `openai` helpers. Never mix with `param.NewOpt()`.
 * **Always use Strict JSON schema**: When structured output is required, `Strict: openai.Bool(true)` must be enforced so the model complies aggressively with types.
-* **Remove `omitempty` from Structs**: Structured Outputs schemas explicitly enforce static field mappings. `omitempty` breaks Strict checks.
+* **Remove `omitempty` from Structs used with the reflector**: Structured Outputs schemas explicitly enforce static field mappings. `omitempty` breaks strict checks when using the reflector approach.
 * **Never assume response fields exist without nil checks**: Responses API outputs arrays or interface structures; assert presence (`resp.Usage != nil`).
 * **Always inspect tool calls before assuming final output**: Iterate `resp.Output` to avoid leaking ToolCall payloads down into internal application flow.
 

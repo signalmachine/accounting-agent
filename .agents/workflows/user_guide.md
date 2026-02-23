@@ -15,19 +15,30 @@ Run the application without any arguments:
 ```
 
 ### Workflow
-1.  **Enter Event**: At the `> ` prompt, type a business event.
+1.  **Enter Event**: At the `> ` prompt, type a business event in natural language.
     *Example*: `> Received $500 cash from customer for consulting services`
-2.  **Review Proposal**: The Agent will think and print a structured proposal.
-    *   **Summary**: What the AI thinks happened.
-    *   **Reasoning**: Why it chose specific accounts.
-    *   **Entries**: The Debit/Credit lines.
+2.  **Review Proposal**: The Agent will print a structured proposal:
+    ```
+    SUMMARY:    Receipt from client for consulting services
+    COMPANY:    1000
+    CURRENCY:   USD @ rate 82.50
+    REASONING:  Cash increases (asset debit), revenue is recognized (credit)
+    CONFIDENCE: 0.95
+    ENTRIES:
+      [DR] Account 1000      500.00 USD
+      [CR] Account 4100      500.00 USD
+    ```
 3.  **Approve/Reject**:
     *   Type `y` or `yes` to commit the transaction to the database.
     *   Type `n` or anything else to discard the draft.
 
 ### Commands
-- `balances`: Print the current Chart of Accounts and their balances.
+- `balances`: Print the current Chart of Accounts and their running balances (in base currency).
+- `help`: List all available REPL commands.
 - `exit` or `quit`: Close the application.
+
+> [!NOTE]
+> Only **multi-word inputs** are sent to the AI. Single-word inputs are treated as commands. Unknown single-word inputs are rejected with an error — they are **not** forwarded to the AI.
 
 ---
 
@@ -74,10 +85,10 @@ If the AI is unsure (Confidence < 0.6), the REPL will show a warning.
 - **Cause**: Ambiguous input or missing account codes.
 - **Fix**: Rephrase your input. E.g., change "Paid for stuff" to "Paid for office supplies using Cache".
 
-### "Credits do not equal debits"
-- **Cause**: The AI proposed an unbalanced entry.
-- **Fix**: This is caught by the Validator. Retry the request; the AI is non-deterministic and may fix it on the second try.
+### "Credits do not equal debits" / "Base currency imbalance"
+- **Cause**: The AI proposed an unbalanced entry (base currency debits ≠ credits).
+- **Fix**: This is caught by the Validator before any DB write. Retry the request — the AI is non-deterministic and typically self-corrects on the next attempt.
 
-### "Account code not found"
-- **Cause**: The AI Hallucinated a code that doesn't exist in the database.
-- **Fix**: Run `balances` to see valid codes.
+### "Account code not found for company"
+- **Cause**: The AI used an account code that doesn't exist in the database for your company.
+- **Fix**: Run `balances` to see valid account codes. Rephrase your input referencing a known account type (e.g., "cash", "bank").

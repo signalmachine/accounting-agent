@@ -6,80 +6,122 @@ import (
 )
 
 func TestProposal_Validate_Reproduction(t *testing.T) {
-	// 1. Blank strings should fail without normalization (or with current logic)
-	// This reproduction test now verifies that Normalize + Validate fixes the issue.
-
+	// Propossal with blank credit amount — should fail after normalization
 	p := core.Proposal{
+		CompanyCode:         "1000",
+		TransactionCurrency: "INR",
+		ExchangeRate:        "1.0",
+		PostingDate:         "2023-10-01",
 		Lines: []core.ProposalLine{
-			{AccountCode: "1000", Debit: "200.00", Credit: ""},
-			{AccountCode: "1100", Debit: "", Credit: "200.00"},
+			{AccountCode: "1000", IsDebit: true, Amount: "200.00"},
+			{AccountCode: "1100", IsDebit: false, Amount: ""},
 		},
 	}
 
 	p.Normalize()
-	if err := p.Validate(); err != nil {
-		t.Errorf("expected nil error after normalization, got %v", err)
+	if err := p.Validate(); err == nil {
+		t.Errorf("expected error after normalization due to zero amount, got nil")
 	}
 }
 
 func TestProposal_NormalizationAndValidation(t *testing.T) {
 	tests := []struct {
-		name      string
-		lines     []core.ProposalLine
-		expectErr bool
+		name                string
+		documentTypeCode    string
+		transactionCurrency string
+		exchangeRate        string
+		lines               []core.ProposalLine
+		expectErr           bool
 	}{
 		{
-			name: "Happy Path",
+			name:                "Happy Path (local currency)",
+			documentTypeCode:    "JE",
+			transactionCurrency: "INR",
+			exchangeRate:        "1.0",
 			lines: []core.ProposalLine{
-				{AccountCode: "1000", Debit: "200.00", Credit: "0.00"},
-				{AccountCode: "1100", Debit: "0.00", Credit: "200.00"},
+				{AccountCode: "1000", IsDebit: true, Amount: "200.00"},
+				{AccountCode: "1100", IsDebit: false, Amount: "200.00"},
 			},
 			expectErr: false,
 		},
 		{
-			name: "Blank strings (should be normalized)",
+			name:                "Happy Path (foreign currency USD)",
+			documentTypeCode:    "JE",
+			transactionCurrency: "USD",
+			exchangeRate:        "83.50",
 			lines: []core.ProposalLine{
-				{AccountCode: "1000", Debit: "200.00", Credit: ""},
-				{AccountCode: "1100", Debit: "", Credit: "200.00"},
+				{AccountCode: "1000", IsDebit: true, Amount: "500.00"},
+				{AccountCode: "4000", IsDebit: false, Amount: "500.00"},
 			},
-			expectErr: false, // Should pass after normalization
+			expectErr: false,
 		},
 		{
-			name: "Both Debit and Credit > 0 (Fail)",
+			name:                "Blank credit amount",
+			transactionCurrency: "INR",
+			exchangeRate:        "1.0",
 			lines: []core.ProposalLine{
-				{AccountCode: "1000", Debit: "100.00", Credit: "100.00"},
+				{AccountCode: "1000", IsDebit: true, Amount: "200.00"},
+				{AccountCode: "1100", IsDebit: false, Amount: ""},
+			},
+			expectErr: true, // normalizes to 0.00, fails > 0 check
+		},
+		{
+			name:                "Amount zero",
+			transactionCurrency: "INR",
+			exchangeRate:        "1.0",
+			lines: []core.ProposalLine{
+				{AccountCode: "1000", IsDebit: true, Amount: "0.00"},
+				{AccountCode: "1000", IsDebit: false, Amount: "0.00"},
 			},
 			expectErr: true,
 		},
 		{
-			name: "Both Debit and Credit 0 (Fail - at least one > 0)",
+			name:                "Negative amount",
+			transactionCurrency: "INR",
+			exchangeRate:        "1.0",
 			lines: []core.ProposalLine{
-				{AccountCode: "1000", Debit: "0.00", Credit: "0.00"},
+				{AccountCode: "1000", IsDebit: true, Amount: "-100.00"},
 			},
 			expectErr: true,
 		},
 		{
-			name: "Negative values (Fail)",
+			name:                "Imbalanced entry",
+			transactionCurrency: "INR",
+			exchangeRate:        "1.0",
 			lines: []core.ProposalLine{
-				{AccountCode: "1000", Debit: "-100.00", Credit: "0.00"},
+				{AccountCode: "1000", IsDebit: true, Amount: "200.00"},
+				{AccountCode: "1100", IsDebit: false, Amount: "100.00"},
 			},
 			expectErr: true,
 		},
 		{
-			name: "Total Debits != Total Credits (Fail)",
+			name:                "Missing company code",
+			transactionCurrency: "INR",
+			exchangeRate:        "1.0",
 			lines: []core.ProposalLine{
-				{AccountCode: "1000", Debit: "200.00", Credit: "0.00"},
-				{AccountCode: "1100", Debit: "0.00", Credit: "100.00"},
+				{AccountCode: "1000", IsDebit: true, Amount: "100.00"},
+				{AccountCode: "1100", IsDebit: false, Amount: "100.00"},
 			},
-			expectErr: true,
+			expectErr: true, // CompanyCode will be "" in test below
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := core.Proposal{Lines: tt.lines}
-			p.Normalize()       // We assume this is available now
-			err := p.Validate() // We assume this is available now
+			companyCode := "1000"
+			if tt.name == "Missing company code" {
+				companyCode = ""
+			}
+			p := core.Proposal{
+				DocumentTypeCode:    tt.documentTypeCode,
+				CompanyCode:         companyCode,
+				TransactionCurrency: tt.transactionCurrency,
+				ExchangeRate:        tt.exchangeRate,
+				PostingDate:         "2023-10-01",
+				Lines:               tt.lines,
+			}
+			p.Normalize()
+			err := p.Validate()
 
 			if tt.expectErr && err == nil {
 				t.Errorf("expected error, got nil")

@@ -9,6 +9,7 @@ CREATE TABLE accounts (
 
 CREATE TABLE journal_entries (
     id SERIAL PRIMARY KEY,
+    idempotency_key TEXT UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     narration TEXT NOT NULL,
     reference_type TEXT,

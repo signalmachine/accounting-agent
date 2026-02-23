@@ -1,0 +1,60 @@
+﻿./verify-db.ex
+e : 
+2026/02/23 
+18:52:54 
+[CONNECT] 
+success
+At line:1 
+char:1
++ ./verify-db.
+exe > verify_o
+ut2.txt 2>&1
++ ~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + Categor 
+   yInfo      
+        : N   
+ otSpecifi    
+ed: (2026    
+/02/23 18    
+:52:54 [C    
+ONNECT] s    
+uccess:St    
+ring) [],     
+RemoteEx    
+ception
+    + FullyQu 
+   alifiedEr  
+  rorId : N   
+ ativeComm    
+andError
+ 
+2026/02/23 
+18:52:54 
+[LOCK] success
+2026/02/23 
+18:52:54 
+[SKIP] 
+001_init.sql
+2026/02/23 
+18:52:54 
+[SKIP] 002_sap
+_currency.sql
+2026/02/23 
+18:52:54 
+[ERROR] 
+Checksum 
+mismatch for 0
+03_seed_data.s
+ql. Expected 8
+530ab274a8dec4
+6cf41cc1c83905
+a1651d06108dd3
+1b74c7b95d5170
+4974c94, got f
+5d9dcc6551acf6
+a0e8415ce0b039
+3f583b4aade303
+5f74a85d88766f
+579f318

@@ -1,0 +1,57 @@
+﻿./verify-db.ex
+e : 
+2026/02/23 
+18:54:37 
+[CONNECT] 
+success
+At line:1 
+char:1
++ ./verify-db.
+exe > verify_o
+ut3.txt 2>&1
++ ~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + Categor 
+   yInfo      
+        : N   
+ otSpecifi    
+ed: (2026    
+/02/23 18    
+:54:37 [C    
+ONNECT] s    
+uccess:St    
+ring) [],     
+RemoteEx    
+ception
+    + FullyQu 
+   alifiedEr  
+  rorId : N   
+ ativeComm    
+andError
+ 
+2026/02/23 
+18:54:37 
+[LOCK] success
+2026/02/23 
+18:54:37 
+[SKIP] 
+001_init.sql
+2026/02/23 
+18:54:37 
+[SKIP] 002_sap
+_currency.sql
+2026/02/23 
+18:54:37 
+[SKIP] 003_see
+d_data.sql
+2026/02/23 
+18:54:37 
+[SKIP] 004_dat
+e_semantics.sq
+l
+2026/02/23 
+18:54:37 
+[DONE] All 
+migrations 
+processed.
