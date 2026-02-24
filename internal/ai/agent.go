@@ -4,7 +4,9 @@ import (
 	"accounting-agent/internal/core"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,7 +25,10 @@ type Agent struct {
 }
 
 func NewAgent(apiKey string) *Agent {
-	client := openai.NewClient(option.WithAPIKey(apiKey))
+	client := openai.NewClient(
+		option.WithAPIKey(apiKey),
+		option.WithMaxRetries(3),
+	)
 	return &Agent{client: &client}
 }
 
@@ -56,6 +61,9 @@ DOCUMENT TYPE SELECTION:
 
 CLARIFICATIONS:
 If the user does not provide enough clues to confidently determine the Document Type, or if critical financial information (like amounts, parties, or intent) is missing, do NOT guess. Instead, set is_clarification_request to true, and provide a clarification message asking the user to specify the missing details (e.g., 'Please specify if this is a Sales Invoice, Purchase Invoice, or Journal Entry, and what the amount was.').
+
+NON-ACCOUNTING INPUTS:
+If the user's input is NOT a financial accounting event (e.g. they are asking to list orders, view customers, confirm a shipment, check products, or perform any operational task), do NOT attempt to create a journal entry. Instead, set is_clarification_request to true and respond with a helpful redirect pointing to the relevant slash command. Examples: "To list orders, use /orders.", "To confirm an order, use /confirm <order-ref>.", "To list customers, use /customers.", "For all available commands, type /help."
 
 Today's Date: %s
 
@@ -95,7 +103,16 @@ Event: %s`, company.CompanyCode, company.Name, company.BaseCurrency, company.Bas
 
 	resp, err := a.client.Responses.New(ctx, params)
 	if err != nil {
+		var apierr *openai.Error
+		if errors.As(err, &apierr) {
+			log.Printf("OpenAI API error %d: %s", apierr.StatusCode, apierr.DumpResponse(true))
+		}
 		return nil, fmt.Errorf("openai responses error: %w", err)
+	}
+
+	if usage := resp.Usage; usage.TotalTokens > 0 {
+		log.Printf("OpenAI usage — prompt: %d, completion: %d, total: %d tokens",
+			usage.InputTokens, usage.OutputTokens, usage.TotalTokens)
 	}
 
 	content := resp.OutputText()

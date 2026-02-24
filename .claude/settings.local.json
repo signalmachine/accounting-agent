@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d/agents/accounting-agent && go build ./... 2>&1)",
+      "Bash(echo EXIT:$?:*)",
+      "Bash(cd /d/agents/accounting-agent && go run ./cmd/verify-db 2>&1)",
+      "Bash(cd:*)",
+      "Bash(cd /d/agents/accounting-agent && go run ./cmd/checksum/ 2>&1)",
+      "Bash(cd /d/agents/accounting-agent && go test ./internal/core -v -run TestOrderService 2>&1)",
+      "Bash(psql \"postgres://postgres:postgres@localhost:5432/postgres\" -c \"CREATE DATABASE appdb_test OWNER app;\" 2>&1 || psql \"postgres://postgres@localhost:5432/postgres\" -c \"CREATE DATABASE appdb_test OWNER app;\" 2>&1)",
+      "Bash(head:*)",
+      "Bash(psql:*)",
+      "Bash(echo Build: OK:*)",
+      "Bash(cd /d/agents/accounting-agent && go test ./internal/core -v -run TestProposal 2>&1)",
+      "Bash(cd /d/agents/accounting-agent && DATABASE_URL=\"postgres://app:electron@localhost:5432/appdb_test?sslmode=disable\" go run ./cmd/verify-db 2>&1)",
+      "Bash(cd /d/agents/accounting-agent && go test ./internal/core -v 2>&1)",
+      "Bash(cd D:/agents/accounting-agent && go build ./cmd/app 2>&1)",
+      "Bash(python:*)",
+      "Bash(cd /d/agents/accounting-agent && go vet ./... 2>&1)",
+      "Bash(echo BUILD OK:*)"
+    ]
+  }
+}

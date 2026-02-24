@@ -1,0 +1,102 @@
+I want to move to a claude code style REPL
+agent mode should be the default mode in REPL. All the interaction is considered as natural interaction with agent. but if command mode required use "/command" (eg: "/bal" for trial balance)  . For this i advise to adopt the claude code style of using REPL.
+
+In most systems that use a `/command` style (CLI tools, chat command palettes, REPL shortcuts, bots, etc.), **spaces are allowed**, but they mean something very specific.
+
+Here’s the clean mental model:
+
+`/command arg1 arg2`
+
+Spaces separate the command from its arguments. They are not part of the command name.
+
+So:
+
+* `/balances` → command name = `balances`
+* `/balances 1000` → command = `balances`, argument = `1000`
+* `/create-invoice` → command name literally includes the hyphen
+* `/create invoice` → command = `create`, argument = `invoice`
+
+That distinction is important.
+
+If your command name itself contains spaces, that usually **won’t work**, because the parser splits on whitespace. That’s why multi-word commands are typically written as:
+
+* `create-invoice`
+* `create_invoice`
+* `createInvoice`
+
+Hyphen is very common for user-facing commands because it reads nicely:
+`/create-invoice` feels natural and clean.
+
+Underscore is more common in internal command registries or code.
+
+CamelCase is rare in CLI-style interfaces.
+
+Now, since you're designing REPL + command behavior for your own system, here’s the practical rule I’d recommend:
+
+* Command names: single token, no spaces
+* Arguments: separated by spaces
+* If a logical command is multi-word → use hyphen
+
+Example:
+
+`/bal`
+`/bal1000`
+`/create-invoice 2026-02-24 1000`
+
+Simple parsing. No ambiguity. No weird edge cases.
+
+If you allow spaces inside command names, your parser becomes messy fast — especially when you later add flags or optional arguments. Don’t invite that chaos.
+
+
+single-token command name
+space-separated arguments
+optional flags prefixed with - or --
+
+So you’ll see structures like:
+
+/edit file.go
+/run tests
+/commit -m "fix invoice rounding"
+/generate --file service.go
+
+Command names themselves do not contain spaces.
+
+Hyphen is the most common in user-facing CLI commands because it reads cleanly and matches Unix traditions (git checkout, docker-compose, kubectl create style ecosystems).
+
+Even tools that feel conversational internally still tokenize input the same way. They don’t rely on natural language parsing for slash-commands. They treat them as deterministic instructions.
+
+It keeps parsing trivial and predictable. And predictable parsing is gold when your system grows.
+
+The clean architecture would be:
+
+subcommands + flags
+
+Example:
+
+ledger balances --company 1000
+ledger trial-balance
+invoice create --customer 42
+inventory adjust --sku ABC --qty 10
+
+Internally, you implement a command tree:
+
+map[string]CommandNode
+
+Where a node can have:
+children (subcommands)
+a handler
+flag definitions
+
+
+This is not complicated in Go. It’s just structured dispatch.
+
+Important: this is completely independent of CLI vs REPL. A REPL is just a wrapper around the same command parser. You can reuse the exact grammar for:
+
+CLI binary
+
+interactive REPL
+
+even HTTP debug endpoints
+
+That’s the forward-thinking move. One grammar. Multiple frontends.
+

@@ -13,7 +13,7 @@ import (
 type LedgerService interface {
 	Commit(ctx context.Context, proposal Proposal) error
 	Validate(ctx context.Context, proposal Proposal) error
-	GetBalances(ctx context.Context) ([]AccountBalance, error)
+	GetBalances(ctx context.Context, companyCode string) ([]AccountBalance, error)
 	Reverse(ctx context.Context, entryID int, reasoning string) error
 }
 
@@ -34,6 +34,13 @@ func (l *Ledger) Validate(ctx context.Context, proposal Proposal) error {
 	return l.execute(ctx, proposal, false)
 }
 
+// CommitInTx executes a proposal within an already-open transaction.
+// It does NOT call tx.Begin() or tx.Commit() — the caller owns the TX.
+// Use this when the ledger commit must be atomic with other DB operations in the caller's TX.
+func (l *Ledger) CommitInTx(ctx context.Context, tx pgx.Tx, proposal Proposal) error {
+	return l.executeCore(ctx, tx, proposal, true)
+}
+
 func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) error {
 	// 1. Structural Validation
 	if err := proposal.Validate(); err != nil {
@@ -47,9 +54,31 @@ func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) er
 	}
 	defer tx.Rollback(ctx)
 
-	// 3. Resolve Company ID from Company Code
+	if err := l.executeCore(ctx, tx, proposal, commit); err != nil {
+		return err
+	}
+
+	// 3. Commit if requested
+	if commit {
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// executeCore performs all ledger operations within the provided TX.
+// It does not Begin or Commit — that is the caller's responsibility.
+func (l *Ledger) executeCore(ctx context.Context, tx pgx.Tx, proposal Proposal, createDoc bool) error {
+	// Validation (re-run even for CommitInTx callers — cheap and safe)
+	if err := proposal.Validate(); err != nil {
+		return fmt.Errorf("proposal validation failed: %w", err)
+	}
+
+	// Resolve Company ID from Company Code
 	var companyID int
-	err = tx.QueryRow(ctx, "SELECT id FROM companies WHERE company_code = $1", proposal.CompanyCode).Scan(&companyID)
+	err := tx.QueryRow(ctx, "SELECT id FROM companies WHERE company_code = $1", proposal.CompanyCode).Scan(&companyID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("company code %s not found", proposal.CompanyCode)
@@ -60,9 +89,8 @@ func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) er
 	var documentNumber *string
 	var referenceType *string
 
-	if commit {
-		// 3.5 Create Draft Document and Post — all within the outer transaction (tx)
-		// so that a failed journal entry commit rolls back the document too.
+	if createDoc {
+		// Create Draft Document and Post — within the caller's transaction.
 		var draftDocID int
 		err = tx.QueryRow(ctx, `
 			INSERT INTO documents (company_id, type_code, status, financial_year, branch_id)
@@ -86,7 +114,7 @@ func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) er
 		referenceType = &refType
 	}
 
-	// 4. Insert Journal Entry
+	// Insert Journal Entry
 	var entryID int
 	if proposal.IdempotencyKey != "" {
 		err = tx.QueryRow(ctx, `
@@ -110,8 +138,8 @@ func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) er
 		return fmt.Errorf("failed to insert journal entry: %w", err)
 	}
 
-	// 5. Insert Journal Lines
-	// Rate is header-level: all lines in this proposal share the same TransactionCurrency and ExchangeRate (SAP model)
+	// Insert Journal Lines
+	// Rate is header-level: all lines share the same TransactionCurrency and ExchangeRate (SAP model).
 	rate, _ := decimal.NewFromString(proposal.ExchangeRate)
 
 	for _, line := range proposal.Lines {
@@ -127,13 +155,13 @@ func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) er
 		amt, _ := decimal.NewFromString(line.Amount)
 		baseAmt := amt.Mul(rate)
 
-		var debitBase, creditBase string
+		var debitBase, creditBase decimal.Decimal
 		if line.IsDebit {
-			debitBase = baseAmt.StringFixed(2)
-			creditBase = "0.00"
+			debitBase = baseAmt
+			creditBase = decimal.Zero
 		} else {
-			debitBase = "0.00"
-			creditBase = baseAmt.StringFixed(2)
+			debitBase = decimal.Zero
+			creditBase = baseAmt
 		}
 
 		_, err = tx.Exec(ctx, `
@@ -142,13 +170,6 @@ func (l *Ledger) execute(ctx context.Context, proposal Proposal, commit bool) er
 		`, entryID, accountID, proposal.TransactionCurrency, proposal.ExchangeRate, line.Amount, debitBase, creditBase)
 		if err != nil {
 			return fmt.Errorf("failed to insert journal line: %w", err)
-		}
-	}
-
-	// 6. Commit if requested
-	if commit {
-		if err := tx.Commit(ctx); err != nil {
-			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 	}
 
@@ -161,14 +182,25 @@ type AccountBalance struct {
 	Balance decimal.Decimal
 }
 
-func (l *Ledger) GetBalances(ctx context.Context) ([]AccountBalance, error) {
+func (l *Ledger) GetBalances(ctx context.Context, companyCode string) ([]AccountBalance, error) {
+	var companyID int
+	err := l.pool.QueryRow(ctx, "SELECT id FROM companies WHERE company_code = $1", companyCode).Scan(&companyID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("company code %s not found", companyCode)
+		}
+		return nil, fmt.Errorf("failed to fetch company ID: %w", err)
+	}
+
 	rows, err := l.pool.Query(ctx, `
-		SELECT a.code, a.name, COALESCE(SUM(jl.debit_base::numeric), 0) - COALESCE(SUM(jl.credit_base::numeric), 0) as balance 
-		FROM accounts a 
-		LEFT JOIN journal_lines jl ON a.id = jl.account_id 
-		GROUP BY a.id, a.code, a.name 
+		SELECT a.code, a.name, COALESCE(SUM(jl.debit_base), 0) - COALESCE(SUM(jl.credit_base), 0) AS balance
+		FROM accounts a
+		LEFT JOIN journal_lines jl ON a.id = jl.account_id
+		LEFT JOIN journal_entries je ON jl.entry_id = je.id
+		WHERE a.company_id = $1
+		GROUP BY a.id, a.code, a.name
 		ORDER BY a.code
-	`)
+	`, companyID)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -233,10 +265,10 @@ func (l *Ledger) Reverse(ctx context.Context, entryID int, reasoning string) err
 	type lineData struct {
 		accountID           int
 		transactionCurrency string
-		exchangeRate        string
-		amountTransaction   string
-		debitBase           string
-		creditBase          string
+		exchangeRate        decimal.Decimal
+		amountTransaction   decimal.Decimal
+		debitBase           decimal.Decimal
+		creditBase          decimal.Decimal
 	}
 	var lines []lineData
 
@@ -256,7 +288,7 @@ func (l *Ledger) Reverse(ctx context.Context, entryID int, reasoning string) err
 		_, err := tx.Exec(ctx, `
 			INSERT INTO journal_lines (entry_id, account_id, transaction_currency, exchange_rate, amount_transaction, debit_base, credit_base)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)
-		`, newEntryID, line.accountID, line.transactionCurrency, line.exchangeRate, line.amountTransaction, line.creditBase, line.debitBase)
+		`, newEntryID, line.accountID, line.transactionCurrency, line.exchangeRate.String(), line.amountTransaction, line.creditBase, line.debitBase)
 		if err != nil {
 			return fmt.Errorf("failed to insert inverted line: %w", err)
 		}

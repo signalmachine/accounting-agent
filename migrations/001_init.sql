@@ -1,13 +1,13 @@
 -- Init Schema
 
-CREATE TABLE accounts (
+CREATE TABLE IF NOT EXISTS accounts (
     id SERIAL PRIMARY KEY,
     code TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('asset', 'liability', 'equity', 'revenue', 'expense'))
 );
 
-CREATE TABLE journal_entries (
+CREATE TABLE IF NOT EXISTS journal_entries (
     id SERIAL PRIMARY KEY,
     idempotency_key TEXT UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -18,7 +18,7 @@ CREATE TABLE journal_entries (
     reversed_entry_id INT REFERENCES journal_entries(id)
 );
 
-CREATE TABLE journal_lines (
+CREATE TABLE IF NOT EXISTS journal_lines (
     id SERIAL PRIMARY KEY,
     entry_id INT NOT NULL REFERENCES journal_entries(id),
     account_id INT NOT NULL REFERENCES accounts(id),
@@ -34,4 +34,5 @@ INSERT INTO accounts (code, name, type) VALUES
 ('2000', 'Accounts Payable', 'liability'),
 ('3000', 'Owner Capital', 'equity'),
 ('4000', 'Revenue', 'revenue'),
-('5000', 'Expenses', 'expense');
+('5000', 'Expenses', 'expense')
+ON CONFLICT (code) DO NOTHING;

@@ -236,7 +236,7 @@ func TestLedger_GetBalances(t *testing.T) {
 	}
 
 	// Check balances
-	balances, err := ledger.GetBalances(ctx)
+	balances, err := ledger.GetBalances(ctx, "1000")
 	if err != nil {
 		t.Fatalf("GetBalances failed: %v", err)
 	}
@@ -253,5 +253,91 @@ func TestLedger_GetBalances(t *testing.T) {
 	// Account 4000 (revenue): credit 250 → negative balance (credit normal)
 	if balanceMap["4000"] != "-250.00" {
 		t.Errorf("Expected account 4000 balance -250.00, got %s", balanceMap["4000"])
+	}
+}
+
+func TestLedger_GetBalances_MultiCompany(t *testing.T) {
+	pool := setupTestDB(t)
+	defer pool.Close()
+
+	docService := core.NewDocumentService(pool)
+	ledger := core.NewLedger(pool, docService)
+	ctx := context.Background()
+
+	// Seed a second company with its own accounts
+	_, err := pool.Exec(ctx, `
+		INSERT INTO companies (id, company_code, name, base_currency) VALUES (2, '2000', 'Company Two', 'USD');
+		INSERT INTO accounts (company_id, code, name, type) VALUES
+			(2, '1000', 'Cash USD', 'asset'),
+			(2, '4000', 'Revenue USD', 'revenue');
+	`)
+	if err != nil {
+		t.Fatalf("Failed to seed second company: %v", err)
+	}
+
+	// Commit a transaction for company 1000
+	proposal1 := core.Proposal{
+		DocumentTypeCode:    "JE",
+		CompanyCode:         "1000",
+		IdempotencyKey:      "mc-test-1000",
+		TransactionCurrency: "INR",
+		ExchangeRate:        "1.0",
+		PostingDate:         "2024-01-01",
+		DocumentDate:        "2024-01-01",
+		Summary:             "Company 1 transaction",
+		Reasoning:           "Multi company test",
+		Lines: []core.ProposalLine{
+			{AccountCode: "1000", IsDebit: true, Amount: "100.00"},
+			{AccountCode: "4000", IsDebit: false, Amount: "100.00"},
+		},
+	}
+	if err := ledger.Commit(ctx, proposal1); err != nil {
+		t.Fatalf("Commit for company 1000 failed: %v", err)
+	}
+
+	// Commit a different transaction for company 2000
+	proposal2 := core.Proposal{
+		DocumentTypeCode:    "JE",
+		CompanyCode:         "2000",
+		IdempotencyKey:      "mc-test-2000",
+		TransactionCurrency: "USD",
+		ExchangeRate:        "1.0",
+		PostingDate:         "2024-01-01",
+		DocumentDate:        "2024-01-01",
+		Summary:             "Company 2 transaction",
+		Reasoning:           "Multi company test",
+		Lines: []core.ProposalLine{
+			{AccountCode: "1000", IsDebit: true, Amount: "999.00"},
+			{AccountCode: "4000", IsDebit: false, Amount: "999.00"},
+		},
+	}
+	if err := ledger.Commit(ctx, proposal2); err != nil {
+		t.Fatalf("Commit for company 2000 failed: %v", err)
+	}
+
+	// GetBalances for company 1000 must NOT include company 2000 amounts
+	balances1, err := ledger.GetBalances(ctx, "1000")
+	if err != nil {
+		t.Fatalf("GetBalances for 1000 failed: %v", err)
+	}
+	map1 := make(map[string]string)
+	for _, b := range balances1 {
+		map1[b.Code] = b.Balance.StringFixed(2)
+	}
+	if map1["1000"] != "100.00" {
+		t.Errorf("Company 1000: expected account 1000 = 100.00, got %s", map1["1000"])
+	}
+
+	// GetBalances for company 2000 must NOT include company 1000 amounts
+	balances2, err := ledger.GetBalances(ctx, "2000")
+	if err != nil {
+		t.Fatalf("GetBalances for 2000 failed: %v", err)
+	}
+	map2 := make(map[string]string)
+	for _, b := range balances2 {
+		map2[b.Code] = b.Balance.StringFixed(2)
+	}
+	if map2["1000"] != "999.00" {
+		t.Errorf("Company 2000: expected account 1000 = 999.00, got %s", map2["1000"])
 	}
 }

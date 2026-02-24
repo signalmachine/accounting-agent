@@ -1,0 +1,174 @@
+
+The real question is not “which tax is important?”
+It’s: **which statutory layers affect your core data model and posting engine?**
+
+Those must be designed from day one.
+The rest can sit on top later.
+
+Let’s separate this cleanly.
+
+---
+
+## Add From the Beginning (Foundational)
+
+These affect schema design, document structure, and posting logic. If you bolt them on later, it will hurt.
+
+### 1) Generic Tax Engine (Not “GST”, but tax architecture)
+
+Even if you don’t fully implement GST logic on day one, you must support:
+
+* Tax per line item
+* Multiple tax components per line (CGST/SGST style split)
+* Input vs Output tax ledgers
+* Tax jurisdiction tagging
+* Tax rate master table
+* Tax ledger posting separation
+
+If your invoice table doesn’t support tax components properly, redesign later will be painful.
+
+So from day one:
+
+Build a **generic tax abstraction layer**, not “GST-specific logic”.
+
+That future-proofs you for:
+
+* GST
+* VAT (UAE)
+* Sales tax
+* Any indirect tax system
+
+This is mandatory early.
+
+---
+
+### 2) TDS / Withholding Architecture (Basic Hook)
+
+You don’t need full section-based logic on day one.
+
+But your payment system must allow:
+
+* Deduction at payment time
+* Split between payable to vendor and payable to government
+* Tracking cumulative amount per vendor (for threshold logic later)
+
+If your payment voucher assumes:
+“Payable = invoice amount”
+You’ll regret it.
+
+So design payment posting to allow deductions.
+
+Full TDS logic can come later.
+But deduction capability must exist from the start.
+
+---
+
+### 3) Audit Trail + Period Locking
+
+Statutory compliance depends heavily on:
+
+* No editing posted documents
+* Reversal entries instead of mutation
+* Period close control
+
+If you ignore this early, statutory reporting later becomes unreliable.
+
+This is non-negotiable.
+
+---
+
+## Can Be Added Later (Low Structural Impact)
+
+These are mostly reporting and rule-layer additions.
+
+### 4) TCS
+
+Structurally similar to TDS.
+If your withholding model exists, adding TCS later is easy.
+
+---
+
+### 5) E-invoicing Integration
+
+This is:
+
+* API integration
+* JSON generation
+* IRN storage
+
+It does not change core ledger architecture.
+Can be safely added later.
+
+---
+
+### 6) E-way Bill
+
+Operational compliance layer.
+Doesn’t affect accounting core.
+Can be added later.
+
+---
+
+### 7) Advanced GST Reporting (GSTR-1 automation etc.)
+
+If your tax ledger and invoice data are clean,
+report generation is just query logic.
+
+Can be added later.
+
+---
+
+### 8) Payroll Statutory (PF/ESI/PT)
+
+Completely separate module.
+Add only if you enter payroll domain.
+
+---
+
+## The Practical Priority Order
+
+If you’re building an SMB accounting + inventory backend:
+
+Day One:
+
+* Double entry engine
+* Generic tax component model
+* Tax ledger separation
+* Withholding hook in payments
+* Period locking
+* Immutable posting
+
+Phase Two:
+
+* Full GST logic
+* TDS rule engine
+* Return report generation
+
+Phase Three:
+
+* E-invoice
+* E-way bill
+* TCS
+* Multi-country VAT support
+
+---
+
+## Brutal Truth
+
+If you build:
+
+* Clean posting engine
+* Flexible tax component table
+* Decoupled tax calculation from journal posting
+* Deduction-aware payment model
+
+Then 80% of statutory layers become configuration.
+
+If you hardcode:
+
+* Single tax column in invoice
+* Fixed “tax_amount” fields
+* Direct payable settlement without deduction abstraction
+
+You’ll fight your own system later.
+
+
