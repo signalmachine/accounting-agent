@@ -11,10 +11,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// arAccountCode is the Accounts Receivable account used when invoicing and recording payments.
-// TODO(phase4): replace with configurable rule from the Rule Engine.
-const arAccountCode = "1200"
-
 // defaultBankAccountCode is used when no bank account is specified for payment recording.
 const defaultBankAccountCode = "1100"
 
@@ -44,11 +40,12 @@ type OrderService interface {
 }
 
 type orderService struct {
-	pool *pgxpool.Pool
+	pool        *pgxpool.Pool
+	ruleEngine  RuleEngine
 }
 
-func NewOrderService(pool *pgxpool.Pool) OrderService {
-	return &orderService{pool: pool}
+func NewOrderService(pool *pgxpool.Pool, ruleEngine RuleEngine) OrderService {
+	return &orderService{pool: pool, ruleEngine: ruleEngine}
 }
 
 // resolveCompanyID looks up the internal company ID from a company code.
@@ -435,11 +432,16 @@ func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger Led
 		revenueByAccount[line.RevenueAccountCode] = revenueByAccount[line.RevenueAccountCode].Add(line.LineTotalTransaction)
 	}
 
+	arAccount, err := s.ruleEngine.ResolveAccount(ctx, order.CompanyID, "AR")
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve AR account for invoicing: %w", err)
+	}
+
 	var proposalLines []ProposalLine
 
 	// Debit: Accounts Receivable for full order total
 	proposalLines = append(proposalLines, ProposalLine{
-		AccountCode: arAccountCode,
+		AccountCode: arAccount,
 		IsDebit:     true,
 		Amount:      order.TotalTransaction.String(),
 	})
@@ -518,6 +520,11 @@ func (s *orderService) RecordPayment(ctx context.Context, orderID int, bankAccou
 		paymentDate = time.Now().Format("2006-01-02")
 	}
 
+	arAccount, err := s.ruleEngine.ResolveAccount(ctx, order.CompanyID, "AR")
+	if err != nil {
+		return fmt.Errorf("failed to resolve AR account for payment: %w", err)
+	}
+
 	proposal := Proposal{
 		DocumentTypeCode:    "JE",
 		CompanyCode:         companyCode,
@@ -531,7 +538,7 @@ func (s *orderService) RecordPayment(ctx context.Context, orderID int, bankAccou
 		Reasoning:           fmt.Sprintf("Customer payment for sales order %s.", order.OrderNumber),
 		Lines: []ProposalLine{
 			{AccountCode: bankAccountCode, IsDebit: true, Amount: order.TotalTransaction.String()},
-			{AccountCode: arAccountCode, IsDebit: false, Amount: order.TotalTransaction.String()},
+			{AccountCode: arAccount, IsDebit: false, Amount: order.TotalTransaction.String()},
 		},
 	}
 

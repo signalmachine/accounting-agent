@@ -38,13 +38,33 @@ Get-Content proposal.json | ./app.exe commit
 ### Layering (strictly enforced — no exceptions)
 
 ```
-cmd/ (REPL/CLI)
-  → internal/core/ (domain: Ledger, OrderService, InventoryService, DocumentService, Proposal)
-    → internal/db/ (pgx pool)
-  → internal/ai/ (OpenAI agent — advisory only, never touches DB)
+Layer 4 — Interface Adapters
+          internal/adapters/repl/   REPL commands, display, interactive wizards
+          internal/adapters/cli/    CLI one-shot commands (propose/validate/commit/bal)
+          cmd/app/                  Wiring only — 48 lines, no business logic
+                    ↓
+Layer 3 — Application Service
+          internal/app/             ApplicationService interface + implementation
+                    ↓               No fmt.Println. No display logic.
+Layer 2 — Domain Core
+          internal/core/            Ledger, OrderService, InventoryService,
+                                    DocumentService, RuleEngine
+                    ↓
+Layer 1 — Infrastructure
+          internal/db/              pgx connection pool
+          internal/ai/              OpenAI GPT-4o agent (advisory only, never writes DB)
 ```
 
-Forbidden: domain importing AI, ledger importing presentation, any layer importing upward. OrderService may call LedgerService. InventoryService may call `Ledger.CommitInTx` (but not the interface — only the concrete `*Ledger`). Neither domain knows journal schema internals.
+**Forbidden imports:**
+- Adapters must not import `internal/core` directly — they call `app.ApplicationService` only.
+- Domain services must not import adapters or `internal/ai`.
+- `internal/ai` must not import `internal/core` domain services (only uses core model types).
+- No layer imports upward.
+
+**Permitted cross-domain calls:**
+- `OrderService` may call `LedgerService` and `DocumentService`.
+- `InventoryService` may call `Ledger.CommitInTx` (concrete `*Ledger`, not the interface) and `DocumentService`.
+- `ApplicationService` calls all domain services and `internal/ai`.
 
 ### Key Design Decisions
 
@@ -62,16 +82,30 @@ Forbidden: domain importing AI, ledger importing presentation, any layer importi
 
 ### REPL Input Classification
 
-All commands use a `/` prefix. Input without a `/` prefix is routed to the AI agent.
+The routing rule is simple and has no exceptions:
 
-Slash commands (deterministic, no AI):
+```
+Input starts with /  →  Deterministic command dispatcher (instant, no AI)
+Input has no /       →  AI agent (GPT-4o), regardless of length or content
+```
+
+`bal` without a `/` goes to the AI — it is **not** a shortcut for `/bal`. Users must always include the `/` prefix for commands.
+
+**Slash commands (deterministic, no AI):**
 - **Ledger**: `/bal`, `/balances`
 - **Master data**: `/customers`, `/products`
 - **Orders**: `/orders`, `/new-order`, `/confirm`, `/ship`, `/invoice`, `/payment`
 - **Inventory**: `/warehouses`, `/stock`, `/receive`
 - **Session**: `/help`, `/exit`, `/quit`
 
-Multi-word input (no `/` prefix) → sent to GPT-4o as a business event description.
+**AI clarification loop behaviour:**
+- When the AI requests clarification, the REPL reads one more line from the user.
+- If that line starts with `/`, the AI session is **cancelled immediately** and the slash command is dispatched normally. The user is never stuck in the AI loop.
+- An empty line or the word `cancel` also cancels the session.
+- After 3 clarification rounds with no resolution, the loop exits with a message directing the user to `/help`.
+
+**AI prompt behaviour for non-accounting input:**
+The AI prompt instructs GPT-4o: if the input is a non-financial/operational request (e.g. "list orders", "confirm shipment"), respond with `is_clarification_request: true` and redirect to the relevant slash command. This is the AI's mechanism for gracefully handling misrouted input — it does not always fire perfectly for ambiguous single-word inputs.
 
 ### OpenAI Integration
 
@@ -112,13 +146,64 @@ Gapless document numbers use PostgreSQL row-level locks on `document_sequences` 
   `DATABASE_URL=$TEST_DATABASE_URL go run ./cmd/verify-db`
 - Ledger and proposal unit tests must not require OpenAI.
 - Required test coverage: ledger commit success/rejection, cross-company isolation, concurrency for document numbering, balance calculation regression, inventory stock levels and COGS.
-- Current test count: **27 tests** across ledger, document, order, and inventory suites.
+- Current test count: **32 tests** across ledger, document, order, inventory, and rule engine suites.
+
+## Code Quality Rules
+
+**No global state.** No package-level mutable variables. All dependencies must be injected via constructors or function parameters.
+
+**Services are HTTP-agnostic.** No HTTP types in service method signatures. Accept `context.Context` as the first parameter. Services must be testable without an HTTP server.
+
+**AI must be replaceable.** Define AI behind a Go interface (`AgentService`). The system must compile and run correctly without the AI module.
+
+**No circular dependencies.** No god structs that own unrelated concerns. No shared mutable state between packages.
+
+**Refactoring discipline.** When modifying existing behavior: don't change behavior silently, add tests before changing logic, preserve backward compatibility unless explicitly breaking.
 
 ## Pending Roadmap
 
-- **Phases 0.5, 2, 3**: ✅ Complete. See `docs/Pending Implementation Phases.md`.
-- **Phase 6** (recommended next): Reporting — materialized views, `/pl` (P&L) and `/bs` (Balance Sheet) REPL commands. Non-breaking, additive read layer.
-- **Phase 4**: Policy & Rule Engine — replace hardcoded account mappings (1200 AR, 1400 Inventory, 5000 COGS) with a configurable rule registry.
-- **Phases 5, 7, 8**: Approvals, AI Expansion, External Integrations — all deferred.
+### AI Agent Upgrade Principle
 
-When implementing future phases: New domains call `Ledger.Commit()` or `Ledger.CommitInTx()` — they never construct `journal_lines` directly. Follow the established TX-scoped service method pattern from `InventoryService` for any operations that must be atomic with order state transitions.
+**Core system first. AI upgrades gradual and need-based.**
+
+The accounting, inventory, and order management core is always the first priority. The AI agent is upgraded in parallel with the core build, but strictly incrementally and only when a new domain is stable and the AI addition is clearly needed. Never add AI capabilities at the expense of core correctness or system stability.
+
+Concretely:
+- **Do not start AI work for a domain until that domain's integration tests pass.**
+- **Add only the tools and skills the current domain requires** — do not pre-build tools for domains not yet implemented.
+- **The existing `InterpretEvent` path must remain untouched** until `InterpretDomainAction` has been stable in production across at least two domain phases.
+- **Phase 31 is split into 31a (tool architecture) and 31b (RAG, skills, verification)** — 31b only begins after 31a is proven stable.
+- **If there is any tension between core correctness and an AI feature**, core correctness wins without exception.
+
+### Planning Documents
+
+Four documents govern the roadmap. Read them in this order before implementing any new phase:
+
+| Document | Role | Read when |
+|---|---|---|
+| [`docs/Implementation_plan_upgrade.md`](docs/Implementation_plan_upgrade.md) | **Primary roadmap.** Phase-by-phase plan for the entire system (Tiers 0–5). All phases are defined here. | Before implementing any phase |
+| [`docs/plan_gaps.md`](docs/plan_gaps.md) | **Support document for the primary roadmap.** Records known gaps, under-specified areas, and missing business operations in the plan. Tier 4 tax phases must not be started until the relevant gap section is expanded. | Before implementing the affected phase |
+| [`docs/ai_agent_upgrade.md`](docs/ai_agent_upgrade.md) | **Support document for the primary roadmap.** Defines the expanded AI agent role, skills architecture, tool-calling design, context engineering, and how AI capabilities are woven across tiers rather than deferred to Phase 31. | Before implementing any AI-related work |
+| [`docs/web_ui_plan.md`](docs/web_ui_plan.md) | **Independent track.** Web UI as primary interface: tech stack (Go + templ + HTMX + Alpine.js), REST API layer, authentication, web foundation phases (WF1–WF5), domain UI phases (WD0–WD3), AI chat panel, REPL deprecation timeline. Supersedes Phase 32. Can be developed in parallel with the domain phases once Phase WF1 stub handlers exist. | Before implementing any web UI work |
+
+**Document relationships:**
+- `plan_gaps.md` and `ai_agent_upgrade.md` are subordinate to `Implementation_plan_upgrade.md` — they detail and constrain specific phases in it but do not define independent phases.
+- `web_ui_plan.md` defines its own phase sequence (WF1–WF5, WD0–WD3) that runs alongside and partially independent of the domain phases. Web UI phases depend on `ApplicationService` being complete (done) and on handler stubs existing (Phase WF1), not on individual domain phases being finished.
+
+**Completed:**
+- **Tier 0**: Bug fixes — hardcoded `INR` currency in GR/COGS proposals, non-deterministic company load, AI loop depth limit.
+- **Phase 1**: `internal/app/` — `ApplicationService` interface, result types, request types.
+- **Phase 2**: `ApplicationService` implementation (`app_service.go`).
+- **Phase 3**: REPL adapter extraction — `internal/adapters/repl/` (repl, display, wizards).
+- **Phase 4**: CLI adapter — `internal/adapters/cli/cli.go` + `main.go` slimmed to 48 lines. `LoadDefaultCompany` and `ValidateProposal` added to `ApplicationService`.
+- **Phase 5**: `account_rules` table + seed (migrations 011–012). 6 rules seeded for Company 1000.
+- **Phase 6**: `RuleEngine` service (`internal/core/rule_engine.go`) wired into `OrderService`. `arAccountCode` constant removed. 5 new `TestRuleEngine_ResolveAccount` subtests added.
+
+**Next up:**
+- **Phase 7**: `RuleEngine` wired into `InventoryService` (replaces hardcoded Inventory/COGS/RECEIPT_CREDIT accounts).
+- **Phase WF1**: REST API foundation (`cmd/server/`, `internal/adapters/web/`, chi router, stub handlers, OpenAPI spec) — can begin after Phase 7.
+- **Phase 8**: Account statement report — `ReportingService.GetAccountStatement()`.
+
+When implementing future phases: New domains call `Ledger.Commit()` or `Ledger.CommitInTx()` — they never construct `journal_lines` directly. Follow the TX-scoped service method pattern from `InventoryService` for any operations that must be atomic with order state transitions.
+
+**Multi-company usage:** When the database contains more than one company, set `COMPANY_CODE=<code>` in `.env`. Without it, the system selects the single company automatically and errors if multiple companies are found.

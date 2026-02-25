@@ -39,6 +39,10 @@ func setupOrderTestDB(t *testing.T) (*pgxpool.Pool, core.OrderService, core.Ledg
 		(1, 'P002', 'Consulting Services', 'Advisory services', 5000.00, 'hour', '4100'),
 		(1, 'P003', 'Widget B',            'Premium widget',    1200.00, 'unit', '4000')
 		ON CONFLICT (company_id, code) DO NOTHING;
+
+		INSERT INTO account_rules (company_id, rule_type, account_code) VALUES
+		(1, 'AR', '1200')
+		ON CONFLICT DO NOTHING;
 	`)
 	if err != nil {
 		t.Fatalf("Failed to seed order test data: %v", err)
@@ -46,7 +50,8 @@ func setupOrderTestDB(t *testing.T) (*pgxpool.Pool, core.OrderService, core.Ledg
 
 	docSvc := core.NewDocumentService(pool)
 	ledger := core.NewLedger(pool, docSvc)
-	orderSvc := core.NewOrderService(pool)
+	ruleEngine := core.NewRuleEngine(pool)
+	orderSvc := core.NewOrderService(pool, ruleEngine)
 
 	return pool, orderSvc, ledger, docSvc, ctx
 }

@@ -181,7 +181,8 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 
 	// Resolve company
 	var companyID int
-	if err := tx.QueryRow(ctx, "SELECT id FROM companies WHERE company_code = $1", companyCode).Scan(&companyID); err != nil {
+	var baseCurrency string
+	if err := tx.QueryRow(ctx, "SELECT id, base_currency FROM companies WHERE company_code = $1", companyCode).Scan(&companyID, &baseCurrency); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("company code %s not found", companyCode)
 		}
@@ -278,7 +279,7 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 		DocumentTypeCode:    "GR",
 		CompanyCode:         companyCode,
 		IdempotencyKey:      "",
-		TransactionCurrency: "INR", // TODO: use company base currency
+		TransactionCurrency: baseCurrency,
 		ExchangeRate:        "1",
 		Summary:             fmt.Sprintf("Goods Receipt: %s × %s units of %s @ %s", qty.String(), qty.String(), productCode, unitCost.String()),
 		PostingDate:         movementDate,
@@ -500,9 +501,9 @@ func (s *inventoryService) ShipStockTx(ctx context.Context, tx pgx.Tx, companyID
 
 	// Book COGS journal entry atomically within the caller's TX
 	if !totalCOGS.IsZero() {
-		// Resolve company code for the proposal
-		var companyCode string
-		if err := tx.QueryRow(ctx, "SELECT company_code FROM companies WHERE id = $1", companyID).Scan(&companyCode); err != nil {
+		// Resolve company code and base currency for the proposal
+		var companyCode, baseCurrency string
+		if err := tx.QueryRow(ctx, "SELECT company_code, base_currency FROM companies WHERE id = $1", companyID).Scan(&companyCode, &baseCurrency); err != nil {
 			return fmt.Errorf("failed to resolve company code for COGS entry: %w", err)
 		}
 
@@ -511,7 +512,7 @@ func (s *inventoryService) ShipStockTx(ctx context.Context, tx pgx.Tx, companyID
 			DocumentTypeCode:    "GI",
 			CompanyCode:         companyCode,
 			IdempotencyKey:      fmt.Sprintf("goods-issue-order-%d", orderID),
-			TransactionCurrency: "INR", // TODO: use company base currency
+			TransactionCurrency: baseCurrency,
 			ExchangeRate:        "1",
 			Summary:             fmt.Sprintf("Cost of Goods Sold — order ID %d", orderID),
 			PostingDate:         today,

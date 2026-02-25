@@ -17,7 +17,12 @@
       "Bash(cd D:/agents/accounting-agent && go build ./cmd/app 2>&1)",
       "Bash(python:*)",
       "Bash(cd /d/agents/accounting-agent && go vet ./... 2>&1)",
-      "Bash(echo BUILD OK:*)"
+      "Bash(echo BUILD OK:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(tail:*)",
+      "Bash(test:*)",
+      "Bash(go build:*)"
     ]
   }
 }
