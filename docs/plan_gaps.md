@@ -1,7 +1,7 @@
 # Implementation Plan — Gaps & Open Issues
 
 > **Purpose**: Records known gaps, under-specified areas, and missing coverage in the main implementation plan.
-> **Last Updated**: 2026-02-25 (rev 2 — added §5.3 inventory test seeds, §8 reporting gaps, §9 web stack inconsistency)
+> **Last Updated**: 2026-02-26 (rev 3 — §9 marked resolved; tech stack corrected in Implementation_plan_upgrade.md)
 > **Status**: Living document — expand each section before starting the affected phase.
 
 ---
@@ -231,21 +231,9 @@ The `IsBalanced` check in Phase 10 can be implemented in two ways:
 
 ---
 
-## 9. Primary Roadmap Document Inconsistency — Web UI Tech Stack
+## 9. ~~Primary Roadmap Document Inconsistency — Web UI Tech Stack~~ — RESOLVED
 
-The companion table in `Implementation_plan_upgrade.md` describes `docs/web_ui_plan.md` as covering:
-
-> *"tech stack (React + Go REST), auth, Tier 2.5 web foundation phases (WF1–WF4)…"*
-
-Phase WF3 in that document also reads: *"Frontend scaffold (React + TypeScript + shadcn/ui app shell)"*.
-
-However, `docs/web_ui_plan.md` (updated 2026-02-25) specifies a different stack:
-
-> **Go + a-h/templ + HTMX 2.x + Alpine.js 3.x + Tailwind CSS v4 + Chart.js 4.x** — no React, no Node.js, JS vendored in `web/static/js/`, single `go build` binary. Server-side rendering via templ templates. HTMX handles partial page updates. No separate REST API as the primary interface.
-
-The primary roadmap document has not been updated to reflect this decision. Anyone reading `Implementation_plan_upgrade.md` without also reading `web_ui_plan.md` would plan Phases WF1–WF5 around the wrong technology stack.
-
-**Action**: Update the companion table description for `web_ui_plan.md` and the Phase WF1–WF4 task lists in `Implementation_plan_upgrade.md` to match the current stack. This is a documentation correction — the architecture decision has already been made and is authoritative in `web_ui_plan.md`.
+> **Resolved (2026-02-26)**: `Implementation_plan_upgrade.md` companion table and Phase WF3 task list have been updated to reflect the correct stack: **Go + a-h/templ + HTMX 2.x + Alpine.js 3.x + Tailwind CSS v4 + Chart.js 4.x**. The outdated React/TypeScript/shadcn references have been removed. No further action required.
 
 ---
 

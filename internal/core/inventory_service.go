@@ -11,17 +11,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// inventoryAccountCode is the Inventory asset account.
-// TODO(phase4): replace with configurable rule from the Rule Engine.
-const inventoryAccountCode = "1400"
-
-// cogsAccountCode is the Cost of Goods Sold expense account.
-// TODO(phase4): replace with configurable rule from the Rule Engine.
-const cogsAccountCode = "5000"
-
-// defaultCreditAccountCode is used when receiving stock without specifying a credit account.
-const defaultReceiptCreditAccountCode = "2000"
-
 // InventoryService manages warehouse stock levels, reservations, and goods movements.
 // It integrates with the Ledger to book accounting entries for receipts and shipments.
 type InventoryService interface {
@@ -49,11 +38,12 @@ type InventoryService interface {
 }
 
 type inventoryService struct {
-	pool *pgxpool.Pool
+	pool       *pgxpool.Pool
+	ruleEngine RuleEngine
 }
 
-func NewInventoryService(pool *pgxpool.Pool) InventoryService {
-	return &inventoryService{pool: pool}
+func NewInventoryService(pool *pgxpool.Pool, ruleEngine RuleEngine) InventoryService {
+	return &inventoryService{pool: pool, ruleEngine: ruleEngine}
 }
 
 // ── Standalone operations ─────────────────────────────────────────────────────
@@ -169,9 +159,6 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 	if unitCost.IsNegative() {
 		return fmt.Errorf("unit cost cannot be negative, got %s", unitCost)
 	}
-	if creditAccountCode == "" {
-		creditAccountCode = defaultReceiptCreditAccountCode
-	}
 
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
@@ -187,6 +174,20 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 			return fmt.Errorf("company code %s not found", companyCode)
 		}
 		return fmt.Errorf("failed to resolve company: %w", err)
+	}
+
+	// Resolve inventory account via rule engine
+	inventoryAccount, err := s.ruleEngine.ResolveAccount(ctx, companyID, "INVENTORY")
+	if err != nil {
+		return fmt.Errorf("failed to resolve INVENTORY account: %w", err)
+	}
+
+	// Resolve credit account: use caller-supplied value or fall back to rule engine
+	if creditAccountCode == "" {
+		creditAccountCode, err = s.ruleEngine.ResolveAccount(ctx, companyID, "RECEIPT_CREDIT")
+		if err != nil {
+			return fmt.Errorf("failed to resolve RECEIPT_CREDIT account: %w", err)
+		}
 	}
 
 	// Resolve warehouse
@@ -287,7 +288,7 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 		Confidence:          1.0,
 		Reasoning:           fmt.Sprintf("Inventory receipt for product %s, %s units at unit cost %s.", productCode, qty.String(), unitCost.String()),
 		Lines: []ProposalLine{
-			{AccountCode: inventoryAccountCode, IsDebit: true, Amount: totalCost.String()},
+			{AccountCode: inventoryAccount, IsDebit: true, Amount: totalCost.String()},
 			{AccountCode: creditAccountCode, IsDebit: false, Amount: totalCost.String()},
 		},
 	}
@@ -507,6 +508,15 @@ func (s *inventoryService) ShipStockTx(ctx context.Context, tx pgx.Tx, companyID
 			return fmt.Errorf("failed to resolve company code for COGS entry: %w", err)
 		}
 
+		cogsAccount, err := s.ruleEngine.ResolveAccount(ctx, companyID, "COGS")
+		if err != nil {
+			return fmt.Errorf("failed to resolve COGS account: %w", err)
+		}
+		inventoryAccount, err := s.ruleEngine.ResolveAccount(ctx, companyID, "INVENTORY")
+		if err != nil {
+			return fmt.Errorf("failed to resolve INVENTORY account for COGS entry: %w", err)
+		}
+
 		today := time.Now().Format("2006-01-02")
 		cogsProposal := Proposal{
 			DocumentTypeCode:    "GI",
@@ -520,8 +530,8 @@ func (s *inventoryService) ShipStockTx(ctx context.Context, tx pgx.Tx, companyID
 			Confidence:          1.0,
 			Reasoning:           fmt.Sprintf("COGS booked automatically on shipment of order ID %d.", orderID),
 			Lines: []ProposalLine{
-				{AccountCode: cogsAccountCode, IsDebit: true, Amount: totalCOGS.StringFixed(2)},
-				{AccountCode: inventoryAccountCode, IsDebit: false, Amount: totalCOGS.StringFixed(2)},
+				{AccountCode: cogsAccount, IsDebit: true, Amount: totalCOGS.StringFixed(2)},
+				{AccountCode: inventoryAccount, IsDebit: false, Amount: totalCOGS.StringFixed(2)},
 			},
 		}
 

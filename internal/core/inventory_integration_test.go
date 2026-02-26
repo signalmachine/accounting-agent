@@ -41,12 +41,20 @@ func setupInventoryTestDB(t *testing.T) (core.OrderService, core.InventoryServic
 		JOIN warehouses w ON w.company_id = 1 AND w.code = 'MAIN'
 		WHERE p.company_id = 1 AND p.code IN ('P001', 'P003')
 		ON CONFLICT (company_id, product_id, warehouse_id) DO NOTHING;
+
+		-- Account rules required by InventoryService (Phase 7)
+		INSERT INTO account_rules (company_id, rule_type, account_code) VALUES
+		(1, 'INVENTORY',      '1400'),
+		(1, 'COGS',           '5000'),
+		(1, 'RECEIPT_CREDIT', '2000')
+		ON CONFLICT DO NOTHING;
 	`)
 	if err != nil {
 		t.Fatalf("Failed to seed inventory test data: %v", err)
 	}
 
-	invSvc := core.NewInventoryService(pool)
+	ruleEngine := core.NewRuleEngine(pool)
+	invSvc := core.NewInventoryService(pool, ruleEngine)
 	return orderSvc, invSvc, ledger, docSvc, ctx
 }
 

@@ -16,8 +16,54 @@ import (
 	"github.com/openai/openai-go/shared/constant"
 )
 
+// AgentDomainResultKind identifies the terminal outcome of an InterpretDomainAction call.
+type AgentDomainResultKind string
+
+const (
+	// AgentDomainResultKindAnswer means the agent gathered context via read tools and produced a plain-text answer.
+	AgentDomainResultKindAnswer AgentDomainResultKind = "answer"
+	// AgentDomainResultKindClarification means the agent needs more information from the user.
+	AgentDomainResultKindClarification AgentDomainResultKind = "clarification"
+	// AgentDomainResultKindProposed means the agent is proposing a write-tool action for human confirmation.
+	AgentDomainResultKindProposed AgentDomainResultKind = "proposed"
+	// AgentDomainResultKindJournalEntry means the input is a financial accounting event;
+	// the caller should route it to InterpretEvent for structured-output journal entry proposal.
+	AgentDomainResultKindJournalEntry AgentDomainResultKind = "journal_entry"
+)
+
+// AgentDomainResult is the terminal output of InterpretDomainAction.
+type AgentDomainResult struct {
+	Kind AgentDomainResultKind
+
+	// Answer is populated when Kind == AgentDomainResultKindAnswer.
+	Answer string
+
+	// Question is populated when Kind == AgentDomainResultKindClarification.
+	Question string
+	// Context is additional context the agent has established so far (for clarification).
+	Context string
+
+	// ToolName and ToolArgs are populated when Kind == AgentDomainResultKindProposed.
+	ToolName string
+	ToolArgs map[string]any
+
+	// EventDescription is populated when Kind == AgentDomainResultKindJournalEntry.
+	// It contains the user's original event description (possibly refined) to pass to InterpretEvent.
+	EventDescription string
+}
+
 type AgentService interface {
+	// InterpretEvent interprets a natural language event as a double-entry journal entry proposal.
+	// This path uses structured output (Responses API JSON schema mode) and must remain untouched
+	// until InterpretDomainAction has been stable across ≥2 domain phases with write tools.
 	InterpretEvent(ctx context.Context, naturalLanguage string, chartOfAccounts string, documentTypes string, company *core.Company) (*core.AgentResponse, error)
+
+	// InterpretDomainAction routes a natural language input through the agentic tool loop.
+	// The agent calls read tools autonomously to gather context, then either proposes a write
+	// tool (for human confirmation), asks a clarifying question, returns an answer, or signals
+	// that the input is a financial event to be handled by InterpretEvent.
+	// InterpretEvent is not called or modified by this method.
+	InterpretDomainAction(ctx context.Context, userInput string, company *core.Company, registry *ToolRegistry) (*AgentDomainResult, error)
 }
 
 type Agent struct {
@@ -187,6 +233,204 @@ func generateSchema() map[string]any {
 			},
 		},
 	}
+}
+
+// InterpretDomainAction runs the agentic tool loop for a user's natural language input.
+//
+// Loop invariants (enforced here, per §14.3 of ai_agent_upgrade.md):
+//   - Read tools are executed autonomously — results are fed back to the model.
+//   - The loop terminates when the model produces a text message (answer), calls a write
+//     tool (proposed action or meta-tool), or the 5-iteration cap is reached.
+//   - InterpretEvent is not called or modified by this method.
+func (a *Agent) InterpretDomainAction(ctx context.Context, userInput string, company *core.Company, registry *ToolRegistry) (*AgentDomainResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	systemPrompt := fmt.Sprintf(`You are an expert business assistant for %s (%s, base currency: %s).
+
+You have access to tools to look up accounts, customers, products, stock levels, and warehouses.
+Use read tools to gather the information you need before responding.
+
+ROUTING RULES — follow these exactly:
+1. If the user asks a question about accounts, customers, products, or stock: call the relevant read tools and provide a clear answer.
+2. If the user is describing a financial accounting event (recording a payment, posting an expense, booking a journal entry, recording revenue): call route_to_journal_entry with the event description.
+3. If you need more information before you can help: call request_clarification with a specific question.
+4. If you have gathered enough information via read tools: respond with a plain-text answer.
+
+TOOL USAGE:
+- Call read tools as many times as needed to gather context.
+- Do not guess account codes or customer names — always verify via search tools.
+- After calling read tools, provide a specific, actionable response.
+
+Today's date: %s`, company.Name, company.CompanyCode, company.BaseCurrency, time.Now().Format("2006-01-02"))
+
+	tools := registry.ToOpenAITools()
+
+	// Add meta-tools that terminate the loop.
+	tools = append(tools,
+		responses.ToolUnionParam{
+			OfFunction: &responses.FunctionToolParam{
+				Name:        "request_clarification",
+				Description: openai.String("Use this when you need more information from the user before you can help. Ask one specific question."),
+				Parameters: map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]any{
+						"question": map[string]any{
+							"type":        "string",
+							"description": "The specific question to ask the user.",
+						},
+						"context": map[string]any{
+							"type":        "string",
+							"description": "What you have established so far, to give the user context.",
+						},
+					},
+					"required": []string{"question", "context"},
+				},
+			},
+		},
+		responses.ToolUnionParam{
+			OfFunction: &responses.FunctionToolParam{
+				Name:        "route_to_journal_entry",
+				Description: openai.String("Use this when the user is describing a financial accounting event that requires a journal entry (e.g. recording a payment, posting an expense, booking revenue). Do NOT use this for queries or lookups."),
+				Parameters: map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]any{
+						"event_description": map[string]any{
+							"type":        "string",
+							"description": "The user's event description, preserved verbatim or lightly cleaned up.",
+						},
+					},
+					"required": []string{"event_description"},
+				},
+			},
+		},
+	)
+
+	const maxLoops = 5
+	prevRespID := ""
+	inputParam := responses.ResponseNewParamsInputUnion{
+		OfString: openai.String(userInput),
+	}
+
+	for i := 0; i < maxLoops; i++ {
+		params := responses.ResponseNewParams{
+			Model:        openai.ChatModelGPT4o,
+			Instructions: openai.String(systemPrompt),
+			Tools:        tools,
+		}
+		if prevRespID != "" {
+			params.PreviousResponseID = openai.String(prevRespID)
+		}
+		params.Input = inputParam
+
+		resp, err := a.client.Responses.New(ctx, params)
+		if err != nil {
+			var apierr *openai.Error
+			if errors.As(err, &apierr) {
+				log.Printf("OpenAI API error %d: %s", apierr.StatusCode, apierr.DumpResponse(true))
+			}
+			return nil, fmt.Errorf("openai responses error: %w", err)
+		}
+
+		if usage := resp.Usage; usage.TotalTokens > 0 {
+			log.Printf("OpenAI usage (domain action) — prompt: %d, completion: %d, total: %d tokens",
+				usage.InputTokens, usage.OutputTokens, usage.TotalTokens)
+		}
+
+		prevRespID = resp.ID
+
+		// Collect read tool calls; a single write tool or text message terminates the loop.
+		var toolResults []responses.ResponseInputItemUnionParam
+		hasReadToolCalls := false
+
+		for _, item := range resp.Output {
+			switch item.Type {
+			case "message":
+				// Agent produced a text response — this is the "answer" outcome.
+				text := resp.OutputText()
+				return &AgentDomainResult{Kind: AgentDomainResultKindAnswer, Answer: text}, nil
+
+			case "function_call":
+				fc := item.AsFunctionCall()
+
+				// Meta-tools terminate the loop immediately.
+				if fc.Name == "request_clarification" || fc.Name == "route_to_journal_entry" {
+					var args map[string]any
+					if err := json.Unmarshal([]byte(fc.Arguments), &args); err != nil {
+						return nil, fmt.Errorf("failed to parse %s args: %w", fc.Name, err)
+					}
+					if fc.Name == "request_clarification" {
+						question, _ := args["question"].(string)
+						ctx2, _ := args["context"].(string)
+						return &AgentDomainResult{
+							Kind:     AgentDomainResultKindClarification,
+							Question: question,
+							Context:  ctx2,
+						}, nil
+					}
+					// route_to_journal_entry
+					desc, _ := args["event_description"].(string)
+					if desc == "" {
+						desc = userInput
+					}
+					return &AgentDomainResult{
+						Kind:             AgentDomainResultKindJournalEntry,
+						EventDescription: desc,
+					}, nil
+				}
+
+				// Look up the tool in the registry.
+				tool, ok := registry.Get(fc.Name)
+				if !ok {
+					return nil, fmt.Errorf("agent called unregistered tool: %s", fc.Name)
+				}
+
+				if !tool.IsReadTool {
+					// Write tool — return as proposed action for human confirmation.
+					var args map[string]any
+					if err := json.Unmarshal([]byte(fc.Arguments), &args); err != nil {
+						return nil, fmt.Errorf("failed to parse write tool args for %s: %w", fc.Name, err)
+					}
+					return &AgentDomainResult{
+						Kind:     AgentDomainResultKindProposed,
+						ToolName: fc.Name,
+						ToolArgs: args,
+					}, nil
+				}
+
+				// Read tool — execute autonomously and collect result.
+				var args map[string]any
+				if err := json.Unmarshal([]byte(fc.Arguments), &args); err != nil {
+					return nil, fmt.Errorf("failed to parse read tool args for %s: %w", fc.Name, err)
+				}
+				resultStr, handlerErr := tool.Handler(ctx, args)
+				if handlerErr != nil {
+					resultStr = fmt.Sprintf(`{"error": %q}`, handlerErr.Error())
+				}
+				toolResults = append(toolResults,
+					responses.ResponseInputItemParamOfFunctionCallOutput(fc.CallID, resultStr))
+				hasReadToolCalls = true
+			}
+		}
+
+		if !hasReadToolCalls {
+			// No tool calls and no text message — unexpected.
+			text := resp.OutputText()
+			if text != "" {
+				return &AgentDomainResult{Kind: AgentDomainResultKindAnswer, Answer: text}, nil
+			}
+			return nil, fmt.Errorf("agent returned no output in iteration %d", i+1)
+		}
+
+		// Feed all read tool results back for the next iteration.
+		inputParam = responses.ResponseNewParamsInputUnion{
+			OfInputItemList: toolResults,
+		}
+	}
+
+	return nil, fmt.Errorf("agent tool loop exceeded maximum iterations (%d) without reaching a conclusion", maxLoops)
 }
 
 func proposalSchema() map[string]any {

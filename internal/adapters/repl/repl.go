@@ -193,6 +193,27 @@ func Run(ctx context.Context, svc app.ApplicationService, reader *bufio.Reader) 
 			fmt.Printf("Received %s units of %s @ %s. DR 1400 Inventory, CR %s.\n",
 				qty.String(), productCode, unitCost.String(), creditAccount)
 
+		case "statement":
+			// Usage: /statement <account-code> [from-date] [to-date]
+			if len(args) < 1 {
+				fmt.Println("Usage: /statement <account-code> [from-date] [to-date]")
+				fmt.Println("  from-date and to-date are optional YYYY-MM-DD.")
+				return nil
+			}
+			accountCode := strings.ToUpper(args[0])
+			fromDate, toDate := "", ""
+			if len(args) >= 2 {
+				fromDate = args[1]
+			}
+			if len(args) >= 3 {
+				toDate = args[2]
+			}
+			result, err := svc.GetAccountStatement(ctx, company.CompanyCode, accountCode, fromDate, toDate)
+			if err != nil {
+				return err
+			}
+			printStatement(result)
+
 		case "help", "h":
 			printHelp()
 
@@ -225,31 +246,48 @@ func Run(ctx context.Context, svc app.ApplicationService, reader *bufio.Reader) 
 			continue
 		}
 
-		// No slash prefix → route to AI agent.
+		// No slash prefix → route to AI agent via InterpretDomainAction.
+		// The agent calls read tools autonomously, then returns one of four outcomes:
+		//   answer       — text response; display and done.
+		//   clarification— agent needs more info; read follow-up, re-call (3-round cap).
+		//   proposed     — domain write action; show card, confirm, execute.
+		//   journal_entry— financial event; route to InterpretEvent for proposal.
 		fmt.Println("[AI] Processing...")
 		accumulatedInput := input
-
 		rounds := 0
+
+	domainLoop:
 		for {
 			rounds++
 			if rounds > 3 {
-				fmt.Println("Could not produce a proposal. Try a slash command instead — type /help.")
+				fmt.Println("Could not determine the right action. Try a slash command instead — type /help.")
 				break
 			}
 
-			result, err := svc.InterpretEvent(ctx, accumulatedInput, company.CompanyCode)
+			result, err := svc.InterpretDomainAction(ctx, accumulatedInput, company.CompanyCode)
 			if err != nil {
 				fmt.Printf("Error: %v\n", err)
 				break
 			}
 
-			if result.IsClarification {
-				fmt.Printf("\n[AI]: %s\n", result.ClarificationMessage)
+			switch result.Kind {
+
+			case app.DomainActionKindAnswer:
+				// Agent answered from read tool results — display and done.
+				fmt.Printf("\n[AI]: %s\n", result.Answer)
+				break domainLoop
+
+			case app.DomainActionKindClarification:
+				// Agent needs more information.
+				fmt.Printf("\n[AI]: %s\n", result.Question)
+				if result.Context != "" {
+					fmt.Printf("      (Context: %s)\n", result.Context)
+				}
 				fmt.Print("> ")
 				userFollowUp, _ := reader.ReadString('\n')
 				userFollowUp = strings.TrimSpace(userFollowUp)
 
-				// Slash command during clarification — cancel AI flow and execute it.
+				// Slash command during clarification — cancel AI flow and dispatch it.
 				if strings.HasPrefix(userFollowUp, "/") {
 					fmt.Println("(AI session cancelled)")
 					if dispErr := dispatchSlash(userFollowUp); dispErr != nil {
@@ -259,40 +297,104 @@ func Run(ctx context.Context, svc app.ApplicationService, reader *bufio.Reader) 
 						}
 						fmt.Printf("Error: %v\n", dispErr)
 					}
-					break
+					break domainLoop
 				}
-
 				if userFollowUp == "" || strings.ToLower(userFollowUp) == "cancel" {
 					fmt.Println("Cancelled.")
-					break
+					break domainLoop
 				}
-				accumulatedInput = fmt.Sprintf("Original Event: %s\nClarification requested: %s\nUser response: %s",
-					accumulatedInput, result.ClarificationMessage, userFollowUp)
+				accumulatedInput = fmt.Sprintf("Original: %s\nContext established: %s\nUser response: %s",
+					accumulatedInput, result.Question, userFollowUp)
 				fmt.Println("[AI] Thinking...")
 				continue
-			}
 
-			proposal := result.Proposal
-			printProposal(proposal)
-
-			if proposal.Confidence < 0.6 {
-				fmt.Println("\nWARNING: Low confidence proposal.")
-			}
-
-			fmt.Print("\nApprove this transaction? (y/n): ")
-			choice, _ := reader.ReadString('\n')
-			choice = strings.TrimSpace(strings.ToLower(choice))
-
-			if choice == "y" || choice == "yes" {
-				if err := svc.CommitProposal(ctx, *proposal); err != nil {
-					fmt.Printf("Transaction FAILED: %v\n", err)
-				} else {
-					fmt.Println("Transaction COMMITTED.")
+			case app.DomainActionKindProposed:
+				// Agent proposes a domain write action — show card and confirm.
+				fmt.Printf("\n[AI proposes action]: %s\n", result.ToolName)
+				if len(result.ToolArgs) > 0 {
+					for k, v := range result.ToolArgs {
+						fmt.Printf("  %s: %v\n", k, v)
+					}
 				}
-			} else {
-				fmt.Println("Transaction Cancelled.")
+				fmt.Print("\nExecute this action? (y/n): ")
+				choice, _ := reader.ReadString('\n')
+				choice = strings.TrimSpace(strings.ToLower(choice))
+				if choice != "y" && choice != "yes" {
+					fmt.Println("Action cancelled.")
+				} else {
+					// Write tool execution is wired in later phases as domain write tools are registered.
+					fmt.Println("Action execution not yet wired for this tool. Use a slash command to complete it.")
+				}
+				break domainLoop
+
+			case app.DomainActionKindJournalEntry:
+				// Agent identified a financial event — route to InterpretEvent (structured output path).
+				fmt.Println("[AI] Routing to journal entry handler...")
+				jeInput := result.EventDescription
+				jeRounds := 0
+
+			journalLoop:
+				for {
+					jeRounds++
+					if jeRounds > 3 {
+						fmt.Println("Could not produce a proposal. Try a slash command instead — type /help.")
+						break journalLoop
+					}
+
+					jeResult, jeErr := svc.InterpretEvent(ctx, jeInput, company.CompanyCode)
+					if jeErr != nil {
+						fmt.Printf("Error: %v\n", jeErr)
+						break journalLoop
+					}
+
+					if jeResult.IsClarification {
+						fmt.Printf("\n[AI]: %s\n", jeResult.ClarificationMessage)
+						fmt.Print("> ")
+						userFollowUp, _ := reader.ReadString('\n')
+						userFollowUp = strings.TrimSpace(userFollowUp)
+
+						if strings.HasPrefix(userFollowUp, "/") {
+							fmt.Println("(AI session cancelled)")
+							if dispErr := dispatchSlash(userFollowUp); dispErr != nil {
+								if dispErr == errExit {
+									fmt.Println("Goodbye!")
+									return
+								}
+								fmt.Printf("Error: %v\n", dispErr)
+							}
+							break journalLoop
+						}
+						if userFollowUp == "" || strings.ToLower(userFollowUp) == "cancel" {
+							fmt.Println("Cancelled.")
+							break journalLoop
+						}
+						jeInput = fmt.Sprintf("Original Event: %s\nClarification requested: %s\nUser response: %s",
+							jeInput, jeResult.ClarificationMessage, userFollowUp)
+						fmt.Println("[AI] Thinking...")
+						continue
+					}
+
+					proposal := jeResult.Proposal
+					printProposal(proposal)
+					if proposal.Confidence < 0.6 {
+						fmt.Println("\nWARNING: Low confidence proposal.")
+					}
+					fmt.Print("\nApprove this transaction? (y/n): ")
+					choice, _ := reader.ReadString('\n')
+					choice = strings.TrimSpace(strings.ToLower(choice))
+					if choice == "y" || choice == "yes" {
+						if commitErr := svc.CommitProposal(ctx, *proposal); commitErr != nil {
+							fmt.Printf("Transaction FAILED: %v\n", commitErr)
+						} else {
+							fmt.Println("Transaction COMMITTED.")
+						}
+					} else {
+						fmt.Println("Transaction Cancelled.")
+					}
+					break journalLoop
+				}
+				break domainLoop
 			}
-			break
 		}
 	}
 }

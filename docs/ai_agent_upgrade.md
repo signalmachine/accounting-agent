@@ -1,7 +1,7 @@
 # AI Agent Upgrade Plan
 
-> **Purpose**: Defines the expanded role of the AI agent for non-expert users, identifies gaps in the current Phase 31 plan, and proposes how AI capabilities should be woven across tiers rather than deferred to the end.
-> **Last Updated**: 2026-02-25 (rev 5 — added Section 15: complete agent stack — RAG as regulatory knowledge layer, context engineering as working memory curation, skills as structured reasoning modules, post-execution verification; corrected §14.6 search tools ≠ RAG)
+> **Purpose**: Defines the expanded role of the AI agent for non-expert users and specifies the full AI architecture: tool-calling, RAG, context engineering, skills, and verification. Sections 3–4 document the original gaps in Phase 31 (now superseded) — retained as historical analysis. The actionable architecture is in Sections 14–16.
+> **Last Updated**: 2026-02-26 (rev 6 — Phase 31 superseded: tool architecture moved to Phase 7.5, RAG to Phase AI-RAG after Phase 14, skills to Phase AI-Skills after Phase 17; §14.10 and §16.5 updated; §15.7 updated)
 > **Status**: Living document — expand with detailed specs before implementing each capability.
 >
 > **Execution Principle**: **Core system first. AI upgrades gradual and need-based.** The accounting, inventory, and order management core is always the first priority. AI capabilities are upgraded in parallel but strictly incrementally — only when the corresponding domain is stable and the addition is clearly needed. No AI feature is added at the expense of core system correctness or stability. See Section 16 for the full gradualism policy.
@@ -80,7 +80,7 @@ Users should be able to ask business questions in plain English:
 > "How much stock do I have of Widget A?"
 > "What's my GST liability for this quarter?"
 
-The AI calls the appropriate `ApplicationService` or `ReportingService` method and returns a plain-English answer with the relevant numbers. This is partially described in Phase 31 but needs to be available as soon as `ReportingService` exists (Phase 8 onwards).
+The AI calls the appropriate `ApplicationService` or `ReportingService` method and returns a plain-English answer with the relevant numbers. This is available from Phase 8 onwards via `get_account_balance`, `get_account_statement`, and `get_pl_report` read tools registered alongside the reporting service.
 
 ### 2.6 Conversational Error Recovery
 
@@ -147,7 +147,7 @@ A single document can easily exceed the context budget. The agent must manage th
 - Images: passed as-is (OpenAI handles token cost internally; max image size 20 MB, but upload is capped at 10 MB)
 - Text documents: truncated to ~8 000 tokens; if truncation occurs, the agent notes it and asks if the user wants to process remaining pages separately
 - Excel/CSV with many rows: AI processes the first 200 rows; prompts user if more rows exist
-- Multi-page PDFs: Phase 31+ adds RAG-style page selection — most relevant pages passed to the agent rather than the full document
+- Multi-page PDFs: Phase AI-RAG+ adds RAG-style page selection — most relevant pages passed to the agent rather than the full document
 
 **Phase placement:**
 
@@ -157,7 +157,7 @@ A single document can easily exceed the context budget. The agent must manage th
 | WF5 follow-on | PDF text extraction — add `github.com/ledongthuc/pdf` |
 | WF5 follow-on | Scanned PDF → image — add `github.com/gen2brain/go-fitz` (CGo, MuPDF) |
 | WF5 follow-on | Excel / CSV — add `github.com/xuri/excelize/v2` |
-| Phase 31+ | Multi-page context management, batch document workflows, RAG page selection |
+| Phase AI-RAG+ | Multi-page context management, batch document workflows, RAG page selection |
 
 **Security constraints (enforced before any AI processing):**
 
@@ -171,9 +171,11 @@ See `docs/web_ui_plan.md` Section 7.5 for the full upload endpoint, processing p
 
 ---
 
-## 3. Gaps in the Current Phase 31 Plan
+## 3. Gaps in the Original Phase 31 Plan
 
-Phase 31 as written is:
+> **Note (2026-02-26)**: The gaps identified in this section have been resolved by the roadmap resequencing. Phase 31 is superseded. The tool architecture is now **Phase 7.5** (immediately after Phase 7). RAG is **Phase AI-RAG** (after Phase 14). Skills and verification are **Phase AI-Skills** (after Phase 17). This section is retained as historical analysis explaining *why* the resequencing was necessary.
+
+Phase 31 as originally written was:
 
 > *"Receipt/Invoice image ingestion. Conversational reporting. Anomaly flagging."*
 
@@ -391,6 +393,15 @@ Before the tool-calling architecture is built, consider:
 
 The agent is working. Once it breaks, it is hard to restore. These rules govern how the upgrade should be approached.
 
+**Pre-work checklist — mandatory before any change to `internal/ai/`:**
+
+1. **Read this document in full.** Do not rely on memory of a prior reading — the document is updated as the architecture evolves.
+2. **Invoke the `openai-integration` skill** (`/openai-integration` in Claude Code) before writing or modifying any code that calls the OpenAI Go SDK. The skill contains binding rules for Responses API usage, strict schema construction, tool call patterns, nullable field handling, `$schema` stripping, and error inspection that apply without exception to this project.
+3. **Check Section 13 of this document** for known deficiencies in `agent.go` that must be fixed before new capabilities are layered on top.
+4. **Confirm the gate conditions in Section 16** — specifically §16.2 (domain integration tests must pass before AI tools are added for that domain) and §16.4 (`InterpretEvent` protection rule).
+
+If any pre-work item cannot be confirmed, the AI upgrade work must stop until it is resolved.
+
 ### 10.1 Be Additive, Not Disruptive
 
 The correct upgrade pattern is:
@@ -480,22 +491,28 @@ The advisory-only constraint is unchanged: no `ApplicationService` write method 
 
 ### 12.2 Action Card UI (Replaces REPL Confirm Prompt)
 
-When the agent proposes a skill invocation, the web chat panel renders it as a card:
+> **Full specification**: `docs/web_ui_plan.md` Section 7.6. The summary below describes the design intent; refer to §7.6 for layout details, the proposal store, the popup implementation, and the mode decision table.
+
+The AI chat produces two distinct response types. This mirrors the experience of Claude.ai or ChatGPT:
+
+- **Plain text replies** (Mode A): conversational answers, query results, clarification questions — streamed token-by-token, rendered as a text bubble.
+- **Action cards** (Mode B): when the agent proposes a domain write (invoice, stock receipt, journal entry, vendor payment) — rendered as a structured entity summary card.
+
+Action cards do **not** have an inline Confirm button for document-creation operations. Instead they offer two paths to a pre-populated form where the user can review, edit, and submit:
 
 ```
-┌─────────────────────────────────────────────┐
-│  📦 Receive Stock                           │
-│  Product: Widget A (P002)                   │
-│  Quantity: 50 units                         │
-│  Unit Cost: ₹300.00                         │
-│  Warehouse: MAIN                            │
-│  Credit Account: 2000 (AP — Ravi Traders)  │
-│                                             │
-│  [Confirm]  [Cancel]  [Edit parameters]     │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  🧾  Sales Invoice                                              │
+│  Customer:  Acme Corp · Order: SO-2026-00012                    │
+│  Net: ₹85,000 · GST 18%: ₹15,300 · Total: ₹1,00,300           │
+│  [✏  Edit & Submit (page)]  [⧉  Open in popup]  [✕  Cancel]   │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-The [Edit parameters] button opens an inline form pre-filled with the agent's proposed values — the user can correct any misinterpreted field before confirming.
+- **Edit & Submit (page)**: navigates to the full form for that entity type, pre-filled with the AI's values. User edits if needed, submits normally.
+- **Open in popup**: same form loads in an Alpine.js modal overlay on the current page — the chat thread stays visible behind it.
+
+Simple state-change operations (confirm order, mark as shipped, approve PO) retain an inline Confirm button because there is nothing to edit. Document-creation operations always go through the form.
 
 ### 12.3 Compliance Warnings as UI Components
 
@@ -512,7 +529,7 @@ The user sees the updated entry, reads the explanation, and then confirms — or
 
 ### 12.4 Image Upload for Document Ingestion
 
-In the web UI, document ingestion (Phase 31 / Section 2.7) becomes a native file upload:
+In the web UI, document ingestion (Phase WF5 / Section 2.7) becomes a native file upload:
 
 1. User clicks the paperclip button in the chat panel
 2. Browser file picker opens — user selects a photo or PDF of a vendor invoice
@@ -547,7 +564,9 @@ Section 11, Step 3 previously described adding a REPL dispatch path. That step i
 
 ## 13. Immediate Agent Code Fixes (Pre-Architecture Work)
 
-Before implementing the tool-calling architecture (Phase 31), four concrete deficiencies in `internal/ai/agent.go` must be addressed. These were identified by auditing `agent.go` against the `openai-integration` skill requirements. They are independent of the architecture upgrade and should be applied as a dedicated commit — ideally before Phase 31 begins, or as the very first step within it.
+> **Reference**: All fixes in this section were identified by auditing `agent.go` against the `openai-integration` skill. Before implementing any fix here — or any future change to `internal/ai/agent.go` — invoke the `openai-integration` skill in Claude Code (`/openai-integration`) to ensure all SDK usage conforms to the project's strict OpenAI Go SDK rules. Do not proceed from memory alone.
+
+Before implementing the tool-calling architecture (**Phase 7.5**), four concrete deficiencies in `internal/ai/agent.go` must be addressed. These were identified by auditing `agent.go` against the `openai-integration` skill requirements. They are independent of the architecture upgrade and should be applied as a dedicated commit — ideally as the very first step of Phase 7.5.
 
 All changes are confined to `internal/ai/agent.go` (and optionally `internal/ai/schema.go`). No other files require modification.
 
@@ -725,7 +744,7 @@ Read tools are pure queries — no database writes, no side effects. The agent c
 | `search_customers` | `query` | Matching customers (code, name, GSTIN, open balance) |
 | `search_vendors` | `query` | Matching vendors (code, name, AP balance, TDS section) |
 
-For Phase 31, implement search tools with PostgreSQL `ILIKE` or `pg_trgm`. The tool interface is stable — the backend can be upgraded to vector search without changing the agent or callers.
+For **Phase 7.5**, implement search tools with PostgreSQL `ILIKE` or `pg_trgm`. The tool interface is stable — the backend can be upgraded to vector search without changing the agent or callers.
 
 **Compliance check tools** (these replace the compliance hook system):
 
@@ -886,7 +905,7 @@ With read tools, the agent assembles its own context. There is no intent classif
 
 > **Clarification**: This section describes *database search tools* — finding records that already exist in PostgreSQL. This is **not the same as RAG**. RAG (Retrieval Augmented Generation) is a separate concern covering regulatory and policy knowledge that lives outside the database (tax law, GST circulars, accounting standards). See **Section 15.2** for the full RAG design.
 
-The vector embedding store described in §9.3 is a future optimisation, not a Phase 31 requirement. For Phase 31, implement search tools using PostgreSQL:
+The vector embedding store described in §9.3 is a future optimisation, not a Phase 7.5 requirement. For **Phase 7.5**, implement search tools using PostgreSQL:
 
 ```sql
 -- search_accounts implementation
@@ -900,7 +919,7 @@ LIMIT 5;
 
 The search tool interface is stable and identical regardless of whether the backend uses `ILIKE`, `pg_trgm`, `tsvector`, or a vector store. The agent calls `search_accounts("insurance expense")` — it does not care how the results are ranked. The backend can be upgraded to semantic search later without changing the agent, the ToolRegistry, or any caller.
 
-**What to build at Phase 31:**
+**What to build at Phase 7.5:**
 1. `pg_trgm` extension enabled in a migration (if not already present)
 2. GIN index on `accounts.name`, `products.name`, `customers.name`, `vendors.name`
 3. Four search read tools backed by `pg_trgm` similarity queries
@@ -994,16 +1013,19 @@ Tools are registered incrementally as each domain phase is built. The agent sees
 
 | Phase | Read tools registered | Write tools registered |
 |---|---|---|
+| **Phase 7.5** (AI tool architecture) | `search_accounts`, `search_customers`, `search_products`, `get_stock_levels`, `get_warehouses` | — |
 | **Phase 8** (Account statement) | `get_account_balance`, `get_account_statement` | — |
-| **Phase 9** (P&L) | `get_pl_report`, `get_balance_sheet` | `refresh_views` |
-| **Phase 31** (initial — tool architecture) | `search_accounts`, `check_period_lock` | `propose_journal_entry` (migrates `InterpretEvent`) |
+| **Phase 9** (P&L) | `get_pl_report` | `refresh_views` |
+| **Phase 10** (Balance sheet) | `get_balance_sheet` | — |
 | **Phase 11** (Vendor master) | `get_vendors`, `search_vendors`, `get_vendor_info` | `create_vendor` |
 | **Phase 12** (Purchase orders) | `get_purchase_orders`, `get_open_pos` | `create_purchase_order`, `approve_po` |
-| **Phase 13** (Goods receipt) | `get_stock_levels`, `check_stock_availability` | `receive_po` |
+| **Phase 13** (Goods receipt) | `check_stock_availability` | `receive_po` |
 | **Phase 14** (AP payment) | `get_tds_cumulative`, `check_tds_threshold` | `record_vendor_invoice`, `pay_vendor` |
-| **Phase 15** (Job orders) | `get_jobs`, `search_customers`, `get_service_categories` | `create_job`, `confirm_job` |
+| **Phase AI-RAG** (regulatory knowledge) | `search_regulations` | — |
+| **Phase 15** (Job orders) | `get_jobs`, `get_service_categories` | `create_job`, `confirm_job` |
 | **Phase 16** (Job lines) | `get_job_detail` | `start_job`, `add_labour_line`, `add_material_line` |
 | **Phase 17** (Job completion) | — | `complete_job`, `invoice_job`, `record_job_payment` |
+| **Phase AI-Skills** (skills + verification) | *(skills as internal read tools)* | `propose_journal_entry` (parallel to `InterpretEvent`) |
 | **Phase 19** (Rentals) | `get_rental_assets`, `get_rental_contracts` | `create_rental_contract`, `activate_rental_contract` |
 | **Phase 20** (Rental billing) | — | `bill_rental_period`, `return_asset`, `record_rental_payment` |
 | **Phase 21** (Deposit) | — | `refund_deposit` |
@@ -1012,7 +1034,7 @@ Tools are registered incrementally as each domain phase is built. The agent sees
 | **Phase 25** (GST rates) | `check_gst_rate`, `search_products` (enhanced with HSN), `check_hsn_coverage` | — |
 | **Phase 27** (TDS) | `get_tds_threshold_status` | *(pay_vendor gains TDS deduction automatically)* |
 | **Phase 28** (TCS) | `get_tcs_status` | `settle_tds`, `settle_tcs` |
-| **Phase 29** (Period lock) | *(check_period_lock already registered in Phase 31)* | `lock_period`, `unlock_period` |
+| **Phase 29** (Period lock) | `check_period_lock` | `lock_period`, `unlock_period` |
 | **Phase 30** (GSTR export) | `get_gstr1_preview`, `get_gstr3b_preview` | `export_gstr1`, `export_gstr3b` |
 
 By Phase 30, the agent has ~40 read tools and ~35 write tools — covering every domain operation in the system. A user can describe any business event in plain language and the agent will navigate to the correct operation.
@@ -1137,11 +1159,11 @@ search_regulations(query: string, category?: "gst" | "tds" | "icai" | "company_p
 
 This is a read tool. The agent calls it during the tool loop, before proposing a compliance-relevant write tool.
 
-**What to build at Phase 31 (minimal viable RAG):**
+**What to build at Phase AI-RAG (minimal viable RAG):**
 
-A curated markdown document store covering the most common compliance scenarios — RCM categories, TDS section summaries (194C/194J with thresholds and rates), GST rate slabs, key exempt categories. Chunk the documents and store them in a `regulations` table with full-text search. This is sufficient for Phase 31 and can be upgraded to vector embedding retrieval later.
+A curated markdown document store covering the most common compliance scenarios — RCM categories, TDS section summaries (194C/194J with thresholds and rates), GST rate slabs, key exempt categories. Files live in `docs/regulations/`. Full-text search via `pg_trgm` or keyword matching. This is sufficient for Phase AI-RAG and can be upgraded to vector embedding retrieval later.
 
-**What to defer:** Vector embeddings, semantic similarity, automatic ingestion of new government notifications. These are correctness improvements, not Phase 31 blockers.
+**What to defer:** Vector embeddings, semantic similarity, automatic ingestion of new government notifications. These are correctness improvements, not Phase AI-RAG blockers.
 
 ---
 
@@ -1355,24 +1377,22 @@ Agent explanation:
 
 ---
 
-### 15.7 What This Means for Phase 31
+### 15.7 How the Five Layers Map to the Resequenced Plan
 
-Phase 31 must now deliver all five layers, not just tool calling:
+> **Updated 2026-02-26**: Phase 31 is superseded. The five layers are now delivered across three named phases rather than a single Tier 5 phase.
 
-| Layer | Phase 31 deliverable |
+| Layer | Delivered in |
 |---|---|
-| **Tool use** | `InterpretDomainAction`, `ToolRegistry`, read/write tool catalog for existing domains (Phases 8–10 tools) |
-| **RAG** | `search_regulations` read tool backed by a curated markdown document store (RCM categories, TDS sections, key GST rates). Vector upgrade deferred. |
-| **Context engineering** | `DomainActionContext` struct. Session history pruning in web handler (last N messages). Context hygiene rules (what to include/exclude). System prompt template with mandatory accounting fields. |
-| **Skills** | `gst_applicability`, `tds_calculation`, `invoice_validation` skills as internal read tools. One skill per major compliance calculation. |
-| **Verification** | `VerifyPostExecution` called after every confirmed write tool. Ledger balance check, stock non-negative, AP/AR move check, idempotency assertion. |
+| **Tool use** | **Phase 7.5** — `InterpretDomainAction`, `ToolRegistry`, first read tools; domain tools added incrementally with each subsequent phase |
+| **Context engineering** | **Phase AI-RAG** — `DomainActionContext` struct, context hygiene rules, prompt assembly replaces flat CoA dump |
+| **RAG** | **Phase AI-RAG** — `search_regulations` read tool backed by curated markdown document store (`docs/regulations/`). Vector upgrade deferred. |
+| **Skills** | **Phase AI-Skills** — `gst_applicability`, `tds_calculation`, `invoice_validation` as internal read tools via `SkillRegistry` |
+| **Verification** | **Phase AI-Skills** — `VerifyPostExecution` called after every confirmed write tool; ledger balance, stock non-negative, AP/AR direction, idempotency |
 
-Phase 31 is a larger phase than previously specified. It may need to be split:
-
-- **Phase 31a**: Tool architecture (ToolRegistry, InterpretDomainAction, read/write tools for existing domains, conversation history)
-- **Phase 31b**: RAG knowledge store, skill modules, post-execution verification
-
-This split keeps each deliverable independently testable.
+**Gate conditions:**
+- Phase 7.5 → after Phase 7 complete, all 27+ tests passing
+- Phase AI-RAG → after Phase 14 complete (4+ domains proven with tool calls); ≥20 regression test cases
+- Phase AI-Skills → after Phase 17 complete + Phase AI-RAG stable ≥6 weeks; regression corpus ≥30 test cases
 
 ---
 
@@ -1422,25 +1442,30 @@ The existing `InterpretEvent` path (journal entry proposals via structured outpu
 
 Only after all three conditions are met does the `propose_journal_entry` write tool migration (§14.4) begin. `InterpretEvent` is retired only after step 5 of the migration path is validated. This is not optional — breaking the journal entry path would disable the system's primary current capability.
 
-### 16.5 Phase 31 Split and Gate
+### 16.5 Resequenced AI Phase Gates
 
-Phase 31 is split into two independently gated parts:
+Phase 31 is superseded. AI architecture is delivered across three named phases, each with an explicit gate condition:
 
-**Phase 31a — Tool Architecture** (may begin after Phase 10 + WF5):
-- `InterpretDomainAction` on `AgentService`
+**Phase 7.5 — Tool Architecture** (begins immediately after Phase 7):
+- `InterpretDomainAction` on `AgentService` (parallel to `InterpretEvent` — does not replace it)
 - `ToolRegistry` with read/write separation, MCP-compatible definitions
 - Conversation history as `[]Message` including tool call/result pairs
-- Read tools for Phases 8–10 domains (account balance, account statement, P&L, balance sheet)
-- First write tool: `propose_journal_entry` (migrating `InterpretEvent`) — only after the tool loop is proven for read operations first
-- Web chat dispatch for tool results (action cards)
+- First read tools: `search_accounts`, `search_customers`, `search_products`, `get_stock_levels`, `get_warehouses`
+- Gate to Phase 8: `InterpretDomainAction` handles ≥10 documented test cases correctly
 
-**Phase 31b — Intelligence Layers** (may begin only after 31a is proven stable for ≥2 months):
-- RAG knowledge store (`search_regulations` tool, curated markdown document store)
-- Skill modules (`gst_applicability`, `tds_calculation`, `invoice_validation`)
-- `DomainActionContext` struct and context hygiene rules
-- `VerifyPostExecution` invariant check after write tools
+**Phase AI-RAG — Regulatory Knowledge Layer** (begins after Phase 14):
+- RAG knowledge store (`search_regulations` tool, curated markdown document store in `docs/regulations/`)
+- `DomainActionContext` struct — replaces flat CoA prompt dump with curated per-turn context
+- Context hygiene rules (what to include/exclude per domain operation)
+- Gate: Phase 14 integration tests passing + ≥20 regression test cases for `InterpretDomainAction`
+- Phase AI-RAG must not begin until Phase 14 is complete
 
-31b must not begin until 31a has been running without incident. The layers in 31b require the tool loop to be stable before they can be meaningfully tested.
+**Phase AI-Skills — Reasoning Modules + Verification** (begins after Phase 17 + Phase AI-RAG stable ≥6 weeks):
+- Skill modules (`gst_applicability`, `tds_calculation`, `invoice_validation`) as internal read tools via `SkillRegistry`
+- `VerifyPostExecution` invariant check after every write tool execution
+- `propose_journal_entry` write tool (parallel path alongside `InterpretEvent`) — migration path begins here
+- Gate: Phase 17 complete + Phase AI-RAG stable ≥6 weeks + regression corpus ≥30 test cases
+- `InterpretEvent` is retired only after ≥50 test cases at ≥95% agreement between both paths
 
 ### 16.6 Resolving Tension Between Core and AI Work
 

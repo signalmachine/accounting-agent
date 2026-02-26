@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"log"
+	"net/http"
 	"os"
 
-	cliAdapter "accounting-agent/internal/adapters/cli"
-	replAdapter "accounting-agent/internal/adapters/repl"
+	webAdapter "accounting-agent/internal/adapters/web"
 	"accounting-agent/internal/ai"
 	"accounting-agent/internal/app"
 	"accounting-agent/internal/core"
@@ -22,7 +21,7 @@ func main() {
 	ctx := context.Background()
 	pool, err := db.NewPool(ctx)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v", err)
+		log.Fatalf("database: %v", err)
 	}
 	defer pool.Close()
 
@@ -41,10 +40,16 @@ func main() {
 
 	svc := app.NewAppService(pool, ledger, docService, orderService, inventoryService, reportingService, agent)
 
-	if len(os.Args) > 1 {
-		cliAdapter.Run(ctx, svc, os.Args[1:])
-	} else {
-		reader := bufio.NewReader(os.Stdin)
-		replAdapter.Run(ctx, svc, reader)
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	handler := webAdapter.NewHandler(svc, allowedOrigins)
+
+	log.Printf("server starting on :%s", port)
+	if err := http.ListenAndServe(":"+port, handler); err != nil {
+		log.Fatalf("server: %v", err)
 	}
 }

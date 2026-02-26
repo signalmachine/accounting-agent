@@ -49,7 +49,18 @@ type ApplicationService interface {
 
 	// InterpretEvent sends a natural language event description to the AI agent and returns
 	// either a journal entry Proposal or a clarification request.
+	// This path uses structured output and must remain untouched per §16.4 of ai_agent_upgrade.md.
 	InterpretEvent(ctx context.Context, text, companyCode string) (*AIResult, error)
+
+	// InterpretDomainAction routes a natural language input through the agentic tool loop.
+	// The agent calls read tools autonomously, then either proposes a domain write action,
+	// asks a clarifying question, returns an answer, or signals that the input is a financial
+	// event to be handled by InterpretEvent. InterpretEvent is not called by this method.
+	InterpretDomainAction(ctx context.Context, text, companyCode string) (*DomainActionResult, error)
+
+	// GetAccountStatement returns a chronological account statement with running balance.
+	// fromDate and toDate are optional (empty string means unbounded).
+	GetAccountStatement(ctx context.Context, companyCode, accountCode, fromDate, toDate string) (*AccountStatementResult, error)
 
 	// CommitProposal validates and posts an AI-generated proposal to the ledger.
 	// Must only be called after explicit user approval.

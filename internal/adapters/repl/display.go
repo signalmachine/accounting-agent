@@ -174,14 +174,46 @@ func printStockLevels(result *app.StockResult) {
 	fmt.Println(strings.Repeat("=", 80))
 }
 
+func printStatement(result *app.AccountStatementResult) {
+	fmt.Println()
+	fmt.Println(strings.Repeat("=", 90))
+	fmt.Printf("  ACCOUNT STATEMENT — %s  (%s)\n", result.AccountCode, result.Currency)
+	fmt.Println(strings.Repeat("=", 90))
+	if len(result.Lines) == 0 {
+		fmt.Println("  No movements found for the given period.")
+		fmt.Println(strings.Repeat("=", 90))
+		return
+	}
+	fmt.Printf("  %-12s %-36s %12s %12s %12s\n", "DATE", "NARRATION", "DEBIT", "CREDIT", "BALANCE")
+	fmt.Println(strings.Repeat("-", 90))
+	for _, l := range result.Lines {
+		narration := l.Narration
+		if len(narration) > 35 {
+			narration = narration[:32] + "..."
+		}
+		fmt.Printf("  %-12s %-36s %12s %12s %12s\n",
+			l.PostingDate,
+			narration,
+			l.Debit.StringFixed(2),
+			l.Credit.StringFixed(2),
+			l.RunningBalance.StringFixed(2),
+		)
+	}
+	closing := result.Lines[len(result.Lines)-1].RunningBalance
+	fmt.Println(strings.Repeat("-", 90))
+	fmt.Printf("  %-49s %12s %12s %12s\n", "CLOSING BALANCE", "", "", closing.StringFixed(2))
+	fmt.Println(strings.Repeat("=", 90))
+}
+
 func printHelp() {
 	fmt.Println()
 	fmt.Println("ACCOUNTING AGENT — COMMANDS")
 	fmt.Println(strings.Repeat("=", 62))
 	fmt.Println()
 	fmt.Println("  LEDGER")
-	fmt.Println("  /bal [company-code]             Trial balance")
-	fmt.Println("  /balances [company-code]         Alias for /bal")
+	fmt.Println("  /bal [company-code]                          Trial balance")
+	fmt.Println("  /balances [company-code]                     Alias for /bal")
+	fmt.Println("  /statement <acct> [from-date] [to-date]      Account statement with running balance")
 	fmt.Println()
 	fmt.Println("  MASTER DATA")
 	fmt.Println("  /customers [company-code]        List customers")

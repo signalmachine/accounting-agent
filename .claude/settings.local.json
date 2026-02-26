@@ -22,7 +22,20 @@
       "Bash(wc:*)",
       "Bash(tail:*)",
       "Bash(test:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "Bash(cd D:/agents/accounting-agent && go get github.com/go-chi/chi/v5@latest 2>&1)",
+      "Bash(cd D:/agents/accounting-agent && go mod vendor 2>&1)",
+      "Bash(cd D:/agents/accounting-agent && go mod vendor 2>&1 && ls vendor/github.com/go-chi/ 2>&1)",
+      "Bash(curl:*)",
+      "Bash(true:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "Bash(go test:*)",
+      "Bash(ls:*)",
+      "Bash(then go:*)",
+      "Bash(source .env:*)",
+      "Bash(go mod:*)"
     ]
   }
 }

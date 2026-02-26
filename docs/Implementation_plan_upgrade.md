@@ -2,16 +2,16 @@
 
 > **Purpose**: Incremental roadmap for evolving this system into a full-featured SMB accounting platform.
 > **Key Principle**: Each phase is independently deliverable. Completing one phase makes the next measurably easier.
-> **Last Updated**: 2026-02-25
-> **Last Reviewed**: 2026-02-25 — see [Review Findings](#review-findings-2026-02-25) section below.
+> **Last Updated**: 2026-02-27 — Phase 8 complete.
+> **Last Reviewed**: 2026-02-26 — resequenced to prioritise AI tool architecture (Phase 7.5) and simplify Phase WF1 to chat UI shell only. Phase 31 superseded — AI capabilities woven throughout from Phase 7.5 onwards.
 
 **Companion documents — read before implementing the affected phases:**
 
 | Document | What it covers |
 |---|---|
-| [`docs/web_ui_plan.md`](web_ui_plan.md) | **Read first.** Web UI as primary interface: tech stack (React + Go REST), auth, Tier 2.5 web foundation phases (WF1–WF4), domain UI phases (WD0–WD3), AI chat panel, screen inventory, REPL deprecation timeline, CLI scope. Supersedes Phase 32. |
+| [`docs/web_ui_plan.md`](web_ui_plan.md) | **Read first.** Web UI as primary interface: tech stack (Go + templ + HTMX + Alpine.js + Tailwind CSS), auth, Tier 2.5 web foundation phases (WF1–WF5), domain UI phases (WD0–WD3), AI chat panel, REPL deprecation timeline, CLI scope. Supersedes Phase 32. Phase WF1 is scoped to server + chat UI shell only — domain screens come with WD0–WD3. |
 | [`docs/plan_gaps.md`](plan_gaps.md) | Known gaps, under-specified areas, and missing features in this plan. Tier 4 tax phases are under-specified and must be expanded before coding begins. Credit notes, stock adjustments, and opening balances are missing entirely. |
-| [`docs/ai_agent_upgrade.md`](ai_agent_upgrade.md) | Required expansion of the AI agent role. The current Phase 31 plan is insufficient for non-expert users. AI capabilities should be woven into each tier as it is built, not deferred to Tier 5. |
+| [`docs/ai_agent_upgrade.md`](ai_agent_upgrade.md) | Defines the expanded AI agent role: tool-calling architecture, ToolRegistry, RAG regulatory knowledge layer, skills framework, context engineering, and per-domain tool catalog. Phase 31 is superseded — AI capabilities are woven in from Phase 7.5 onwards. Read in full before any change to `internal/ai/`. |
 
 ---
 
@@ -50,6 +50,10 @@ This system targets **small and medium-sized businesses** across a wide spectrum
 | **Phase 2**: `ApplicationService` implementation (`app_service.go`) | ✅ Complete |
 | **Phase 3**: REPL adapter extraction — `internal/adapters/repl/` (repl, display, wizards) | ✅ Complete (minor caveat — see review notes) |
 | **Phase 4**: CLI adapter — `internal/adapters/cli/` + slim `main.go` (<60 lines) | ✅ Complete |
+| **Phase 5**: `account_rules` table + seed (migrations 011–012). 6 rules seeded for Company 1000. | ✅ Complete |
+| **Phase 6**: `RuleEngine` service wired into `OrderService`. `arAccountCode` constant removed. | ✅ Complete |
+| **Phase 7**: `RuleEngine` wired into `InventoryService`. All 3 hardcoded account constants removed. | ✅ Complete |
+| **Phase 7.5**: `ToolRegistry`, `InterpretDomainAction`, 5 read tools, agentic loop, REPL routing, migration 013 (pg_trgm). | ✅ Complete |
 
 **Tier 0 bugs — resolved:**
 
@@ -93,53 +97,63 @@ Tier 1  Foundation — UI decoupling
 Tier 2  Business rules + basic reporting
         Phase 5   Rule engine schema + seed rules
         Phase 6   RuleEngine service + wire into OrderService
-        Phase 7   Wire RuleEngine into InventoryService
-        Phase 8   Account statement report
-        Phase 9   Materialized views + P&L report
-        Phase 10  Balance Sheet report
+        Phase 7   Wire RuleEngine into InventoryService  [no new REPL commands after this]
+        Phase 7.5 AI Tool Architecture: ToolRegistry, agentic loop, InterpretDomainAction,
+                  first read tools (search_accounts, search_customers, search_products,
+                  get_stock_levels, get_warehouses)
+        Phase 8   Account statement report + read tools (get_account_balance, get_account_statement)
+        Phase 9   Materialized views + P&L report + read tool (get_pl_report)
+        Phase 10  Balance Sheet report + read tool (get_balance_sheet)
 
 Tier 2.5  Web Foundation  ← see docs/web_ui_plan.md
-        Phase WF1  REST API foundation (chi router, OpenAPI spec, JSON error format)
-        Phase WF2  Authentication (JWT, users table, login/logout) + audit trail columns (created_by_user_id) + multi-user user lifecycle (invite, deactivate, role change)
-        Phase WF3  Frontend scaffold (templ + HTMX + Alpine.js app shell)
-        Phase WF4  Core accounting screens (dashboard, trial balance, statement, P&L, BS)
-        Phase WF5  AI chat panel (SSE streaming, proposed action cards, document attachment: image upload → PDF → Excel/CSV phased rollout)
+        Phase WF1  Server + chat UI shell only (chi router, POST /api/chat/message SSE,
+                   minimal chat frontend, error format). No accounting screen stubs.
+        Phase WF2  Authentication (JWT, users table, login/logout) + audit trail columns
+                   (created_by_user_id) + user lifecycle (invite, deactivate, role change)
+        Phase WF3  Frontend scaffold (templ + HTMX + Alpine.js app shell, login page)
+        Phase WF4  Core accounting screens (trial balance, statement, P&L, balance sheet)
+        Phase WF5  Full AI chat (SSE polish, action cards for all write tools, image upload)
 
 Tier 3  Business domain expansion — procurement
-        Phase 11  Vendor master
+        Phase 11  Vendor master + read/write tools (get_vendors, search_vendors, create_vendor)
         Phase WD0  Web UI: customers, products, sales orders (existing domains)
-        Phase 12  Purchase order DRAFT + APPROVED
-        Phase 13  Goods receipt against purchase order
-        Phase 14  Vendor invoice + AP payment
+        Phase 12  Purchase orders + tools (get_purchase_orders, create_purchase_order, approve_po)
+        Phase 13  Goods receipt against PO + tool (receive_po)
+        Phase 14  Vendor invoice + AP payment + tools (check_tds_threshold, record_vendor_invoice, pay_vendor)
+        Phase AI-RAG  Regulatory knowledge layer: curated markdown store, search_regulations tool,
+                      DomainActionContext context engineering [trigger: Phase 14 complete]
         Phase WD1  Web UI: vendors, purchase order full lifecycle
 
 Tier 3  Business domain expansion — service jobs
-        Phase 15  Service categories + job order DRAFT/CONFIRMED
-        Phase 16  Job progress: start + add lines
-        Phase 17  Job completion + invoice + payment
+        Phase 15  Service categories + job order + tools (get_jobs, create_job, confirm_job)
+        Phase 16  Job progress + tools (get_job_detail, start_job, add_labour_line, add_material_line)
+        Phase 17  Job completion + invoice + tools (complete_job, invoice_job, record_job_payment)
         Phase 18  Inventory consumption for job material lines
+        Phase AI-Skills  Skills framework + verification: gst_applicability, tds_calculation,
+                         invoice_validation skills; post-execution invariant checks
+                         [trigger: Phase 17 complete + Phase AI-RAG stable ≥6 weeks]
         Phase WD2  Web UI: job orders full lifecycle (incl. material consumption)
 
 Tier 3  Business domain expansion — rentals
-        Phase 19  Rental asset master + contract DRAFT/ACTIVE
-        Phase 20  Rental billing + asset return
-        Phase 21  Security deposit + asset depreciation
+        Phase 19  Rental asset master + tools (get_rental_assets, create_rental_contract, activate_rental_contract)
+        Phase 20  Rental billing + return + tools (bill_rental_period, return_asset, record_rental_payment)
+        Phase 21  Security deposit + depreciation + tool (refund_deposit)
         Phase WD3  Web UI: rental assets, contracts, billing, deposit refund
         [REPL deprecated and removed after WD3 — see docs/web_ui_plan.md §9]
 
-Tier 4  Tax framework
+Tier 4  Tax framework  [read plan_gaps.md §1 before starting any phase here]
         Phase 22  Tax rate schema + TaxEngine service (no invoicing changes yet)
         Phase 23  Tax-aware invoice posting (SalesOrder)
         Phase 24  Input tax on purchases (PurchaseOrder)
-        Phase 25  GST rate seeds + jurisdiction resolver
+        Phase 25  GST rate seeds + jurisdiction resolver + tools (check_gst_rate, check_hsn_coverage)
         Phase 26  GST special cases: RCM, SEZ, composition dealer
-        Phase 27  TDS schema + deduction on vendor payments
-        Phase 28  TCS on customer receipts + TDS settlement
-        Phase 29  Period locking
-        Phase 30  GSTR-1 + GSTR-3B export
+        Phase 27  TDS schema + deduction on vendor payments + tool (get_tds_threshold_status)
+        Phase 28  TCS on customer receipts + TDS settlement + tools (settle_tds, settle_tcs)
+        Phase 29  Period locking + tools (lock_period, unlock_period)
+        Phase 30  GSTR-1 + GSTR-3B export + tools (get_gstr1_preview, export_gstr1, export_gstr3b)
 
 Tier 5  Scale & governance
-        Phase 31  AI expansion: tool-calling architecture + web chat panel (full skills)
+        Phase 31  [Superseded — AI capabilities woven from Phase 7.5 onwards. See ai_agent_upgrade.md]
         Phase 32  [Superseded by Tier 2.5 — see docs/web_ui_plan.md]
         Phase 33  Workflow + approvals (role enforcement; user table already exists from WF2)
         Phase 34  External integrations
@@ -414,29 +428,53 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 
 **Tasks:**
 
-- [ ] Add `RuleEngine` parameter to `NewInventoryService(pool, ruleEngine)` constructor.
-- [ ] In `inventory_service.go`:
+- [x] Add `RuleEngine` parameter to `NewInventoryService(pool, ruleEngine)` constructor.
+- [x] In `inventory_service.go`:
   - Replace `inventoryAccountCode = "1400"` in `ReceiveStock()` and `ShipStockTx()` with `ruleEngine.ResolveAccount(ctx, companyID, "INVENTORY")`.
   - Replace `cogsAccountCode = "5000"` in `ShipStockTx()` with `ruleEngine.ResolveAccount(ctx, companyID, "COGS")`.
   - Replace `defaultReceiptCreditAccountCode = "2000"` in `ReceiveStock()` with `ruleEngine.ResolveAccount(ctx, companyID, "RECEIPT_CREDIT")`.
-- [ ] Delete the three constant declarations.
-- [ ] Update `ApplicationService` constructor to pass `RuleEngine` to `InventoryService`.
-- [ ] All tests pass.
+- [x] Delete the three constant declarations.
+- [x] Update `cmd/app/main.go` and `cmd/server/main.go` to pass `RuleEngine` to `NewInventoryService`.
+- [x] Seed INVENTORY, COGS, RECEIPT_CREDIT rules in `setupInventoryTestDB`. All 32 tests pass.
 
-**Acceptance criteria**: All four hardcoded account constants removed from domain services. All 27+ tests pass.
+**Acceptance criteria**: ✅ All hardcoded account constants removed from domain services. 32 tests pass. REPL deprecation clock starts — no new REPL slash commands from this point.
+
+---
+
+### Phase 7.5: AI Tool Architecture
+
+**Goal**: Replace the single-turn `InterpretEvent` model with a multi-turn agentic loop backed by a `ToolRegistry`. This is the foundation for all subsequent AI tool additions. `InterpretEvent` remains intact and untouched throughout this phase.
+
+**Pre-requisites**: Phase 7 complete (all domain services wired with RuleEngine, all 27+ tests passing).
+
+**Gate to next AI work**: `InterpretDomainAction` must handle ≥10 documented test cases correctly before Phase 8 read tools are added.
+
+**Tasks:**
+
+- [x] Create `internal/ai/tools.go` (`ToolRegistry`, `ToolDefinition`, `ToolHandler` — combined into one file rather than separate `tool_registry.go`).
+- [x] Implement `ToolRegistry` struct with `Register`, `Get`, `All`, `ToOpenAITools` methods.
+- [x] Implement `InterpretDomainAction` in `internal/ai/agent.go`. Agentic loop: max 5 iterations, `PreviousResponseID` for multi-turn context, read tools execute autonomously, `request_clarification` and `route_to_journal_entry` meta-tools terminate the loop.
+- [x] Define `AgentDomainResult` with `Kind` (answer/clarification/proposed/journal_entry), `Answer`, `Question`, `Context`, `ToolName`, `ToolArgs`, `EventDescription`.
+- [x] Register first 5 read tools (all autonomous): `search_accounts`, `search_customers`, `search_products`, `get_stock_levels`, `get_warehouses`. Handlers are closures in `appService.buildToolRegistry`.
+- [x] Add `InterpretDomainAction` to `AgentService` interface and `ApplicationService` interface; implement in `appService`.
+- [x] Wire into REPL: natural language routes to `InterpretDomainAction`; journal entry events routed back to `InterpretEvent` sub-loop.
+- [x] Migration 013: `pg_trgm` extension + GIN indexes on `accounts.name`, `customers.name`, `products.name`.
+- [x] All 32 tests pass with zero regressions.
+
+**Acceptance criteria**: ✅ `InterpretDomainAction` routes tool calls correctly. `ToolRegistry` is MCP-compatible. `InterpretEvent` is completely unchanged. All 32 existing tests pass. Read tools return real DB data.
 
 ---
 
 ### Phase 8: Account Statement Report
 
-**Goal**: Add an account-level ledger statement without materialized views — a direct query, always fresh.
+**Goal**: Add an account-level ledger statement without materialized views — a direct query, always fresh. Register its read tools in the same phase.
 
-**Pre-requisites**: Phase 4 (ApplicationService wired).
-**Can start in parallel with Phases 6–7.**
+**Pre-requisites**: Phase 7.5 (ToolRegistry exists — read tools registered here use it).
+**Can start in parallel with Phase 7.5 once ToolRegistry interface is defined.**
 
 **Tasks:**
 
-- [ ] Create `internal/core/reporting_service.go`. Define:
+- [x] Create `internal/core/reporting_service.go`. Define:
   ```go
   type StatementLine struct {
       PostingDate   string
@@ -451,13 +489,16 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
       GetAccountStatement(ctx, companyCode, accountCode, fromDate, toDate string) ([]StatementLine, error)
   }
   ```
-- [ ] Implement `GetAccountStatement()` — query `journal_lines` joined to `journal_entries` and `accounts`, filtered by company, account code, and date range. Compute running balance in Go by iterating rows ordered by `posting_date ASC, je.id ASC`.
-- [ ] Add `ReportingService` to `AppService` struct and inject into constructor.
-- [ ] Add `GetAccountStatement(ctx, companyCode, accountCode, fromDate, toDate string)` to `ApplicationService` interface.
-- [ ] REPL command: `/statement <account-code> [from-date] [to-date]` — prints date, narration, debit, credit, running balance.
-- [ ] Integration test: post 3 journal entries → statement returns correct lines and running balances.
+- [x] Implement `GetAccountStatement()` — query `journal_lines` joined to `journal_entries` and `accounts`, filtered by company, account code, and date range. Compute running balance in Go by iterating rows ordered by `posting_date ASC, je.id ASC`.
+- [x] Add `ReportingService` to `AppService` struct and inject into constructor.
+- [x] Add `GetAccountStatement(ctx, companyCode, accountCode, fromDate, toDate string)` to `ApplicationService` interface.
+- [x] REPL command: `/statement <account-code> [from-date] [to-date]` — prints date, narration, debit, credit, running balance.
+- [x] Integration test: post 3 journal entries → statement returns correct lines and running balances.
+- [x] Register read tools in `ToolRegistry`:
+  - `get_account_balance` — returns current balance for a given account code
+  - `get_account_statement` — returns statement lines for account + date range
 
-**Acceptance criteria**: `/statement 1200` shows all AR movements with running balance.
+**Acceptance criteria**: ✅ `/statement <code>` shows movements with running balance. AI agent can answer "what is my cash balance?" via `get_account_balance` tool call. `cmd/server/main.go` updated. 35 tests pass, 0 regressions.
 
 ---
 
@@ -492,8 +533,10 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Add to `ApplicationService` interface and implement in `appService`.
 - [ ] REPL commands: `/pl [year] [month]` (defaults to current month), `/refresh`.
 - [ ] Integration test: full order lifecycle → `/pl` shows revenue credit and COGS debit.
+- [ ] Register read tool: `get_pl_report` — returns P&L for company + period (calls `GetProfitAndLoss()`).
+- [ ] Register write tool (confirmation required): `refresh_views` — triggers `RefreshViews()`.
 
-**Acceptance criteria**: `/pl` prints a formatted P&L. `/refresh` runs without error.
+**Acceptance criteria**: `/pl` prints a formatted P&L. `/refresh` runs without error. AI agent can answer "show me P&L for January" via `get_pl_report` tool call.
 
 ---
 
@@ -522,8 +565,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Add to `ApplicationService` interface and implement.
 - [ ] REPL command: `/bs [date]` (defaults to today).
 - [ ] Integration test: after any set of valid postings, `IsBalanced` is always `true`.
+- [ ] Register read tool: `get_balance_sheet` — returns balance sheet as of a given date.
 
-**Acceptance criteria**: `/bs` prints Assets, Liabilities, Equity sections. `IsBalanced` is always true on a valid ledger.
+**Acceptance criteria**: `/bs` prints Assets, Liabilities, Equity sections. `IsBalanced` is always true on a valid ledger. AI agent can answer "show me the balance sheet" via `get_balance_sheet` tool call.
 
 ---
 
@@ -559,8 +603,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Wire into `ApplicationService`: add `ListVendors(ctx, companyCode)` and `CreateVendor(ctx, req)` methods.
 - [ ] REPL command: `/vendors [company-code]` — prints vendor list.
 - [ ] Integration test: create vendor, retrieve vendor list, company isolation.
+- [ ] Register tools: `get_vendors` (read), `search_vendors` (read), `get_vendor_info` (read), `create_vendor` (write — requires confirmation).
 
-**Acceptance criteria**: `/vendors` shows seeded vendors. Vendor is scoped to company.
+**Acceptance criteria**: `/vendors` shows seeded vendors. Vendor is scoped to company. AI agent can look up vendors and propose creating one via tool call.
 
 ---
 
@@ -583,8 +628,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Implement `GetPO(ctx, poID)` and `GetPOs(ctx, companyCode, status)` queries.
 - [ ] Wire into `ApplicationService` and REPL: `/purchase-orders [status]`, `/new-po <vendor-code>` (interactive wizard), `/approve-po <po-ref>`.
 - [ ] Integration test: CreatePO → ApprovePO → assert PO number assigned and status correct. Company isolation.
+- [ ] Register tools: `get_purchase_orders` (read), `get_open_pos` (read), `create_purchase_order` (write), `approve_po` (write).
 
-**Acceptance criteria**: `/new-po V001` creates a DRAFT PO. `/approve-po PO-2026-00001` assigns a number.
+**Acceptance criteria**: `/new-po V001` creates a DRAFT PO. `/approve-po PO-2026-00001` assigns a number. AI agent can propose creating a PO via tool call.
 
 ---
 
@@ -604,8 +650,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - Status → `RECEIVED`, set `received_at`.
 - [ ] Wire into `ApplicationService` and REPL: `/receive-po <po-ref>` (interactive line input or single-line shorthand).
 - [ ] Integration test: ApprovePO → ReceivePO → verify `qty_on_hand` increased, `inventory_movements.po_line_id` set, `DR Inventory / CR AP` journal entry posted.
+- [ ] Register tools: `check_stock_availability` (read — enhanced with PO context), `receive_po` (write).
 
-**Acceptance criteria**: Receiving a PO updates stock and creates the correct journal entry, linked to the PO.
+**Acceptance criteria**: Receiving a PO updates stock and creates the correct journal entry, linked to the PO. AI agent can check stock and propose receiving a PO via tool call.
 
 ---
 
@@ -627,8 +674,50 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - Status → `PAID`.
 - [ ] Wire into `ApplicationService` and REPL: `/vendor-invoice <po-ref>`, `/pay-vendor <po-ref> [bank-account]`.
 - [ ] Integration test: full lifecycle CreatePO → ApprovePO → ReceivePO → RecordVendorInvoice → PayVendor. Verify AP balance zeroed after payment.
+- [ ] Register tools: `get_tds_cumulative` (read), `check_tds_threshold` (read), `record_vendor_invoice` (write), `pay_vendor` (write).
 
-**Acceptance criteria**: Full procurement cycle works end-to-end. AP balance clears on payment.
+**Acceptance criteria**: Full procurement cycle works end-to-end. AP balance clears on payment. AI agent can check TDS threshold status and propose vendor payment via tool call.
+
+---
+
+### Phase AI-RAG: Regulatory Knowledge Layer
+
+**Goal**: Add a RAG (Retrieval-Augmented Generation) knowledge layer for regulatory and policy documents. This is distinct from database search tools — RAG retrieves text from a curated document store, not live DB records.
+
+**Pre-requisites**: Phase 14 complete. `InterpretDomainAction` proven stable across Phases 8–14 tools (≥4 domain phases). Gate: AI-RAG may not begin until Phase 14 integration tests pass and tool-call regression corpus has ≥20 documented test cases.
+
+**Tasks:**
+
+- [ ] Create `docs/regulations/` directory — curated markdown files:
+  - `gst_act_key_sections.md` — GST liability, place of supply, input tax credit, RCM provisions
+  - `tds_sections.md` — Section 194C, 194J, 194H, threshold limits, FY boundary rules
+  - `rcm_vendor_types.md` — which vendor categories trigger RCM, ITC claim timing
+  - Add more files as Tier 4 tax phases are implemented
+- [ ] Create `internal/ai/rag_store.go`. Implement `RAGStore` interface:
+  ```go
+  type RAGStore interface {
+      Search(ctx context.Context, query string, topK int) ([]RAGResult, error)
+  }
+  type RAGResult struct {
+      Source  string
+      Section string
+      Content string
+      Score   float64
+  }
+  ```
+  Initial implementation: keyword/BM25 search over markdown files in `docs/regulations/`. Vector search (pgvector) deferred to a follow-on phase.
+- [ ] Register `search_regulations` as a read tool — calls `RAGStore.Search()`, returns top-3 relevant sections.
+- [ ] Implement `DomainActionContext` struct — curates what is included in each agent prompt:
+  - Company info (code, name, base currency, state code)
+  - Active accounting period
+  - Relevant accounts (fetched on demand by read tools, not pre-loaded)
+  - Tool call history for current turn
+  - Excludes: full CoA, all customer list, all product list (these are fetched by tools only when needed)
+- [ ] Update `InterpretDomainAction` to use `DomainActionContext` for prompt assembly instead of flat context dump.
+- [ ] Unit test: `RAGStore.Search("RCM unregistered vendor")` returns the correct section from `rcm_vendor_types.md`.
+- [ ] Integration test: user asks "does this vendor invoice attract RCM?" → agent calls `search_regulations` → response cites the correct rule section.
+
+**Acceptance criteria**: `search_regulations` returns relevant regulatory content. Prompt size stays bounded (DomainActionContext, not full CoA dump). `InterpretEvent` unchanged.
 
 ---
 
@@ -652,8 +741,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Implement `GetJob`, `GetJobs` queries.
 - [ ] Wire into `ApplicationService` and REPL: `/jobs [status]`, `/new-job <customer-code>`, `/confirm-job <job-ref>`.
 - [ ] Integration test: CreateJob → ConfirmJob → assert JO number assigned.
+- [ ] Register tools: `get_jobs` (read), `get_service_categories` (read), `create_job` (write), `confirm_job` (write). Note: `search_customers` already registered in Phase 7.5.
 
-**Acceptance criteria**: `/new-job C001` creates a DRAFT job. `/confirm-job` assigns a JO number.
+**Acceptance criteria**: `/new-job C001` creates a DRAFT job. `/confirm-job` assigns a JO number. AI agent can propose creating a job via tool call.
 
 ---
 
@@ -678,8 +768,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - `/add-labour <job-ref> <hours> <rate> [description]`
   - `/add-material <job-ref> <product-code> <qty> [unit-price]`
 - [ ] Integration test: StartJob → add labour line → add material line → verify `total_transaction` updated.
+- [ ] Register tools: `get_job_detail` (read), `start_job` (write), `add_labour_line` (write), `add_material_line` (write).
 
-**Acceptance criteria**: Lines added to a job accumulate into `total_transaction`. Labour and material lines stored with correct `line_type`.
+**Acceptance criteria**: Lines added to a job accumulate into `total_transaction`. Labour and material lines stored with correct `line_type`. AI agent can manage job lines via tool calls.
 
 ---
 
@@ -703,8 +794,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - Status → `PAID`.
 - [ ] Wire into `ApplicationService` and REPL: `/complete-job <job-ref>`, `/invoice-job <job-ref>`, `/pay-job <job-ref>`.
 - [ ] Integration test: full lifecycle Start → AddLines → Complete → Invoice → Pay. Verify AR clears and revenue account is credited.
+- [ ] Register tools: `complete_job` (write), `invoice_job` (write), `record_job_payment` (write).
 
-**Acceptance criteria**: Full service job lifecycle works. Revenue posted correctly per job line's revenue account.
+**Acceptance criteria**: Full service job lifecycle works. Revenue posted correctly per job line's revenue account. AI agent can drive the full job lifecycle via tool calls.
 
 ---
 
@@ -723,6 +815,50 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Integration test: AddMaterialLine → verify `qty_on_hand` decreased, COGS journal entry posted atomically with line insert. Insufficient stock returns error without inserting the line.
 
 **Acceptance criteria**: Adding a material line to a job atomically deducts stock and books the cost entry.
+
+---
+
+### Phase AI-Skills: Skills Framework + Post-Execution Verification
+
+**Goal**: Add constrained reasoning modules (skills) for domain-specific calculations, and a verification layer that runs invariant checks after every write tool execution.
+
+**Pre-requisites**: Phase 17 + Phase 18 complete (job domain done — enough complexity to justify skills). Phase AI-RAG stable for ≥6 weeks (skills build on RAG). Gate: regression corpus ≥30 documented `InterpretDomainAction` test cases before this phase begins.
+
+**Tasks:**
+
+- [ ] Create `internal/ai/skill_registry.go`. Define `Skill` interface:
+  ```go
+  type Skill interface {
+      Name()        string
+      Description() string
+      Prompt()      string  // mini prompt template for this skill
+      InputSchema() map[string]any
+  }
+  ```
+- [ ] Implement `SkillRegistry` — register skills, call as read tools internally by the agent.
+- [ ] Implement initial skills (each is a mini prompt template + rule lookup, not a DB query):
+  - `gst_applicability` — given customer type, product HSN, and company state, determine applicable GST rate and type (CGST+SGST vs IGST vs zero)
+  - `tds_calculation` — given vendor section, cumulative paid, and payment amount, compute whether TDS applies and the deduction amount
+  - `invoice_validation` — check a proposed invoice for completeness: customer GSTIN, HSN codes, tax rate applied, document date not in locked period
+- [ ] Create `internal/ai/verifier.go`. Implement `PostExecutionVerifier`:
+  ```go
+  type PostExecutionVerifier interface {
+      Verify(ctx context.Context, companyID int, result ToolExecutionResult) []VerificationError
+  }
+  ```
+  Checks (run after every write tool execution):
+  - Ledger balanced: `SUM(debit_base) = SUM(credit_base)` on the new journal entry
+  - Stock non-negative: `qty_on_hand >= 0` for any inventory item touched
+  - AR/AP moved in correct direction (DR AR on invoice, CR AR on payment)
+  - Idempotency key unique (no duplicate commit)
+- [ ] Wire `PostExecutionVerifier` into `InterpretDomainAction` — runs after each write tool execution; on failure, returns error to user before any further tool calls.
+- [ ] Begin `InterpretEvent` migration path (§14.4 steps 1–4):
+  - Register `propose_journal_entry` as a write tool (parallel to `InterpretEvent`)
+  - Run both paths on same input; log agreement/disagreement
+  - Build regression corpus to ≥50 test cases with ≥95% agreement before retiring `InterpretEvent`
+- [ ] Unit tests: each skill returns correct output for known inputs. Verifier catches an unbalanced entry.
+
+**Acceptance criteria**: Skills available as read tools in the agent loop. Verifier runs after every write tool and catches invariant violations. `propose_journal_entry` write tool running in parallel with `InterpretEvent`. All 27+ existing tests pass.
 
 ---
 
@@ -750,8 +886,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Implement `GetRentalAssets`, `GetRentalContracts` queries.
 - [ ] Wire into `ApplicationService` and REPL: `/rental-assets`, `/rental-contracts`, `/new-rental <customer-code> <asset-code>`, `/activate-rental <contract-ref>`.
 - [ ] Integration test: CreateContract → ActivateContract → verify asset status = RENTED, deposit entry posted. Activating a RENTED asset returns error.
+- [ ] Register tools: `get_rental_assets` (read), `get_rental_contracts` (read), `create_rental_contract` (write), `activate_rental_contract` (write).
 
-**Acceptance criteria**: Double-booking prevented. Activation posts deposit entry and marks asset RENTED.
+**Acceptance criteria**: Double-booking prevented. Activation posts deposit entry and marks asset RENTED. AI agent can propose rental contract creation via tool call.
 
 ---
 
@@ -776,8 +913,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Implement `RecordRentalPayment(ctx, contractID, bankCode, paymentDate, ledger)` — `DR Bank / CR AR`. Status → `PAID`.
 - [ ] Wire into `ApplicationService` and REPL: `/bill-rental <contract-ref> <from> <to>`, `/return-rental <contract-ref> [return-date]`, `/pay-rental <contract-ref>`.
 - [ ] Integration test: Activate → BillPeriod → ReturnAsset (late) → verify overrun auto-billed, asset AVAILABLE.
+- [ ] Register tools: `bill_rental_period` (write), `return_asset` (write), `record_rental_payment` (write).
 
-**Acceptance criteria**: Billing, return, and payment work. Late return auto-bills the overrun.
+**Acceptance criteria**: Billing, return, and payment work. Late return auto-bills the overrun. AI agent can drive the rental lifecycle via tool calls.
 
 ---
 
@@ -800,8 +938,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - Idempotency key: `depreciation-{asset_id}-{period_date}`.
 - [ ] Wire into `ApplicationService` and REPL: `/refund-deposit <contract-ref> [deduction-amount]`, `/depreciate [YYYY-MM]`.
 - [ ] Integration test: partial refund posts two journal lines correctly. Depreciation is idempotent (running twice for the same period posts only once).
+- [ ] Register tools: `refund_deposit` (write).
 
-**Acceptance criteria**: Deposit refund and depreciation batch run correctly. Depreciation is idempotent.
+**Acceptance criteria**: Deposit refund and depreciation batch run correctly. Depreciation is idempotent. AI agent can propose deposit refund via tool call.
 
 ---
 
@@ -908,8 +1047,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - SEZ (`customer.is_sez = true`) → GST0 rate ID.
 - [ ] Update `InvoiceOrder()`: when company has a `state_code` set and customer has a `tax_jurisdiction`, call `ResolveGSTRateID()` to override product's `default_tax_rate_id` with the jurisdiction-correct one.
 - [ ] Integration test: same-state invoice uses CGST+SGST. Different-state invoice uses IGST. SEZ uses zero rate.
+- [ ] Register tools: `check_gst_rate` (read — resolves applicable rate for a customer+product pair), `search_products` enhanced with HSN field, `check_hsn_coverage` (read — verifies all products have HSN codes set).
 
-**Acceptance criteria**: CGST+SGST vs IGST automatically resolved from customer and company state codes.
+**Acceptance criteria**: CGST+SGST vs IGST automatically resolved from customer and company state codes. AI agent can check GST applicability via tool call + `gst_applicability` skill.
 
 ---
 
@@ -953,8 +1093,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
     - Post: `DR AP (full) / CR Bank (net) / CR TDS Payable (deducted amount)`.
     - Update `tds_vendor_ledger.cumulative_paid += payment_amount`.
 - [ ] Integration test: first payment below threshold — no TDS. Second payment crosses threshold — TDS deducted. Verify split entry amounts.
+- [ ] Register tools: `get_tds_threshold_status` (read — returns cumulative paid vs threshold for a vendor+section+FY).
 
-**Acceptance criteria**: TDS deducted only after threshold crossed. Correct split into Bank + TDS Payable.
+**Acceptance criteria**: TDS deducted only after threshold crossed. Correct split into Bank + TDS Payable. AI agent uses `tds_calculation` skill + `get_tds_threshold_status` tool to advise on TDS before payment.
 
 ---
 
@@ -974,8 +1115,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Implement `SettleTCS(ctx, companyCode, sectionCode, period, bankCode, ledger)` — mirror of above.
 - [ ] Wire into `ApplicationService` and REPL: `/pay-tds <section-code> <YYYY-MM>`, `/pay-tcs <section-code> <YYYY-MM>`.
 - [ ] Integration test: TCS collected on receipt. Settlement clears TCS Payable balance.
+- [ ] Register tools: `get_tcs_status` (read), `settle_tds` (write), `settle_tcs` (write).
 
-**Acceptance criteria**: TCS collected on customer payments. Settlement commands clear the tax payable balance.
+**Acceptance criteria**: TCS collected on customer payments. Settlement commands clear the tax payable balance. AI agent can propose TDS/TCS settlement via tool calls.
 
 ---
 
@@ -1002,8 +1144,9 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 - [ ] Implement `LockPeriod(ctx, companyCode, year, month int)` and `UnlockPeriod(ctx, companyCode, year, month int)` in `ReportingService`.
 - [ ] Wire into `ApplicationService` and REPL: `/lock-period <YYYY-MM>`, `/unlock-period <YYYY-MM>`.
 - [ ] Integration test: post entry → lock period → attempt another post to same period → expect error. Unlock → post succeeds.
+- [ ] Register tools: `check_period_lock` (read — returns lock status for a period), `lock_period` (write), `unlock_period` (write).
 
-**Acceptance criteria**: Posting to a locked period fails with a clear error. Unlocking re-enables posting.
+**Acceptance criteria**: Posting to a locked period fails with a clear error. Unlocking re-enables posting. AI agent checks period lock status before proposing entries via `check_period_lock` tool.
 
 ---
 
@@ -1024,25 +1167,21 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
   - Source from `sales_order_tax_lines` and ITC entries in `journal_lines`.
 - [ ] Wire into `ApplicationService` and REPL: `/gstr1 <YYYY-MM>`, `/gstr3b <YYYY-MM>`.
 - [ ] Integration test: known dataset → assert GSTR1 output matches expected B2B and HSN summary values.
+- [ ] Register tools: `get_gstr1_preview` (read), `get_gstr3b_preview` (read), `export_gstr1` (write), `export_gstr3b` (write).
 
-**Acceptance criteria**: `/gstr1 2026-02` outputs a correctly structured report. HSN summary totals match invoice line totals.
+**Acceptance criteria**: `/gstr1 2026-02` outputs a correctly structured report. HSN summary totals match invoice line totals. AI agent can preview and export GST returns via tool calls.
 
 ---
 
 ## Tier 5 — Scale & Governance
 
-### Phase 31: AI Agent Architecture Upgrade
+### ~~Phase 31: AI Agent Architecture Upgrade~~ — Superseded
 
-**Pre-requisites**: Phase 10 (Reporting). Phase 4 (Application Service).
-
-> **Before implementing this phase**, read [`docs/ai_agent_upgrade.md`](ai_agent_upgrade.md) in full. The three bullet points below are the original plan. The upgrade document redefines Phase 31 as a foundational tool-calling architecture refactor, and proposes that individual AI capabilities be added alongside the domains they support (Phases 8, 12, 15, 23, 25, 27) rather than all at the end.
-
-- [ ] **Tool-calling architecture**: agent selects from a registered set of `ApplicationService` tools, proposes the action with parameters, user confirms, system executes. Replaces the current single-output `Proposal` model for domain operations.
-- [ ] **Receipt/Invoice image ingestion**: accept image file path or base64 → OpenAI Vision API → extract vendor, amount, date → propose entry → user confirms before commit.
-- [ ] **Conversational reporting**: natural language query → AI calls `ReportingService` → returns plain-English answer. Example: *"What was my service revenue last quarter?"*
-- [ ] **Anomaly flagging**: AI flags proposals with confidence < 0.5 for manual review with a warning message.
-- [ ] **Proactive compliance guidance**: GST jurisdiction warnings, TDS threshold alerts, HSN code missing warnings — presented before the user confirms an action.
-- [ ] **Plain-English explanations**: after any journal entry is committed, AI explains what happened in non-accounting language.
+> This phase has been removed from Tier 5 and replaced by **Phase 7.5**, **Phase AI-RAG**, **Phase AI-Skills**, and incremental per-domain tool additions across Phases 8–30.
+>
+> The original Phase 31 plan deferred all AI architecture to after Phase 10 and WF5. The resequenced roadmap wires the tool-calling architecture immediately after Phase 7 (Phase 7.5), adds read tools alongside every domain phase, and introduces the RAG and skills layers at natural trigger points (after Phase 14 and Phase 17 respectively).
+>
+> See [`docs/ai_agent_upgrade.md`](ai_agent_upgrade.md) for the full AI architecture specification. By Phase 30, the system will have ~40 read tools, ~35 write tools, a RAG regulatory knowledge layer, and a skills framework — all built incrementally rather than as a single Tier 5 effort.
 
 ---
 
@@ -1097,40 +1236,43 @@ Phase 3 acceptance criteria states: *"main.go no longer imports `internal/core` 
 | 5 | Rule engine schema + seed rules | 2 | 🟢 | 4 | ✅ Done |
 | 6 | RuleEngine service + OrderService | 2 | 🟠 | 5 | ✅ Done |
 | 7 | RuleEngine into InventoryService | 2 | 🟠 | 6 | 🔲 Pending |
-| 8 | Account statement report | 2 | 🟢 | 4 | 🔲 Pending |
-| 9 | Materialized views + P&L | 2 | 🟢 | 8 | 🔲 Pending |
-| 10 | Balance Sheet report | 2 | 🟢 | 9 | 🔲 Pending |
-| **WF1** | **REST API foundation** | **2.5** | 🟢 | **7** | 🔲 Pending |
-| **WF2** | **Authentication (JWT + users table)** | **2.5** | 🟢 | **WF1** | 🔲 Pending |
-| **WF3** | **Frontend scaffold (React shell + login)** | **2.5** | 🟢 | **WF2** | 🔲 Pending |
-| **WF4** | **Core accounting screens (dashboard, reports)** | **2.5** | 🟢 | **WF3, 8–10** | 🔲 Pending |
-| **WF5** | **AI chat panel (SSE, action cards, image upload)** | **2.5** | 🟠 | **WF3** | 🔲 Pending |
-| 11 | Vendor master | 3 | 🟢 | 7 | 🔲 Pending |
+| **7.5** | **AI Tool Architecture (ToolRegistry, agentic loop, read tools)** | **2** | 🟠 | **7** | 🔲 Pending |
+| 8 | Account statement report + read tools | 2 | 🟢 | 7.5 | 🔲 Pending |
+| 9 | Materialized views + P&L + read tool | 2 | 🟢 | 8 | 🔲 Pending |
+| 10 | Balance Sheet report + read tool | 2 | 🟢 | 9 | 🔲 Pending |
+| **WF1** | **Server + chat UI shell (POST /chat/message, SSE)** | **2.5** | 🟢 | **7.5** | 🔲 Pending |
+| **WF2** | **Authentication (JWT + users table + audit columns)** | **2.5** | 🟢 | **WF1** | 🔲 Pending |
+| **WF3** | **Frontend scaffold (templ + HTMX + Alpine.js shell + login)** | **2.5** | 🟢 | **WF2** | 🔲 Pending |
+| **WF4** | **Core accounting screens (trial balance, statement, P&L, BS)** | **2.5** | 🟢 | **WF3, 8–10** | 🔲 Pending |
+| **WF5** | **Full AI chat (SSE polish, action cards, image upload)** | **2.5** | 🟠 | **WF3, AI-Skills** | 🔲 Pending |
+| 11 | Vendor master + tools | 3 | 🟢 | 7 | 🔲 Pending |
 | **WD0** | **Web UI: customers, products, sales orders** | **3** | 🟢 | **WF4, 11** | 🔲 Pending |
-| 12 | Purchase order DRAFT + APPROVED | 3 | 🟠 | 11 | 🔲 Pending |
-| 13 | Goods receipt against PO | 3 | 🟠 | 12 | 🔲 Pending |
-| 14 | Vendor invoice + AP payment | 3 | 🟠 | 13 | 🔲 Pending |
+| 12 | Purchase orders + tools | 3 | 🟠 | 11 | 🔲 Pending |
+| 13 | Goods receipt against PO + tool | 3 | 🟠 | 12 | 🔲 Pending |
+| 14 | Vendor invoice + AP payment + tools | 3 | 🟠 | 13 | 🔲 Pending |
+| **AI-RAG** | **Regulatory knowledge layer (RAG store, search_regulations, DomainActionContext)** | **3** | 🟠 | **14** | 🔲 Pending |
 | **WD1** | **Web UI: vendors, purchase order lifecycle** | **3** | 🟢 | **WF4, 14** | 🔲 Pending |
-| 15 | Service categories + job order DRAFT/CONFIRMED | 3 | 🟠 | 7 | 🔲 Pending |
-| 16 | Job progress: start + add lines | 3 | 🟢 | 15 | 🔲 Pending |
-| 17 | Job completion + invoice + payment | 3 | 🟠 | 16 | 🔲 Pending |
+| 15 | Service categories + job orders + tools | 3 | 🟠 | 7 | 🔲 Pending |
+| 16 | Job progress + tools | 3 | 🟢 | 15 | 🔲 Pending |
+| 17 | Job completion + invoice + tools | 3 | 🟠 | 16 | 🔲 Pending |
 | 18 | Inventory consumption for jobs | 3 | 🟠 | 17, 7 | 🔲 Pending |
+| **AI-Skills** | **Skills framework + post-execution verification** | **3** | 🟠 | **17, AI-RAG** | 🔲 Pending |
 | **WD2** | **Web UI: job orders lifecycle** | **3** | 🟢 | **WF4, 18** | 🔲 Pending |
-| 19 | Rental asset master + contract DRAFT/ACTIVE | 3 | 🟠 | 7 | 🔲 Pending |
-| 20 | Rental billing + asset return | 3 | 🟠 | 19 | 🔲 Pending |
-| 21 | Security deposit + depreciation | 3 | 🟢 | 20 | 🔲 Pending |
+| 19 | Rental asset master + tools | 3 | 🟠 | 7 | 🔲 Pending |
+| 20 | Rental billing + return + tools | 3 | 🟠 | 19 | 🔲 Pending |
+| 21 | Security deposit + depreciation + tool | 3 | 🟢 | 20 | 🔲 Pending |
 | **WD3** | **Web UI: rentals + REPL deletion** | **3** | 🔴 | **WF4, 21** | 🔲 Pending |
 | 22 | Tax rate schema + TaxEngine service | 4 | 🟠 | 7 | 🔲 Pending |
 | 23 | Tax-aware invoice posting | 4 | 🔴 | 22 | 🔲 Pending |
 | 24 | Input tax on purchases | 4 | 🟠 | 23, 13 | 🔲 Pending |
-| 25 | GST rate seeds + jurisdiction resolver | 4 | 🟠 | 23 | 🔲 Pending |
+| 25 | GST rate seeds + jurisdiction resolver + tools | 4 | 🟠 | 23 | 🔲 Pending |
 | 26 | GST special cases (RCM, SEZ, composition) | 4 | 🟠 | 25 | 🔲 Pending |
-| 27 | TDS schema + vendor deductions | 4 | 🟠 | 14, 7 | 🔲 Pending |
-| 28 | TCS on receipts + TDS settlement | 4 | 🟢 | 27 | 🔲 Pending |
-| 29 | Period locking | 4 | 🟢 | 9 | 🔲 Pending |
-| 30 | GSTR-1 + GSTR-3B export | 4 | 🟢 | 25, 29 | 🔲 Pending |
-| 31 | AI tool-calling architecture + full skills | 5 | 🔴 | 10, WF5 | 🔲 Pending |
-| ~~32~~ | ~~REST API / Web layer~~ — *superseded by Tier 2.5* | — | — | — | 🚫 Removed |
+| 27 | TDS schema + vendor deductions + tool | 4 | 🟠 | 14, 7 | 🔲 Pending |
+| 28 | TCS on receipts + TDS settlement + tools | 4 | 🟢 | 27 | 🔲 Pending |
+| 29 | Period locking + tools | 4 | 🟢 | 9 | 🔲 Pending |
+| 30 | GSTR-1 + GSTR-3B export + tools | 4 | 🟢 | 25, 29 | 🔲 Pending |
+| ~~31~~ | ~~AI architecture~~ — *superseded by Phase 7.5 + AI-RAG + AI-Skills* | — | — | — | 🚫 Superseded |
+| ~~32~~ | ~~REST API / Web layer~~ — *superseded by Tier 2.5* | — | — | — | 🚫 Superseded |
 | 33 | Workflow + approvals (role enforcement) | 5 | 🔴 | WF2 | 🔲 Pending |
 | 34 | External integrations | 5 | 🔴 | WF1, 33 | 🔲 Pending |
 | 35 | Multi-branch support | 5 | 🔴 | WF1 | 🔲 Pending |

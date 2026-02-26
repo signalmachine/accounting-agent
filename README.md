@@ -88,6 +88,7 @@ Layer 1 — Infrastructure
 .
 ├── cmd/
 │   ├── app/                        # Entry point: CLI one-shot commands + REPL wiring
+│   ├── server/                     # Entry point: HTTP web server (port 8080)
 │   ├── verify-agent/               # Standalone AI integration test
 │   ├── verify-db/                  # Runs all SQL migrations against the DB
 │   └── restore-seed/               # Restore seed data
@@ -95,10 +96,14 @@ Layer 1 — Infrastructure
 │   ├── adapters/
 │   │   ├── cli/
 │   │   │   └── cli.go              # CLI one-shot commands: propose, validate, commit, bal
-│   │   └── repl/
-│   │       ├── repl.go             # REPL loop + slash command dispatcher (calls ApplicationService)
-│   │       ├── display.go          # All print* functions (accept result types, no DB calls)
-│   │       └── wizards.go          # Interactive order creation wizard
+│   │   ├── repl/
+│   │   │   ├── repl.go             # REPL loop + slash command dispatcher (calls ApplicationService)
+│   │   │   ├── display.go          # All print* functions (accept result types, no DB calls)
+│   │   │   └── wizards.go          # Interactive order creation wizard
+│   │   └── web/
+│   │       ├── handlers.go         # chi router setup and all route registrations
+│   │       ├── middleware.go       # RequestID, Logger, Recoverer, CORS middleware
+│   │       └── errors.go           # writeError / writeJSON helpers, notImplemented stub
 │   ├── app/
 │   │   ├── service.go              # ApplicationService interface (the adapter contract)
 │   │   ├── app_service.go          # ApplicationService implementation
@@ -303,8 +308,32 @@ This runner automatically:
 
 ### Build
 ```powershell
+# CLI / REPL binary
 go build -o app.exe ./cmd/app
+
+# Web server binary
+go build -o server.exe ./cmd/server
 ```
+
+### Web Server
+
+```powershell
+# Start the HTTP server (default port 8080)
+go run ./cmd/server
+
+# Custom port
+$env:SERVER_PORT = "9000"; go run ./cmd/server
+
+# CORS for local frontend development
+$env:ALLOWED_ORIGINS = "http://localhost:3000"; go run ./cmd/server
+```
+
+The web server and the CLI/REPL are **separate binaries** — both wire up the same `ApplicationService` underneath. Run them independently; they do not conflict.
+
+| Endpoint | Status | Description |
+|---|---|---|
+| `GET /api/health` | ✅ Live | Returns `{"status":"ok","company":"<code>"}` |
+| All other `/api/*` routes | 🔲 Stub (501) | Implemented incrementally in Phases WF2–WF4 |
 
 ### Interactive REPL
 ```powershell
@@ -562,10 +591,16 @@ Transactions follow the SAP model — **one currency per journal entry**:
 | 2 | 6 | `RuleEngine` service + wired into `OrderService` (AR account dynamic) | ✅ Done |
 | 2 | 7 | `RuleEngine` wired into `InventoryService` (Inventory/COGS/RECEIPT_CREDIT) | Pending |
 | 2 | 8–10 | Account statement, P&L, Balance Sheet reports | Pending |
+| 2.5 | WF1 | REST API foundation: `cmd/server`, chi router, middleware, stub handlers, `/api/health` | ✅ Done |
+| 2.5 | WF2 | Authentication: JWT, users table, login/logout/me endpoints, user management API | Pending |
+| 2.5 | WF3 | Frontend scaffold: templ + HTMX + Alpine.js + Tailwind, login page, app shell, sidebar | Pending |
+| 2.5 | WF4 | Core accounting screens: dashboard, trial balance, account statement, P&L, balance sheet | Pending |
+| 2.5 | WF5 | AI chat home (`/`): full-screen conversational UI, SSE streaming, action cards, file upload | Pending |
 | 3 | 11–14 | Procurement: vendor master, purchase orders, goods receipt, AP payment | Pending |
 | 3 | 15–18 | Service jobs: job orders, progress, invoicing, inventory consumption | Pending |
 | 3 | 19–21 | Rentals: asset master, contracts, billing, depreciation | Pending |
 | 4 | 22–30 | Tax framework: GST, TDS/TCS, period locking, GSTR export | Pending |
-| 5 | 31–35 | AI expansion, REST API, approvals, integrations, multi-branch | Pending |
+| 5 | 31–35 | AI expansion, approvals, integrations, multi-branch | Pending |
 
 Full phase-by-phase details: [`docs/Implementation_plan_upgrage.md`](docs/Implementation_plan_upgrage.md)
+Web UI architecture and phases: [`docs/web_ui_plan.md`](docs/web_ui_plan.md)
