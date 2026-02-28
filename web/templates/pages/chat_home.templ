@@ -1,0 +1,353 @@
+package pages
+
+import "accounting-agent/web/templates/layouts"
+
+// ChatHome is the full-screen AI chat home page (GET /).
+// It uses ChatLayout and manages conversation state in Alpine.js backed by sessionStorage.
+templ ChatHome(username string, companyName string, companyCode string) {
+	@layouts.ChatLayout("AI Assistant", username, companyName, companyCode) {
+		<div
+			class="flex-1 flex flex-col overflow-hidden"
+			x-data="chatHome()"
+			x-init="init()"
+		>
+			<!-- Message thread (scrollable) -->
+			<div class="flex-1 overflow-y-auto" id="chat-thread">
+				<!-- Welcome state — shown when no messages yet -->
+				<div
+					class="h-full flex flex-col items-center justify-center px-6 py-12"
+					x-show="messages.length === 0"
+				>
+					<div class="text-4xl mb-4">✨</div>
+					<h1 class="text-2xl font-semibold text-slate-800 mb-2">Hi, I'm your AI assistant</h1>
+					<p class="text-slate-500 text-center max-w-md mb-8">
+						Ask me about accounts, orders, vendors, stock levels — or describe a transaction and I'll help you post it.
+					</p>
+					<!-- Quick-action chips -->
+					<div class="flex flex-wrap gap-2 justify-center max-w-lg">
+						<button class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl transition-colors" x-on:click="quickSend('Show trial balance')">⚖️ Trial Balance</button>
+						<button class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl transition-colors" x-on:click="quickSend('Show P&amp;L report for this month')">📈 P&amp;L Report</button>
+						<button class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl transition-colors" x-on:click="quickSend('Show balance sheet')">📑 Balance Sheet</button>
+						<button class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl transition-colors" x-on:click="quickSend('List open purchase orders')">📦 Open POs</button>
+						<button class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl transition-colors" x-on:click="quickSend('Show current stock levels')">📊 Stock Levels</button>
+						<button class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-xl transition-colors" x-on:click="quickSend('I need to post a journal entry')">📝 Journal Entry</button>
+					</div>
+				</div>
+				<!-- Message list -->
+				<div class="px-4 py-4 space-y-3 max-w-3xl mx-auto" x-show="messages.length > 0">
+					<template x-for="(msg, idx) in messages" :key="idx">
+						<div>
+							<!-- User bubble -->
+							<template x-if="msg.role === 'user'">
+								<div class="flex justify-end">
+									<div class="max-w-[75%] bg-slate-900 text-white rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm" x-text="msg.text"></div>
+								</div>
+							</template>
+							<!-- AI text bubble -->
+							<template x-if="msg.role === 'ai' && msg.type === 'text'">
+								<div class="flex justify-start">
+									<div class="max-w-[75%] bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm whitespace-pre-wrap" x-html="msg.html || msg.text"></div>
+								</div>
+							</template>
+							<!-- Action card (write tool proposal) -->
+							<template x-if="msg.role === 'ai' && msg.type === 'action_card'">
+								<div class="border border-amber-200 bg-amber-50 rounded-2xl p-4 max-w-sm">
+									<div class="flex items-center gap-2 mb-2">
+										<span class="text-base">🔧</span>
+										<span class="text-sm font-semibold text-amber-900" x-text="toolLabel(msg.tool)"></span>
+									</div>
+									<pre class="text-xs text-amber-700 bg-amber-100 rounded-lg p-2 overflow-auto max-h-40 mb-3" x-text="JSON.stringify(msg.args, null, 2)"></pre>
+									<div x-show="msg.status === undefined || msg.status === 'pending'" class="flex gap-2">
+										<button
+											class="flex-1 px-3 py-1.5 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors"
+											x-on:click="confirmAction(msg, 'confirm')"
+										>✓ Confirm</button>
+										<button
+											class="px-3 py-1.5 border border-amber-300 text-amber-700 text-sm rounded-lg hover:bg-amber-100 transition-colors"
+											x-on:click="confirmAction(msg, 'cancel')"
+										>✕ Cancel</button>
+									</div>
+									<div x-show="msg.status === 'confirmed'" class="text-sm text-green-700 font-medium">✓ <span x-text="msg.resultText"></span></div>
+									<div x-show="msg.status === 'cancelled'" class="text-sm text-slate-500">Cancelled.</div>
+									<div x-show="msg.status === 'error'" class="text-sm text-red-600">⚠ <span x-text="msg.resultText"></span></div>
+								</div>
+							</template>
+							<!-- Journal entry proposal card -->
+							<template x-if="msg.role === 'ai' && msg.type === 'proposal'">
+								<div class="border border-blue-200 bg-blue-50 rounded-2xl p-4 max-w-sm">
+									<div class="flex items-center gap-2 mb-2">
+										<span class="text-base">🧾</span>
+										<span class="text-sm font-semibold text-blue-900">Journal Entry Proposal</span>
+									</div>
+									<div class="text-xs text-blue-700 mb-1" x-text="msg.proposal && msg.proposal.summary"></div>
+									<div class="text-xs text-blue-500 mb-3" x-text="'Date: ' + (msg.proposal && msg.proposal.posting_date)"></div>
+									<div x-show="msg.status === undefined || msg.status === 'pending'" class="flex gap-2">
+										<button
+											class="flex-1 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+											x-on:click="confirmAction(msg, 'confirm')"
+										>✓ Post Entry</button>
+										<button
+											class="px-3 py-1.5 border border-blue-300 text-blue-700 text-sm rounded-lg hover:bg-blue-100 transition-colors"
+											x-on:click="confirmAction(msg, 'cancel')"
+										>✕ Cancel</button>
+									</div>
+									<div x-show="msg.status === 'confirmed'" class="text-sm text-green-700 font-medium">✓ Journal entry posted.</div>
+									<div x-show="msg.status === 'cancelled'" class="text-sm text-slate-500">Cancelled.</div>
+									<div x-show="msg.status === 'error'" class="text-sm text-red-600">⚠ <span x-text="msg.resultText"></span></div>
+								</div>
+							</template>
+						</div>
+					</template>
+					<!-- Thinking indicator -->
+					<div x-show="sending" class="flex justify-start">
+						<div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-2.5 text-sm text-slate-400">Thinking…</div>
+					</div>
+				</div>
+			</div>
+			<!-- Input bar (sticky bottom) -->
+			<div class="border-t border-gray-200 bg-white px-4 py-3 flex-shrink-0">
+				<!-- Attachment chips -->
+				<div class="flex flex-wrap gap-2 mb-2" x-show="attachments.length > 0">
+					<template x-for="(att, idx) in attachments" :key="att.id">
+						<div class="flex items-center gap-1.5 px-2 py-1 bg-slate-100 rounded-lg text-xs text-slate-700">
+							<span>📎</span>
+							<span x-text="att.name" class="max-w-24 truncate"></span>
+							<button class="text-slate-400 hover:text-slate-600" x-on:click="removeAttachment(idx)">✕</button>
+						</div>
+					</template>
+				</div>
+				<div class="flex gap-2 items-end max-w-3xl mx-auto">
+					<!-- Paperclip button -->
+					<button
+						class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
+						x-on:click="$refs.fileInput.click()"
+						title="Attach image"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+						</svg>
+					</button>
+					<input
+						type="file"
+						x-ref="fileInput"
+						accept="image/jpeg,image/png,image/webp"
+						multiple
+						class="hidden"
+						x-on:change="handleFileSelect($event)"
+					/>
+					<!-- Text input -->
+					<textarea
+						x-model="input"
+						rows="1"
+						placeholder="Ask anything…"
+						class="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-slate-400 max-h-32"
+						x-on:keydown.enter.exact.prevent="sendMessage()"
+						x-on:input="autoResize($event.target)"
+					></textarea>
+					<!-- Send button -->
+					<button
+						class="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors flex-shrink-0 disabled:opacity-50"
+						x-on:click="sendMessage()"
+						x-bind:disabled="sending || input.trim() === ''"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+						</svg>
+					</button>
+				</div>
+			</div>
+		</div>
+		<script>
+		function chatHome() {
+			const STORAGE_KEY = 'chat_history';
+			const COMPANY_CODE = document.body.dataset.companyCode || '';
+
+			return {
+				messages: [],
+				input: '',
+				sending: false,
+				attachments: [],  // {id, name, type}
+
+				init() {
+					this.loadHistory();
+					this.$nextTick(() => this.scrollToBottom());
+				},
+
+				loadHistory() {
+					try {
+						const raw = sessionStorage.getItem(STORAGE_KEY);
+						if (raw) this.messages = JSON.parse(raw);
+					} catch(e) { this.messages = []; }
+				},
+
+				saveHistory() {
+					try {
+						sessionStorage.setItem(STORAGE_KEY, JSON.stringify(this.messages));
+					} catch(e) {}
+				},
+
+				scrollToBottom() {
+					const thread = document.getElementById('chat-thread');
+					if (thread) thread.scrollTop = thread.scrollHeight;
+				},
+
+				autoResize(el) {
+					el.style.height = 'auto';
+					el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+				},
+
+				quickSend(text) {
+					this.input = text;
+					this.sendMessage();
+				},
+
+				toolLabel(tool) {
+					const labels = {
+						'approve_po': 'Approve Purchase Order',
+						'create_vendor': 'Create Vendor',
+						'create_purchase_order': 'Create Purchase Order',
+						'receive_po': 'Receive Goods Against PO',
+						'record_vendor_invoice': 'Record Vendor Invoice',
+						'pay_vendor': 'Pay Vendor',
+					};
+					return labels[tool] || tool;
+				},
+
+				async handleFileSelect(event) {
+					const files = Array.from(event.target.files || []);
+					event.target.value = '';
+					for (const file of files) {
+						const formData = new FormData();
+						formData.append('file', file);
+						try {
+							const resp = await fetch('/chat/upload', { method: 'POST', body: formData });
+							if (resp.ok) {
+								const results = await resp.json();
+								for (const r of (Array.isArray(results) ? results : [results])) {
+									this.attachments.push({ id: r.attachment_id, name: r.filename, type: r.file_type });
+								}
+							}
+						} catch(e) { console.error('Upload failed:', e); }
+					}
+				},
+
+				removeAttachment(idx) {
+					this.attachments.splice(idx, 1);
+				},
+
+				async sendMessage() {
+					const text = this.input.trim();
+					if (!text || this.sending) return;
+
+					this.messages.push({ role: 'user', type: 'text', text });
+					this.saveHistory();
+					this.input = '';
+					this.sending = true;
+					this.$nextTick(() => this.scrollToBottom());
+
+					const attachmentIDs = this.attachments.map(a => a.id);
+					this.attachments = [];
+
+					try {
+						const resp = await fetch('/chat', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ text, company_code: COMPANY_CODE, attachment_ids: attachmentIDs }),
+						});
+
+						const reader = resp.body.getReader();
+						const decoder = new TextDecoder();
+						let buf = '';
+						let aiMsg = null;
+
+						while (true) {
+							const { done, value } = await reader.read();
+							if (done) break;
+							buf += decoder.decode(value, { stream: true });
+							const parts = buf.split('\n\n');
+							buf = parts.pop() || '';
+							for (const part of parts) {
+								let event = 'message', data = '';
+								for (const line of part.split('\n')) {
+									if (line.startsWith('event: ')) event = line.slice(7).trim();
+									else if (line.startsWith('data: ')) data = line.slice(6);
+								}
+								if (!data) continue;
+								try {
+									const d = JSON.parse(data);
+									if (event === 'answer') {
+										if (!aiMsg) {
+											aiMsg = { role: 'ai', type: 'text', text: d.text || '' };
+											this.messages.push(aiMsg);
+										} else {
+											aiMsg.text = (aiMsg.text || '') + (d.text || '');
+										}
+										this.saveHistory();
+										this.$nextTick(() => this.scrollToBottom());
+									} else if (event === 'clarification') {
+										this.messages.push({ role: 'ai', type: 'text', text: '❓ ' + (d.question || '') });
+										this.saveHistory();
+										this.$nextTick(() => this.scrollToBottom());
+									} else if (event === 'action_card') {
+										this.messages.push({
+											role: 'ai', type: 'action_card',
+											token: d.token, tool: d.tool, args: d.args,
+											status: 'pending',
+										});
+										this.saveHistory();
+										this.$nextTick(() => this.scrollToBottom());
+									} else if (event === 'proposal') {
+										this.messages.push({
+											role: 'ai', type: 'proposal',
+											token: d.token, proposal: d.proposal,
+											status: 'pending',
+										});
+										this.saveHistory();
+										this.$nextTick(() => this.scrollToBottom());
+									} else if (event === 'error') {
+										this.messages.push({ role: 'ai', type: 'text', text: '⚠ ' + (d.message || 'Error') });
+										this.saveHistory();
+										this.$nextTick(() => this.scrollToBottom());
+									}
+								} catch(e) {}
+							}
+						}
+					} catch(err) {
+						this.messages.push({ role: 'ai', type: 'text', text: '⚠ Connection error: ' + err.message });
+						this.saveHistory();
+					} finally {
+						this.sending = false;
+						this.$nextTick(() => this.scrollToBottom());
+					}
+				},
+
+				async confirmAction(msg, action) {
+					msg.status = action === 'confirm' ? 'confirming' : 'cancelling';
+					try {
+						const resp = await fetch('/chat/confirm', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({ token: msg.token, action }),
+						});
+						const data = await resp.json();
+						if (action === 'cancel') {
+							msg.status = 'cancelled';
+						} else if (resp.ok && data.ok) {
+							msg.status = 'confirmed';
+							const result = data.result;
+							msg.resultText = (result && result.message) ? result.message : 'Done.';
+						} else {
+							msg.status = 'error';
+							msg.resultText = data.error || 'Failed.';
+						}
+					} catch(e) {
+						msg.status = 'error';
+						msg.resultText = 'Network error.';
+					}
+					this.saveHistory();
+				},
+			};
+		}
+		</script>
+	}
+}

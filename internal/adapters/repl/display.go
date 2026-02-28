@@ -205,6 +205,74 @@ func printStatement(result *app.AccountStatementResult) {
 	fmt.Println(strings.Repeat("=", 90))
 }
 
+func printPL(report *core.PLReport) {
+	const width = 62
+	fmt.Println()
+	fmt.Println(strings.Repeat("=", width))
+	fmt.Printf("  PROFIT & LOSS — %s  %04d/%02d\n", report.CompanyCode, report.Year, report.Month)
+	fmt.Println(strings.Repeat("=", width))
+
+	fmt.Printf("  %-10s %-30s %15s\n", "CODE", "REVENUE", "AMOUNT")
+	fmt.Println(strings.Repeat("-", width))
+	for _, r := range report.Revenue {
+		fmt.Printf("  %-10s %-30s %15s\n", r.Code, r.Name, r.Balance.StringFixed(2))
+	}
+	if len(report.Revenue) == 0 {
+		fmt.Println("  (no revenue accounts)")
+	}
+
+	fmt.Println()
+	fmt.Printf("  %-10s %-30s %15s\n", "CODE", "EXPENSES", "AMOUNT")
+	fmt.Println(strings.Repeat("-", width))
+	for _, e := range report.Expenses {
+		fmt.Printf("  %-10s %-30s %15s\n", e.Code, e.Name, e.Balance.StringFixed(2))
+	}
+	if len(report.Expenses) == 0 {
+		fmt.Println("  (no expense accounts)")
+	}
+
+	fmt.Println(strings.Repeat("=", width))
+	fmt.Printf("  %-40s %15s\n", "NET INCOME", report.NetIncome.StringFixed(2))
+	fmt.Println(strings.Repeat("=", width))
+}
+
+func printBS(report *core.BSReport) {
+	const width = 62
+	fmt.Println()
+	fmt.Println(strings.Repeat("=", width))
+	fmt.Printf("  BALANCE SHEET — %s  as of %s\n", report.CompanyCode, report.AsOfDate)
+	fmt.Println(strings.Repeat("=", width))
+
+	printSection := func(title string, lines []core.AccountLine) {
+		fmt.Printf("  %s\n", title)
+		fmt.Println(strings.Repeat("-", width))
+		for _, l := range lines {
+			fmt.Printf("  %-10s %-30s %15s\n", l.Code, l.Name, l.Balance.StringFixed(2))
+		}
+		if len(lines) == 0 {
+			fmt.Println("  (none)")
+		}
+		fmt.Println()
+	}
+
+	printSection("ASSETS", report.Assets)
+	fmt.Printf("  %-40s %15s\n", "TOTAL ASSETS", report.TotalAssets.StringFixed(2))
+	fmt.Println()
+	printSection("LIABILITIES", report.Liabilities)
+	fmt.Printf("  %-40s %15s\n", "TOTAL LIABILITIES", report.TotalLiabilities.StringFixed(2))
+	fmt.Println()
+	printSection("EQUITY", report.Equity)
+	fmt.Printf("  %-40s %15s\n", "TOTAL EQUITY", report.TotalEquity.StringFixed(2))
+
+	fmt.Println(strings.Repeat("=", width))
+	balanced := "YES"
+	if !report.IsBalanced {
+		balanced = "NO *** IMBALANCE DETECTED ***"
+	}
+	fmt.Printf("  BALANCED: %s\n", balanced)
+	fmt.Println(strings.Repeat("=", width))
+}
+
 func printHelp() {
 	fmt.Println()
 	fmt.Println("ACCOUNTING AGENT — COMMANDS")
@@ -214,6 +282,9 @@ func printHelp() {
 	fmt.Println("  /bal [company-code]                          Trial balance")
 	fmt.Println("  /balances [company-code]                     Alias for /bal")
 	fmt.Println("  /statement <acct> [from-date] [to-date]      Account statement with running balance")
+	fmt.Println("  /pl [year] [month]                           Profit & Loss report")
+	fmt.Println("  /bs [as-of-date]                             Balance Sheet")
+	fmt.Println("  /refresh                                     Refresh materialized reporting views")
 	fmt.Println()
 	fmt.Println("  MASTER DATA")
 	fmt.Println("  /customers [company-code]        List customers")

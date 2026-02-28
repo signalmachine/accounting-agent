@@ -1,0 +1,78 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+
+	"github.com/shopspring/decimal"
+)
+
+// ProductsList renders the products/inventory catalog page.
+templ ProductsList(d layouts.AppLayoutData, result *app.ProductListResult, stock *app.StockResult) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-5xl space-y-4">
+			<!-- Page header -->
+			<div class="flex items-center justify-between flex-wrap gap-3">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Products</h1>
+					<p class="text-sm text-slate-500 mt-0.5">{ fmt.Sprintf("%d", len(result.Products)) } products in catalog</p>
+				</div>
+				<a
+					href="/inventory/stock"
+					class="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+				>
+					📊 View Stock Levels
+				</a>
+			</div>
+			<!-- Table -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				if len(result.Products) == 0 {
+					<div class="p-8 text-center text-slate-500 text-sm">No products found.</div>
+				} else {
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="bg-slate-50 border-b border-gray-200">
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-24">Code</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-20 hidden sm:table-cell">Unit</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32">Unit Price</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">On Hand</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100">
+							for _, p := range result.Products {
+								<tr class="hover:bg-gray-50 transition-colors">
+									<td class="px-4 py-3 font-mono text-slate-600 text-xs">{ p.Code }</td>
+									<td class="px-4 py-3">
+										<div class="font-medium text-slate-800">{ p.Name }</div>
+										if p.Description != "" {
+											<div class="text-xs text-slate-500 mt-0.5">{ p.Description }</div>
+										}
+									</td>
+									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ p.Unit }</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-800">{ p.UnitPrice.StringFixed(2) }</td>
+									<td class="px-4 py-3 text-right font-mono hidden md:table-cell text-slate-700">
+										{ plProductOnHand(stock, p.Code).StringFixed(2) }
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+		</div>
+	}
+}
+
+func plProductOnHand(stock *app.StockResult, code string) decimal.Decimal {
+	if stock == nil {
+		return decimal.Zero
+	}
+	for _, s := range stock.Levels {
+		if s.ProductCode == code {
+			return s.OnHand
+		}
+	}
+	return decimal.Zero
+}

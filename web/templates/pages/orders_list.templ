@@ -1,0 +1,111 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+)
+
+// OrdersList renders the sales orders list page.
+templ OrdersList(d layouts.AppLayoutData, result *app.OrderListResult, statusFilter string) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-5xl space-y-4">
+			<!-- Page header -->
+			<div class="flex items-center justify-between flex-wrap gap-3">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Sales Orders</h1>
+					<p class="text-sm text-slate-500 mt-0.5">Manage order lifecycle</p>
+				</div>
+				<a
+					href="/sales/orders/new"
+					class="px-3 py-1.5 text-sm bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors font-medium"
+				>
+					+ New Order
+				</a>
+			</div>
+			<!-- Status filter pills -->
+			<div class="flex gap-2 flex-wrap">
+				@orderStatusPill("", statusFilter, "All")
+				@orderStatusPill("DRAFT", statusFilter, "Draft")
+				@orderStatusPill("CONFIRMED", statusFilter, "Confirmed")
+				@orderStatusPill("SHIPPED", statusFilter, "Shipped")
+				@orderStatusPill("INVOICED", statusFilter, "Invoiced")
+				@orderStatusPill("PAID", statusFilter, "Paid")
+			</div>
+			<!-- Table -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				if len(result.Orders) == 0 {
+					<div class="p-8 text-center text-slate-500 text-sm">No orders found.</div>
+				} else {
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="bg-slate-50 border-b border-gray-200">
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-36">Order #</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Customer</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28 hidden sm:table-cell">Date</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Status</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32 hidden md:table-cell">Total</th>
+								<th class="w-16"></th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100">
+							for _, o := range result.Orders {
+								<tr class="hover:bg-gray-50 transition-colors">
+									<td class="px-4 py-3 font-mono text-slate-700 text-xs">
+										if o.OrderNumber != "" {
+											{ o.OrderNumber }
+										} else {
+											<span class="text-slate-400">DRAFT-{ orderIDStr(o.ID) }</span>
+										}
+									</td>
+									<td class="px-4 py-3 text-slate-800">
+										<div class="font-medium">{ o.CustomerName }</div>
+										<div class="text-xs text-slate-500">{ o.CustomerCode }</div>
+									</td>
+									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ o.OrderDate }</td>
+									<td class="px-4 py-3">
+										@orderStatusBadge(o.Status)
+									</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-800 hidden md:table-cell">{ o.TotalTransaction.StringFixed(2) }</td>
+									<td class="px-4 py-3 text-right">
+										<a
+											href={ templ.SafeURL("/sales/orders/" + orderIDStr(o.ID)) }
+											class="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2 transition-colors"
+										>View</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+		</div>
+	}
+}
+
+templ orderStatusPill(status, active, label string) {
+	<a
+		href={ templ.SafeURL(orderFilterURL(status)) }
+		class={ orderStatusPillClass(status, active) }
+	>
+		{ label }
+	</a>
+}
+
+func orderFilterURL(status string) string {
+	if status == "" {
+		return "/sales/orders"
+	}
+	return "/sales/orders?status=" + status
+}
+
+func orderStatusPillClass(status, active string) string {
+	if status == active {
+		return "px-3 py-1 text-xs font-medium rounded-full bg-slate-800 text-white"
+	}
+	return "px-3 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-slate-600 hover:bg-slate-50 transition-colors"
+}
+
+func orderIDStr(id int) string {
+	return fmt.Sprintf("%d", id)
+}

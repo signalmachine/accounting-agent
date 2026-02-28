@@ -1,0 +1,106 @@
+package pages
+
+import (
+	"accounting-agent/internal/core"
+	"accounting-agent/web/templates/layouts"
+
+	"github.com/shopspring/decimal"
+)
+
+// BalanceSheet renders the Balance Sheet report page.
+templ BalanceSheet(d layouts.AppLayoutData, report *core.BSReport, asOfDate string) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-4xl space-y-5">
+			<!-- Page header -->
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">Balance Sheet</h1>
+				<p class="text-sm text-slate-500 mt-0.5">As of { report.AsOfDate }</p>
+			</div>
+			<!-- Date selector -->
+			<form method="GET" action="/reports/balance-sheet" class="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+				<div>
+					<label class="block text-xs font-medium text-slate-600 mb-1">As of Date</label>
+					<input
+						type="date"
+						name="date"
+						value={ asOfDate }
+						class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+					/>
+				</div>
+				<button type="submit" class="px-4 py-1.5 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors">
+					View Report
+				</button>
+			</form>
+			<!-- Balance indicator -->
+			if report.IsBalanced {
+				<div class="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 font-medium flex items-center gap-2">
+					<span>✓</span>
+					<span>Balanced — Assets = Liabilities + Equity</span>
+				</div>
+			} else {
+				<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700 font-medium flex items-center gap-2">
+					<span>⚠</span>
+					<span>Unbalanced — income/expense accounts not yet closed to retained earnings</span>
+				</div>
+			}
+			<!-- Assets section -->
+			@bsSection("Assets", "bg-blue-50", "text-blue-800", report.Assets, report.TotalAssets)
+			<!-- Liabilities section -->
+			@bsSection("Liabilities", "bg-orange-50", "text-orange-800", report.Liabilities, report.TotalLiabilities)
+			<!-- Equity section -->
+			@bsSection("Equity", "bg-purple-50", "text-purple-800", report.Equity, report.TotalEquity)
+			<!-- Summary row -->
+			<div class="bg-white rounded-xl border border-gray-200 p-4">
+				<div class="flex items-center justify-between text-sm">
+					<div class="space-y-2">
+						<div class="flex items-center gap-8">
+							<span class="text-slate-600 w-52">Total Assets</span>
+							<span class="font-mono font-semibold text-slate-900">{ report.TotalAssets.StringFixed(2) }</span>
+						</div>
+						<div class="flex items-center gap-8">
+							<span class="text-slate-600 w-52">Total Liabilities + Equity</span>
+							<span class="font-mono font-semibold text-slate-900">{ report.TotalLiabilities.Add(report.TotalEquity).StringFixed(2) }</span>
+						</div>
+					</div>
+					if report.IsBalanced {
+						<span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">✓ BALANCED</span>
+					} else {
+						<span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">⚠ UNBALANCED</span>
+					}
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ bsSection(title, headerBg, headerText string, lines []core.AccountLine, total decimal.Decimal) {
+	<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+		<div class={ "px-4 py-3 border-b border-gray-200 " + headerBg }>
+			<h2 class={ "font-semibold text-sm " + headerText }>{ title }</h2>
+		</div>
+		<table class="w-full text-sm">
+			<tbody class="divide-y divide-gray-100">
+				if len(lines) == 0 {
+					<tr>
+						<td class="px-4 py-3 text-slate-400 italic" colspan="2">No { title } accounts</td>
+					</tr>
+				}
+				for _, line := range lines {
+					<tr class="hover:bg-gray-50 transition-colors">
+						<td class="px-4 py-2.5 text-slate-800">
+							<span class="font-mono text-xs text-slate-500 mr-2">{ line.Code }</span>
+							{ line.Name }
+						</td>
+						<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ line.Balance.StringFixed(2) }</td>
+					</tr>
+				}
+			</tbody>
+			<tfoot>
+				<tr class={ "border-t border-gray-200 font-semibold " + headerBg }>
+					<td class={ "px-4 py-3 " + headerText }>Total { title }</td>
+					<td class={ "px-4 py-3 text-right font-mono " + headerText }>{ total.StringFixed(2) }</td>
+				</tr>
+			</tfoot>
+		</table>
+	</div>
+}

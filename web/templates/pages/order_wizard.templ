@@ -1,0 +1,222 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+)
+
+// OrderWizard renders the new sales order creation form.
+templ OrderWizard(d layouts.AppLayoutData, customers *app.CustomerListResult, products *app.ProductListResult, companyCode string) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-3xl space-y-5">
+			<!-- Back link -->
+			<a href="/sales/orders" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+				← Sales Orders
+			</a>
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">New Sales Order</h1>
+				<p class="text-sm text-slate-500 mt-0.5">Create a draft order. Confirm to reserve stock and assign an order number.</p>
+			</div>
+			<!-- Form -->
+			<form
+				x-data={ fmt.Sprintf("orderWizard(%s)", orderProductsJSON(products)) }
+				action="/sales/orders/new"
+				method="POST"
+				class="space-y-5"
+			>
+				<!-- Order header -->
+				<div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+					<h2 class="font-semibold text-slate-700 text-sm border-b border-gray-100 pb-3">Order Details</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<!-- Customer -->
+						<div>
+							<label for="customer_code" class="block text-xs font-medium text-slate-600 mb-1">Customer *</label>
+							<select
+								id="customer_code"
+								name="customer_code"
+								required
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							>
+								<option value="">Select customer…</option>
+								for _, c := range customers.Customers {
+									<option value={ c.Code }>{ c.Code } — { c.Name }</option>
+								}
+							</select>
+						</div>
+						<!-- Order date -->
+						<div>
+							<label for="order_date" class="block text-xs font-medium text-slate-600 mb-1">Order Date</label>
+							<input
+								id="order_date"
+								type="date"
+								name="order_date"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Currency -->
+						<div>
+							<label for="currency" class="block text-xs font-medium text-slate-600 mb-1">Currency</label>
+							<select
+								id="currency"
+								name="currency"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							>
+								<option value="INR">INR — Indian Rupee</option>
+								<option value="USD">USD — US Dollar</option>
+								<option value="EUR">EUR — Euro</option>
+							</select>
+						</div>
+						<!-- Notes -->
+						<div>
+							<label for="notes" class="block text-xs font-medium text-slate-600 mb-1">Notes</label>
+							<input
+								id="notes"
+								type="text"
+								name="notes"
+								placeholder="Optional notes…"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+					</div>
+				</div>
+				<!-- Line items -->
+				<div class="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+					<div class="flex items-center justify-between border-b border-gray-100 pb-3">
+						<h2 class="font-semibold text-slate-700 text-sm">Order Lines</h2>
+						<button
+							type="button"
+							x-on:click="addLine()"
+							class="px-3 py-1 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+						>
+							+ Add Line
+						</button>
+					</div>
+					<!-- Line items list -->
+					<div class="space-y-3">
+						<template x-for="(line, idx) in lines" :key="idx">
+							<div class="flex gap-3 items-start">
+								<!-- Product select -->
+								<div class="flex-1 min-w-0">
+									<select
+										:name="'line_product_code[' + idx + ']'"
+										x-model="line.productCode"
+										x-on:change="onProductChange(idx)"
+										required
+										class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+									>
+										<option value="">Select product…</option>
+										<template x-for="p in products" :key="p.code">
+											<option :value="p.code" x-text="p.code + ' — ' + p.name"></option>
+										</template>
+									</select>
+								</div>
+								<!-- Quantity -->
+								<div class="w-24 flex-shrink-0">
+									<input
+										type="number"
+										:name="'line_quantity[' + idx + ']'"
+										x-model="line.quantity"
+										placeholder="Qty"
+										min="0.01"
+										step="0.01"
+										required
+										class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+									/>
+								</div>
+								<!-- Unit price -->
+								<div class="w-28 flex-shrink-0">
+									<input
+										type="number"
+										:name="'line_unit_price[' + idx + ']'"
+										x-model="line.unitPrice"
+										placeholder="Price"
+										min="0"
+										step="0.01"
+										class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+									/>
+								</div>
+								<!-- Line total (read-only) -->
+								<div class="w-28 flex-shrink-0 hidden sm:block">
+									<div class="border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm font-mono text-right text-slate-700">
+										<span x-text="lineTotal(line)"></span>
+									</div>
+								</div>
+								<!-- Remove -->
+								<button
+									type="button"
+									x-show="lines.length > 1"
+									x-on:click="removeLine(idx)"
+									class="mt-1 text-slate-400 hover:text-red-500 transition-colors text-lg leading-none"
+									title="Remove line"
+								>×</button>
+							</div>
+						</template>
+					</div>
+					<!-- Order total -->
+					<div class="pt-3 border-t border-gray-100 text-right">
+						<span class="text-sm text-slate-500 mr-3">Order Total</span>
+						<span class="font-bold font-mono text-slate-900 text-base" x-text="orderTotal()"></span>
+					</div>
+				</div>
+				<!-- Submit -->
+				<div class="flex items-center justify-end gap-3">
+					<a href="/sales/orders" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">Cancel</a>
+					<button
+						type="submit"
+						class="px-5 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+					>
+						Create Draft Order
+					</button>
+				</div>
+			</form>
+		</div>
+		<script>
+			function orderWizard(products) {
+				return {
+					products: products,
+					lines: [{ productCode: '', quantity: '', unitPrice: '' }],
+					addLine() {
+						this.lines.push({ productCode: '', quantity: '', unitPrice: '' });
+					},
+					removeLine(idx) {
+						this.lines.splice(idx, 1);
+					},
+					onProductChange(idx) {
+						const p = this.products.find(p => p.code === this.lines[idx].productCode);
+						if (p && !this.lines[idx].unitPrice) {
+							this.lines[idx].unitPrice = p.unitPrice;
+						}
+					},
+					lineTotal(line) {
+						const qty = parseFloat(line.quantity) || 0;
+						const price = parseFloat(line.unitPrice) || 0;
+						return (qty * price).toFixed(2);
+					},
+					orderTotal() {
+						return this.lines.reduce((sum, l) => {
+							return sum + (parseFloat(l.quantity) || 0) * (parseFloat(l.unitPrice) || 0);
+						}, 0).toFixed(2);
+					}
+				};
+			}
+		</script>
+	}
+}
+
+// orderProductsJSON builds the JS array literal for orderWizard() initialisation.
+func orderProductsJSON(products *app.ProductListResult) string {
+	if products == nil || len(products.Products) == 0 {
+		return "[]"
+	}
+	out := "["
+	for i, p := range products.Products {
+		if i > 0 {
+			out += ","
+		}
+		out += fmt.Sprintf(`{"code":%q,"name":%q,"unitPrice":%q}`,
+			p.Code, p.Name, p.UnitPrice.StringFixed(2))
+	}
+	out += "]"
+	return out
+}

@@ -1,0 +1,217 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/core"
+	"accounting-agent/web/templates/layouts"
+)
+
+// OrderDetail renders the sales order detail page with lifecycle action buttons.
+templ OrderDetail(d layouts.AppLayoutData, order *core.SalesOrder, companyCode string) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-4xl space-y-5">
+			<!-- Back link -->
+			<a href="/sales/orders" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+				← Sales Orders
+			</a>
+			if order == nil {
+				<div class="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
+					Order not found.
+				</div>
+			} else {
+				<!-- Header card -->
+				<div class="bg-white rounded-xl border border-gray-200 p-6">
+					<div class="flex items-start justify-between flex-wrap gap-4">
+						<div>
+							<div class="flex items-center gap-3 flex-wrap">
+								<h1 class="text-2xl font-bold text-slate-900">
+									if order.OrderNumber != "" {
+										{ order.OrderNumber }
+									} else {
+										Order #{ fmt.Sprintf("%d", order.ID) }
+									}
+								</h1>
+								@orderStatusBadge(order.Status)
+							</div>
+							<p class="text-sm text-slate-500 mt-1">
+								{ order.CustomerName } ({ order.CustomerCode }) · { order.OrderDate } · { order.Currency }
+							</p>
+						</div>
+						<!-- Lifecycle action buttons -->
+						<div x-data="orderActions()">
+							<div x-show="error" class="mb-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" x-text="error"></div>
+							<div class="flex items-center gap-2 flex-wrap">
+								if order.Status == "DRAFT" {
+									<button
+										x-on:click={ fmt.Sprintf("lifecycle('/api/companies/%s/orders/%d/confirm')", companyCode, order.ID) }
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">✓ Confirm Order</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								}
+								if order.Status == "CONFIRMED" {
+									<button
+										x-on:click={ fmt.Sprintf("lifecycle('/api/companies/%s/orders/%d/ship')", companyCode, order.ID) }
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">🚚 Ship Order</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								}
+								if order.Status == "SHIPPED" {
+									<button
+										x-on:click={ fmt.Sprintf("lifecycle('/api/companies/%s/orders/%d/invoice')", companyCode, order.ID) }
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">🧾 Invoice Order</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								}
+								if order.Status == "INVOICED" {
+									<button
+										x-on:click={ fmt.Sprintf("lifecycle('/api/companies/%s/orders/%d/payment')", companyCode, order.ID) }
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">💳 Record Payment</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								}
+							</div>
+						</div>
+					</div>
+					if order.Notes != "" {
+						<p class="mt-4 text-sm text-slate-600 bg-slate-50 rounded-lg px-4 py-3">{ order.Notes }</p>
+					}
+				</div>
+				<!-- Totals summary -->
+				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Total</div>
+						<div class="font-bold text-slate-900 font-mono">{ order.TotalTransaction.StringFixed(2) }</div>
+					</div>
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Currency</div>
+						<div class="font-semibold text-slate-700">{ order.Currency }</div>
+					</div>
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Lines</div>
+						<div class="font-semibold text-slate-700">{ fmt.Sprintf("%d", len(order.Lines)) }</div>
+					</div>
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Status</div>
+						<div class="font-semibold text-slate-700">{ order.Status }</div>
+					</div>
+				</div>
+				<!-- Line items -->
+				<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+					<div class="px-4 py-3 border-b border-gray-200 bg-slate-50">
+						<h2 class="font-semibold text-slate-700 text-sm">Order Lines</h2>
+					</div>
+					if len(order.Lines) == 0 {
+						<div class="p-6 text-center text-slate-500 text-sm">No line items.</div>
+					} else {
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="border-b border-gray-200">
+									<th class="text-left px-4 py-2.5 font-semibold text-slate-600 w-10">#</th>
+									<th class="text-left px-4 py-2.5 font-semibold text-slate-600">Product</th>
+									<th class="text-right px-4 py-2.5 font-semibold text-slate-600 w-20">Qty</th>
+									<th class="text-right px-4 py-2.5 font-semibold text-slate-600 w-28 hidden sm:table-cell">Unit Price</th>
+									<th class="text-right px-4 py-2.5 font-semibold text-slate-600 w-32">Total</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-100">
+								for _, line := range order.Lines {
+									<tr class="hover:bg-gray-50">
+										<td class="px-4 py-2.5 text-slate-400 text-xs">{ fmt.Sprintf("%d", line.LineNumber) }</td>
+										<td class="px-4 py-2.5">
+											<div class="font-medium text-slate-800">{ line.ProductName }</div>
+											<div class="text-xs text-slate-500 font-mono">{ line.ProductCode }</div>
+										</td>
+										<td class="px-4 py-2.5 text-right font-mono text-slate-700">{ line.Quantity.StringFixed(2) }</td>
+										<td class="px-4 py-2.5 text-right font-mono text-slate-700 hidden sm:table-cell">{ line.UnitPrice.StringFixed(2) }</td>
+										<td class="px-4 py-2.5 text-right font-mono font-semibold text-slate-800">{ line.LineTotalTransaction.StringFixed(2) }</td>
+									</tr>
+								}
+							</tbody>
+							<tfoot>
+								<tr class="border-t-2 border-gray-300 bg-slate-50 font-semibold">
+									<td class="px-4 py-3 text-slate-700" colspan="4">Total ({ order.Currency })</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-900">{ order.TotalTransaction.StringFixed(2) }</td>
+								</tr>
+							</tfoot>
+						</table>
+					}
+				</div>
+				<!-- Timestamps -->
+				<div class="bg-white rounded-xl border border-gray-200 p-4">
+					<h2 class="font-semibold text-slate-700 text-sm mb-3">Timeline</h2>
+					<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+						<div>
+							<div class="text-slate-500 mb-0.5">Created</div>
+							<div class="text-slate-700">{ order.CreatedAt.Format("2006-01-02 15:04") }</div>
+						</div>
+						if order.ConfirmedAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Confirmed</div>
+								<div class="text-slate-700">{ order.ConfirmedAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+						if order.ShippedAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Shipped</div>
+								<div class="text-slate-700">{ order.ShippedAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+						if order.InvoicedAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Invoiced</div>
+								<div class="text-slate-700">{ order.InvoicedAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+						if order.PaidAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Paid</div>
+								<div class="text-slate-700">{ order.PaidAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+					</div>
+				</div>
+			}
+		</div>
+		<script>
+			function orderActions() {
+				return {
+					loading: false,
+					error: '',
+					async lifecycle(url) {
+						this.loading = true;
+						this.error = '';
+						try {
+							const resp = await fetch(url, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({})
+							});
+							if (!resp.ok) {
+								const data = await resp.json().catch(() => ({}));
+								this.error = data.error || 'Action failed. Please try again.';
+							} else {
+								window.location.reload();
+							}
+						} catch (e) {
+							this.error = 'Network error. Please try again.';
+						} finally {
+							this.loading = false;
+						}
+					}
+				};
+			}
+		</script>
+	}
+}

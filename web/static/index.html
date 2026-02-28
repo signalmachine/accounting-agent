@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounting AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+           background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+
+    .header { background: #1e293b; color: #f8fafc; padding: 0.875rem 1.5rem;
+               display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+    .header h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+                   flex-shrink: 0; }
+    .company-badge { margin-left: auto; background: rgba(255,255,255,0.12);
+                      padding: 0.2rem 0.65rem; border-radius: 999px;
+                      font-size: 0.8rem; font-weight: 500; color: #cbd5e1; }
+
+    .chat-area { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem;
+                  display: flex; flex-direction: column; gap: 0.875rem; }
+
+    .message { max-width: 78%; display: flex; flex-direction: column; gap: 0.25rem; }
+    .message.user { align-self: flex-end; }
+    .message.assistant { align-self: flex-start; }
+    .bubble { padding: 0.7rem 1rem; border-radius: 1rem; line-height: 1.55;
+               font-size: 0.9rem; word-break: break-word; }
+    .user .bubble { background: #1e293b; color: #f8fafc;
+                     border-bottom-right-radius: 0.3rem; }
+    .assistant .bubble { background: #fff; color: #1e293b;
+                          border-bottom-left-radius: 0.3rem;
+                          box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .assistant .bubble.thinking { color: #94a3b8; font-style: italic; }
+    .clarification-bubble { background: #fefce8; border: 1px solid #fde68a;
+                              border-bottom-left-radius: 0.3rem; }
+
+    /* Action cards */
+    .action-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 0.875rem;
+                    padding: 1rem 1.125rem; max-width: 88%;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.08); align-self: flex-start; }
+    .action-card-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+                           letter-spacing: 0.05em; color: #64748b; margin-bottom: 0.5rem; }
+    .action-card-summary { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.75rem;
+                             color: #1e293b; }
+    .action-card-meta { display: flex; gap: 1.25rem; font-size: 0.8rem;
+                          color: #64748b; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .action-card-meta span strong { color: #475569; }
+    .reasoning { font-size: 0.8rem; color: #64748b; font-style: italic;
+                   margin-bottom: 0.875rem; line-height: 1.4; }
+
+    /* Proposal table */
+    .proposal-table { width: 100%; border-collapse: collapse;
+                        font-size: 0.82rem; margin-bottom: 0.875rem; }
+    .proposal-table th { background: #f8fafc; padding: 0.35rem 0.625rem;
+                           text-align: left; border: 1px solid #e2e8f0;
+                           font-weight: 600; color: #475569; }
+    .proposal-table td { padding: 0.35rem 0.625rem; border: 1px solid #e2e8f0;
+                           color: #334155; }
+    .proposal-table td.debit { color: #2563eb; font-weight: 500; }
+    .proposal-table td.credit { color: #16a34a; font-weight: 500; }
+
+    .card-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .btn { padding: 0.45rem 1rem; border-radius: 0.5rem; border: none;
+            cursor: pointer; font-size: 0.85rem; font-weight: 500;
+            transition: opacity 0.15s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); }
+    .btn:hover:not(:disabled) { opacity: 0.88; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-confirm { background: #16a34a; color: #fff; }
+    .btn-cancel  { background: #64748b; color: #fff; }
+
+    .card-result-ok    { color: #16a34a; font-size: 0.875rem; font-weight: 500; padding: 0.25rem 0; }
+    .card-result-error { color: #dc2626; font-size: 0.875rem; padding: 0.25rem 0; }
+    .card-result-cancelled { color: #94a3b8; font-size: 0.875rem; font-style: italic; }
+
+    /* Input area */
+    .input-area { background: #fff; border-top: 1px solid #e2e8f0;
+                   padding: 0.875rem 1.5rem; display: flex; gap: 0.75rem;
+                   align-items: flex-end; flex-shrink: 0; }
+    #msg-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 0.75rem;
+                  padding: 0.65rem 1rem; font-size: 0.9rem; resize: none;
+                  font-family: inherit; outline: none; min-height: 2.6rem;
+                  max-height: 7rem; overflow-y: auto; line-height: 1.45;
+                  transition: border-color 0.15s; }
+    #msg-input:focus { border-color: #1e293b; }
+    #msg-input:disabled { background: #f8fafc; }
+    .send-btn { background: #1e293b; color: #f8fafc; border: none;
+                 border-radius: 0.75rem; padding: 0.65rem 1.2rem; cursor: pointer;
+                 font-size: 0.9rem; font-weight: 500; white-space: nowrap;
+                 transition: opacity 0.15s; flex-shrink: 0; }
+    .send-btn:hover:not(:disabled) { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .error-inline { color: #dc2626; background: #fef2f2; border: 1px solid #fecaca;
+                     border-radius: 0.5rem; padding: 0.45rem 0.75rem;
+                     font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="status-dot" id="status-dot"></span>
+    <h1>Accounting AI</h1>
+    <span class="company-badge" id="company-badge">Loading…</span>
+  </div>
+
+  <div class="chat-area" id="chat-area">
+    <div class="message assistant">
+      <div class="bubble">
+        Hello! I'm your accounting assistant. Ask me about accounts, customers, orders,
+        stock levels — or describe a financial event and I'll propose a journal entry.
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <textarea id="msg-input" placeholder="Ask anything or describe a transaction…" rows="1"></textarea>
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    'use strict';
+
+    let companyCode = '';
+
+    // ── Bootstrap ────────────────────────────────────────────────────────────
+    async function loadCompany() {
+      try {
+        const r = await fetch('/api/health');
+        const d = await r.json();
+        companyCode = d.company || '';
+        document.getElementById('company-badge').textContent =
+          companyCode ? 'Company ' + companyCode : 'No company loaded';
+        document.getElementById('status-dot').style.background = '#22c55e';
+      } catch (e) {
+        document.getElementById('company-badge').textContent = 'Server unreachable';
+        document.getElementById('status-dot').style.background = '#ef4444';
+      }
+    }
+
+    // ── DOM helpers ──────────────────────────────────────────────────────────
+    function esc(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function scrollBottom() {
+      const area = document.getElementById('chat-area');
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function appendBubble(role, html, extraClass) {
+      const area = document.getElementById('chat-area');
+      const wrap = document.createElement('div');
+      wrap.className = 'message ' + role;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble ' + (extraClass || '');
+      bubble.innerHTML = html;
+      wrap.appendChild(bubble);
+      area.appendChild(wrap);
+      scrollBottom();
+      return wrap;
+    }
+
+    function appendActionCard(data) {
+      const area = document.getElementById('chat-area');
+      const card = document.createElement('div');
+      card.className = 'action-card';
+
+      if (data.type === 'proposal') {
+        const p = data.proposal;
+        const lines = (p.lines || []).map(l => `
+          <tr>
+            <td>${esc(l.account_code)}</td>
+            <td class="debit">${l.is_debit ? esc(l.amount) : ''}</td>
+            <td class="credit">${!l.is_debit ? esc(l.amount) : ''}</td>
+          </tr>`).join('');
+
+        card.innerHTML = `
+          <div class="action-card-label">Journal Entry Proposal</div>
+          <div class="action-card-summary">${esc(p.summary)}</div>
+          <div class="action-card-meta">
+            <span><strong>Date:</strong> ${esc(p.posting_date)}</span>
+            <span><strong>Currency:</strong> ${esc(p.transaction_currency)}</span>
+            <span><strong>Confidence:</strong> ${Math.round((p.confidence || 0) * 100)}%</span>
+          </div>
+          <table class="proposal-table">
+            <thead><tr><th>Account</th><th>Debit</th><th>Credit</th></tr></thead>
+            <tbody>${lines}</tbody>
+          </table>
+          <div class="reasoning">${esc(p.reasoning)}</div>
+          <div class="card-buttons">
+            <button class="btn btn-confirm" onclick="confirmAction('${esc(data.token)}','confirm',this)">Post Entry</button>
+            <button class="btn btn-cancel"  onclick="confirmAction('${esc(data.token)}','cancel',this)">Cancel</button>
+          </div>`;
+      } else {
+        // Write-tool proposal
+        card.innerHTML = `
+          <div class="action-card-label">Proposed Action</div>
+          <div class="action-card-summary">${esc(data.tool)}</div>
+          <pre style="background:#f8fafc;padding:0.6rem;border-radius:0.4rem;font-size:0.8rem;
+                       overflow:auto;max-height:160px;margin-bottom:0.875rem;">${esc(JSON.stringify(data.args, null, 2))}</pre>
+          <div class="card-buttons">
+            <button class="btn btn-confirm" onclick="confirmAction('${esc(data.token)}','confirm',this)">Execute</button>
+            <button class="btn btn-cancel"  onclick="confirmAction('${esc(data.token)}','cancel',this)">Cancel</button>
+          </div>`;
+      }
+
+      area.appendChild(card);
+      scrollBottom();
+      return card;
+    }
+
+    // ── Confirm / cancel action card ─────────────────────────────────────────
+    async function confirmAction(token, action, btn) {
+      const card = btn.closest('.action-card');
+      card.querySelectorAll('.btn').forEach(b => { b.disabled = true; });
+
+      try {
+        const r = await fetch('/api/chat/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, action }),
+        });
+        const d = await r.json();
+
+        card.querySelector('.card-buttons').remove();
+        const result = document.createElement('div');
+
+        if (action === 'cancel') {
+          result.className = 'card-result-cancelled';
+          result.textContent = 'Cancelled.';
+        } else if (d.ok) {
+          result.className = 'card-result-ok';
+          result.textContent = '✓ ' + (d.message || 'Done.');
+        } else {
+          result.className = 'card-result-error';
+          result.textContent = 'Error: ' + (d.error || d.message || 'Unknown error');
+        }
+        card.appendChild(result);
+      } catch (e) {
+        const result = document.createElement('div');
+        result.className = 'card-result-error';
+        result.textContent = 'Network error: ' + e.message;
+        card.appendChild(result);
+      }
+    }
+
+    // ── Send message ─────────────────────────────────────────────────────────
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const sendBtn = document.getElementById('send-btn');
+      const text = input.value.trim();
+      if (!text || sendBtn.disabled) return;
+
+      appendBubble('user', esc(text).replace(/\n/g, '<br>'));
+      input.value = '';
+      input.style.height = '';
+
+      sendBtn.disabled = true;
+      input.disabled = true;
+
+      const thinkingWrap = appendBubble('assistant', 'Thinking…', 'thinking');
+
+      try {
+        const r = await fetch('/api/chat/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, company_code: companyCode }),
+        });
+
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({ error: 'Request failed' }));
+          thinkingWrap.remove();
+          appendBubble('assistant',
+            '<span class="error-inline">Error: ' + esc(err.error || 'Request failed') + '</span>');
+          return;
+        }
+
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let thinkingRemoved = false;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const { parsed, remaining } = parseSSE(buffer);
+          buffer = remaining;
+
+          for (const evt of parsed) {
+            if (!thinkingRemoved && evt.event !== 'status') {
+              thinkingWrap.remove();
+              thinkingRemoved = true;
+            }
+
+            switch (evt.event) {
+              case 'status':
+                break; // already showing "Thinking…"
+
+              case 'answer':
+                appendBubble('assistant',
+                  esc(evt.data.text || '').replace(/\n/g, '<br>'));
+                break;
+
+              case 'clarification':
+                appendBubble('assistant',
+                  '<strong>Question:</strong> ' + esc(evt.data.question) +
+                  (evt.data.context
+                    ? '<br><small style="color:#64748b;display:block;margin-top:0.3rem">'
+                      + esc(evt.data.context) + '</small>'
+                    : ''),
+                  'clarification-bubble');
+                break;
+
+              case 'proposal':
+                appendActionCard({
+                  type: 'proposal',
+                  token: evt.data.token,
+                  proposal: evt.data.proposal,
+                });
+                break;
+
+              case 'action_card':
+                appendActionCard({
+                  type: 'write_tool',
+                  token: evt.data.token,
+                  tool: evt.data.tool,
+                  args: evt.data.args,
+                });
+                break;
+
+              case 'error':
+                appendBubble('assistant',
+                  '<span class="error-inline">Error: ' + esc(evt.data.message) + '</span>');
+                break;
+
+              case 'done':
+                if (!thinkingRemoved) {
+                  thinkingWrap.remove();
+                  thinkingRemoved = true;
+                }
+                break;
+            }
+          }
+        }
+
+        if (!thinkingRemoved) {
+          thinkingWrap.remove();
+        }
+
+      } catch (e) {
+        thinkingWrap.remove();
+        appendBubble('assistant',
+          '<span class="error-inline">Connection error: ' + esc(e.message) + '</span>');
+      } finally {
+        sendBtn.disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    // ── SSE parser ────────────────────────────────────────────────────────────
+    // Parses SSE-formatted text (event: / data: pairs separated by blank lines).
+    function parseSSE(buf) {
+      const parsed = [];
+      const parts = buf.split('\n\n');
+      const remaining = parts.pop() || '';
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        let event = 'message';
+        let dataStr = '';
+        for (const line of part.split('\n')) {
+          if (line.startsWith('event: ')) event = line.slice(7).trim();
+          else if (line.startsWith('data: ')) dataStr = line.slice(6);
+        }
+        if (dataStr) {
+          try {
+            parsed.push({ event, data: JSON.parse(dataStr) });
+          } catch (_) { /* skip malformed */ }
+        }
+      }
+
+      return { parsed, remaining };
+    }
+
+    // ── Auto-resize textarea ─────────────────────────────────────────────────
+    document.getElementById('msg-input').addEventListener('input', function () {
+      this.style.height = '';
+      this.style.height = Math.min(this.scrollHeight, 112) + 'px';
+    });
+
+    document.getElementById('msg-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    loadCompany();
+  </script>
+</body>
+</html>

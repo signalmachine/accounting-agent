@@ -1,0 +1,141 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+)
+
+// POList renders the purchase orders list page.
+templ POList(d layouts.AppLayoutData, result *app.PurchaseOrdersResult, statusFilter string) {
+	@layouts.AppLayout(d) {
+		<div class="space-y-5">
+			<!-- Header -->
+			<div class="flex items-center justify-between">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Purchase Orders</h1>
+					<p class="text-sm text-slate-500 mt-0.5">
+						{ fmt.Sprintf("%d order(s)", len(result.Orders)) }
+					</p>
+				</div>
+				<a
+					href="/purchases/orders/new"
+					class="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+				>
+					+ New PO
+				</a>
+			</div>
+			<!-- Status filter pills -->
+			<div class="flex flex-wrap gap-2">
+				@poStatusPill("", statusFilter, "All")
+				@poStatusPill("DRAFT", statusFilter, "Draft")
+				@poStatusPill("APPROVED", statusFilter, "Approved")
+				@poStatusPill("RECEIVED", statusFilter, "Received")
+				@poStatusPill("INVOICED", statusFilter, "Invoiced")
+				@poStatusPill("PAID", statusFilter, "Paid")
+			</div>
+			<!-- Table -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				if len(result.Orders) == 0 {
+					<div class="p-12 text-center text-slate-500">
+						<div class="text-4xl mb-3">📦</div>
+						<p class="font-medium">No purchase orders</p>
+						<p class="text-sm mt-1">
+							<a href="/purchases/orders/new" class="text-slate-700 underline hover:text-slate-900">Create your first PO</a>
+						</p>
+					</div>
+				} else {
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="border-b border-gray-200 bg-slate-50">
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">PO Number</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Vendor</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Date</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Total</th>
+								<th class="px-4 py-3"></th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100">
+							for _, po := range result.Orders {
+								<tr class="hover:bg-gray-50">
+									<td class="px-4 py-3 font-mono font-medium text-slate-800">
+										if po.PONumber != nil {
+											{ *po.PONumber }
+										} else {
+											<span class="text-slate-400">DRAFT-{ fmt.Sprintf("%d", po.ID) }</span>
+										}
+									</td>
+									<td class="px-4 py-3 text-slate-700">
+										<div class="font-medium">{ po.VendorName }</div>
+										<div class="text-xs text-slate-400 font-mono">{ po.VendorCode }</div>
+									</td>
+									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ po.PODate }</td>
+									<td class="px-4 py-3">
+										@poStatusBadge(po.Status)
+									</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-700 hidden md:table-cell">
+										{ po.TotalTransaction.StringFixed(2) }
+									</td>
+									<td class="px-4 py-3 text-right">
+										<a href={ templ.SafeURL(fmt.Sprintf("/purchases/orders/%d", po.ID)) } class="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+											View →
+										</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+		</div>
+	}
+}
+
+// poStatusPill renders a status filter pill.
+templ poStatusPill(status, active, label string) {
+	<a
+		href={ templ.SafeURL(poPillURL(status)) }
+		class={ poPillClass(status, active) }
+	>
+		{ label }
+	</a>
+}
+
+// poStatusBadge renders a colored status badge.
+templ poStatusBadge(status string) {
+	<span class={ poBadgeClass(status) }>
+		{ status }
+	</span>
+}
+
+func poPillURL(status string) string {
+	if status == "" {
+		return "/purchases/orders"
+	}
+	return "/purchases/orders?status=" + status
+}
+
+func poPillClass(status, active string) string {
+	if status == active {
+		return "px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-800 text-white"
+	}
+	return "px-3 py-1.5 text-xs font-semibold rounded-full bg-white border border-gray-200 text-slate-600 hover:bg-gray-50 transition-colors"
+}
+
+func poBadgeClass(status string) string {
+	switch status {
+	case "DRAFT":
+		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600"
+	case "APPROVED":
+		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
+	case "RECEIVED":
+		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700"
+	case "INVOICED":
+		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"
+	case "PAID":
+		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"
+	default:
+		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600"
+	}
+}

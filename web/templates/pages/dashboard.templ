@@ -1,0 +1,55 @@
+package pages
+
+import "accounting-agent/web/templates/layouts"
+
+// Dashboard renders the main dashboard.
+templ Dashboard(d layouts.AppLayoutData) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-5xl space-y-6">
+			<!-- Page header -->
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+				<p class="text-sm text-slate-500 mt-0.5">Welcome back, { d.Username }</p>
+			</div>
+			<!-- Quick-action cards row -->
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				<a href="/reports/trial-balance" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+					<div class="text-2xl mb-2">⚖️</div>
+					<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">Trial Balance</div>
+					<div class="text-xs text-slate-500 mt-0.5">View all account balances</div>
+				</a>
+				<a href="/reports/pl" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+					<div class="text-2xl mb-2">📈</div>
+					<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">P&amp;L Report</div>
+					<div class="text-xs text-slate-500 mt-0.5">Revenue and expenses</div>
+				</a>
+				<a href="/reports/balance-sheet" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+					<div class="text-2xl mb-2">📑</div>
+					<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">Balance Sheet</div>
+					<div class="text-xs text-slate-500 mt-0.5">Assets, liabilities, equity</div>
+				</a>
+				<a href="/sales/orders" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+					<div class="text-2xl mb-2">📋</div>
+					<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">Sales Orders</div>
+					<div class="text-xs text-slate-500 mt-0.5">Manage order lifecycle</div>
+				</a>
+				<a href="/inventory/stock" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+					<div class="text-2xl mb-2">📊</div>
+					<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">Stock Levels</div>
+					<div class="text-xs text-slate-500 mt-0.5">Inventory on hand</div>
+				</a>
+				<a href="/purchases/orders" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+					<div class="text-2xl mb-2">📦</div>
+					<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">Purchase Orders</div>
+					<div class="text-xs text-slate-500 mt-0.5">Procurement pipeline</div>
+				</a>
+			</div>
+			<!-- Journal Entry shortcut -->
+			<a href="/accounting/journal-entry" class="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+				<div class="text-2xl mb-2">📝</div>
+				<div class="font-semibold text-slate-800 text-sm group-hover:text-slate-900">Journal Entry</div>
+				<div class="text-xs text-slate-500 mt-0.5">Post a manual double-entry</div>
+			</a>
+		</div>
+	}
+}

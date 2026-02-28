@@ -7,6 +7,12 @@ import (
 	"github.com/openai/openai-go/responses"
 )
 
+// Attachment is an uploaded image passed to the AI vision model.
+type Attachment struct {
+	MimeType string // "image/jpeg", "image/png", "image/webp"
+	Data     []byte // raw file bytes
+}
+
 // ToolHandler is the execution function for a read tool.
 // It receives parsed JSON parameters and returns a JSON-encoded result string.
 // Write tools do not have handlers — they are proposed to the user for confirmation.

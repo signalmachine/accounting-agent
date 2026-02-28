@@ -1,0 +1,147 @@
+package pages
+
+import "accounting-agent/web/templates/layouts"
+
+// VendorForm renders the create vendor form.
+templ VendorForm(d layouts.AppLayoutData) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-2xl space-y-5">
+			<!-- Back link -->
+			<a href="/purchases/vendors" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+				← Vendors
+			</a>
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">New Vendor</h1>
+				<p class="text-sm text-slate-500 mt-0.5">Create a new vendor record for accounts payable.</p>
+			</div>
+			<!-- Form -->
+			<form action="/purchases/vendors/new" method="POST" class="space-y-5">
+				<!-- Basic info -->
+				<div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+					<h2 class="font-semibold text-slate-700 text-sm border-b border-gray-100 pb-3">Vendor Details</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<!-- Code -->
+						<div>
+							<label for="code" class="block text-xs font-medium text-slate-600 mb-1">Code *</label>
+							<input
+								id="code"
+								type="text"
+								name="code"
+								required
+								placeholder="e.g. V004"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Name -->
+						<div>
+							<label for="name" class="block text-xs font-medium text-slate-600 mb-1">Name *</label>
+							<input
+								id="name"
+								type="text"
+								name="name"
+								required
+								placeholder="Vendor company name"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Contact person -->
+						<div>
+							<label for="contact_person" class="block text-xs font-medium text-slate-600 mb-1">Contact Person</label>
+							<input
+								id="contact_person"
+								type="text"
+								name="contact_person"
+								placeholder="Full name"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Email -->
+						<div>
+							<label for="email" class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+							<input
+								id="email"
+								type="email"
+								name="email"
+								placeholder="vendor@example.com"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Phone -->
+						<div>
+							<label for="phone" class="block text-xs font-medium text-slate-600 mb-1">Phone</label>
+							<input
+								id="phone"
+								type="text"
+								name="phone"
+								placeholder="+91 98765 43210"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Payment terms -->
+						<div>
+							<label for="payment_terms_days" class="block text-xs font-medium text-slate-600 mb-1">Payment Terms (days)</label>
+							<input
+								id="payment_terms_days"
+								type="number"
+								name="payment_terms_days"
+								value="30"
+								min="0"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+					</div>
+					<!-- Address -->
+					<div>
+						<label for="address" class="block text-xs font-medium text-slate-600 mb-1">Address</label>
+						<textarea
+							id="address"
+							name="address"
+							rows="2"
+							placeholder="Street, City, State, PIN"
+							class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
+						></textarea>
+					</div>
+				</div>
+				<!-- Accounting -->
+				<div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+					<h2 class="font-semibold text-slate-700 text-sm border-b border-gray-100 pb-3">Accounting Defaults</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<!-- AP account -->
+						<div>
+							<label for="ap_account_code" class="block text-xs font-medium text-slate-600 mb-1">AP Account Code</label>
+							<input
+								id="ap_account_code"
+								type="text"
+								name="ap_account_code"
+								value="2000"
+								placeholder="2000"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<!-- Default expense account -->
+						<div>
+							<label for="default_expense_account_code" class="block text-xs font-medium text-slate-600 mb-1">Default Expense Account</label>
+							<input
+								id="default_expense_account_code"
+								type="text"
+								name="default_expense_account_code"
+								placeholder="e.g. 6100 (optional)"
+								class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+					</div>
+				</div>
+				<!-- Submit -->
+				<div class="flex items-center justify-end gap-3">
+					<a href="/purchases/vendors" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">Cancel</a>
+					<button
+						type="submit"
+						class="px-5 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+					>
+						Create Vendor
+					</button>
+				</div>
+			</form>
+		</div>
+	}
+}

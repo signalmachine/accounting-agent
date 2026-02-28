@@ -31,6 +31,9 @@ func main() {
 	orderService := core.NewOrderService(pool, ruleEngine)
 	inventoryService := core.NewInventoryService(pool, ruleEngine)
 	reportingService := core.NewReportingService(pool)
+	userService := core.NewUserService(pool)
+	vendorService := core.NewVendorService(pool)
+	purchaseOrderService := core.NewPurchaseOrderService(pool)
 
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
@@ -38,7 +41,13 @@ func main() {
 	}
 	agent := ai.NewAgent(apiKey)
 
-	svc := app.NewAppService(pool, ledger, docService, orderService, inventoryService, reportingService, agent)
+	svc := app.NewAppService(pool, ledger, docService, orderService, inventoryService, reportingService, userService, vendorService, purchaseOrderService, agent)
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Println("Warning: JWT_SECRET is not set; using insecure default — set JWT_SECRET in .env")
+		jwtSecret = "insecure-default-change-me"
+	}
 
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
@@ -46,7 +55,7 @@ func main() {
 	}
 
 	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
-	handler := webAdapter.NewHandler(svc, allowedOrigins)
+	handler := webAdapter.NewHandler(svc, allowedOrigins, jwtSecret)
 
 	log.Printf("server starting on :%s", port)
 	if err := http.ListenAndServe(":"+port, handler); err != nil {

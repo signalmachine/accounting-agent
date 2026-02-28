@@ -5,7 +5,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
+	"time"
 
 	"accounting-agent/internal/app"
 
@@ -213,6 +215,43 @@ func Run(ctx context.Context, svc app.ApplicationService, reader *bufio.Reader) 
 				return err
 			}
 			printStatement(result)
+
+		case "pl":
+			// Usage: /pl [year] [month]
+			year, month := time.Now().Year(), int(time.Now().Month())
+			if len(args) >= 1 {
+				if y, err := strconv.Atoi(args[0]); err == nil {
+					year = y
+				}
+			}
+			if len(args) >= 2 {
+				if m, err := strconv.Atoi(args[1]); err == nil {
+					month = m
+				}
+			}
+			report, err := svc.GetProfitAndLoss(ctx, company.CompanyCode, year, month)
+			if err != nil {
+				return err
+			}
+			printPL(report)
+
+		case "bs":
+			// Usage: /bs [as-of-date]
+			asOfDate := ""
+			if len(args) >= 1 {
+				asOfDate = args[0]
+			}
+			report, err := svc.GetBalanceSheet(ctx, company.CompanyCode, asOfDate)
+			if err != nil {
+				return err
+			}
+			printBS(report)
+
+		case "refresh":
+			if err := svc.RefreshViews(ctx); err != nil {
+				return err
+			}
+			fmt.Println("Materialized reporting views refreshed.")
 
 		case "help", "h":
 			printHelp()

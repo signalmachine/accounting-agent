@@ -35,7 +35,31 @@
       "Bash(ls:*)",
       "Bash(then go:*)",
       "Bash(source .env:*)",
-      "Bash(go mod:*)"
+      "Bash(go mod:*)",
+      "Bash(find .:*)",
+      "Bash(go get:*)",
+      "Bash(go run:*)",
+      "Bash(go install:*)",
+      "Bash(~/go/bin/templ:*)",
+      "Bash(powershell:*)",
+      "Bash(./tailwindcss.exe:*)",
+      "Bash(templ generate:*)",
+      "Bash(pg_isready:*)",
+      "Bash(net start:*)",
+      "Bash(sc query:*)",
+      "Bash(Get-Service:*)",
+      "Bash(powershell.exe:*)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/pg_ctl\":*)",
+      "Bash(sc queryex:*)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql\":*)",
+      "Bash(DATABASE_URL=$TEST_DATABASE_URL go run:*)",
+      "Bash(DATABASE_URL=\"postgres://app:electron@localhost:5432/appdb_test?sslmode=disable\" go run:*)",
+      "Bash(find:*)",
+      "Bash(go vet:*)",
+      "Bash(ss:*)",
+      "Bash(DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb_test?sslmode=disable\" go run:*)",
+      "Bash(TEST_DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb_test?sslmode=disable\" go test:*)",
+      "Bash(DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb?sslmode=disable\" go run:*)"
     ]
   }
 }

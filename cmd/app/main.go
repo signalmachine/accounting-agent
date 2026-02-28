@@ -32,6 +32,9 @@ func main() {
 	orderService := core.NewOrderService(pool, ruleEngine)
 	inventoryService := core.NewInventoryService(pool, ruleEngine)
 	reportingService := core.NewReportingService(pool)
+	userService := core.NewUserService(pool)
+	vendorService := core.NewVendorService(pool)
+	purchaseOrderService := core.NewPurchaseOrderService(pool)
 
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
@@ -39,7 +42,7 @@ func main() {
 	}
 	agent := ai.NewAgent(apiKey)
 
-	svc := app.NewAppService(pool, ledger, docService, orderService, inventoryService, reportingService, agent)
+	svc := app.NewAppService(pool, ledger, docService, orderService, inventoryService, reportingService, userService, vendorService, purchaseOrderService, agent)
 
 	if len(os.Args) > 1 {
 		cliAdapter.Run(ctx, svc, os.Args[1:])

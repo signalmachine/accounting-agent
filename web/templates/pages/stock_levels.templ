@@ -1,0 +1,68 @@
+package pages
+
+import (
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+
+	"github.com/shopspring/decimal"
+)
+
+// StockLevels renders the inventory stock levels page.
+templ StockLevels(d layouts.AppLayoutData, result *app.StockResult) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-5xl space-y-4">
+			<!-- Page header -->
+			<div class="flex items-center justify-between flex-wrap gap-3">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Stock Levels</h1>
+					<p class="text-sm text-slate-500 mt-0.5">Current inventory on hand</p>
+				</div>
+				<a
+					href="/inventory/products"
+					class="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
+				>
+					← Product Catalog
+				</a>
+			</div>
+			<!-- Table -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				if len(result.Levels) == 0 {
+					<div class="p-8 text-center text-slate-500 text-sm">No inventory items found.</div>
+				} else {
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="bg-slate-50 border-b border-gray-200">
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-24">Product</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Warehouse</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28">On Hand</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">Reserved</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">Available</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32 hidden lg:table-cell">Unit Cost</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100">
+							for _, s := range result.Levels {
+								<tr class="hover:bg-gray-50 transition-colors">
+									<td class="px-4 py-3 font-mono text-slate-600 text-xs">{ s.ProductCode }</td>
+									<td class="px-4 py-3 text-slate-800 font-medium">{ s.ProductName }</td>
+									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ s.WarehouseName }</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-800">{ s.OnHand.StringFixed(2) }</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-500 hidden md:table-cell">{ s.Reserved.StringFixed(2) }</td>
+									<td class="px-4 py-3 text-right font-mono hidden md:table-cell">
+										if s.Available.GreaterThan(decimal.Zero) {
+											<span class="text-green-700">{ s.Available.StringFixed(2) }</span>
+										} else {
+											<span class="text-amber-600 font-semibold">{ s.Available.StringFixed(2) }</span>
+										}
+									</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-600 hidden lg:table-cell">{ s.UnitCost.StringFixed(2) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+		</div>
+	}
+}

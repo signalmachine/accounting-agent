@@ -1,0 +1,152 @@
+package pages
+
+import (
+	"accounting-agent/internal/core"
+	"accounting-agent/web/templates/layouts"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/shopspring/decimal"
+)
+
+// PLReport renders the Profit & Loss report page.
+templ PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-4xl space-y-5">
+			<!-- Page header -->
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">Profit &amp; Loss Report</h1>
+				<p class="text-sm text-slate-500 mt-0.5">{ plPeriodLabel(year, month) }</p>
+			</div>
+			<!-- Period selector -->
+			<form method="GET" action="/reports/pl" class="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+				<div>
+					<label class="block text-xs font-medium text-slate-600 mb-1">Year</label>
+					<select name="year" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+						for _, y := range plYears() {
+							if y == year {
+								<option value={ strconv.Itoa(y) } selected>{ strconv.Itoa(y) }</option>
+							} else {
+								<option value={ strconv.Itoa(y) }>{ strconv.Itoa(y) }</option>
+							}
+						}
+					</select>
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-slate-600 mb-1">Month</label>
+					<select name="month" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400">
+						for m := 1; m <= 12; m++ {
+							if m == month {
+								<option value={ strconv.Itoa(m) } selected>{ time.Month(m).String() }</option>
+							} else {
+								<option value={ strconv.Itoa(m) }>{ time.Month(m).String() }</option>
+							}
+						}
+					</select>
+				</div>
+				<button type="submit" class="px-4 py-1.5 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors">
+					View Report
+				</button>
+			</form>
+			<!-- Revenue section -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				<div class="px-4 py-3 bg-green-50 border-b border-gray-200">
+					<h2 class="font-semibold text-green-800 text-sm">Revenue</h2>
+				</div>
+				<table class="w-full text-sm">
+					<tbody class="divide-y divide-gray-100">
+						if len(report.Revenue) == 0 {
+							<tr>
+								<td class="px-4 py-3 text-slate-400 italic" colspan="2">No revenue activity this period</td>
+							</tr>
+						}
+						for _, line := range report.Revenue {
+							<tr class="hover:bg-gray-50 transition-colors">
+								<td class="px-4 py-2.5 text-slate-800">
+									<span class="font-mono text-xs text-slate-500 mr-2">{ line.Code }</span>
+									{ line.Name }
+								</td>
+								<td class="px-4 py-2.5 text-right font-mono text-green-700">{ line.Balance.StringFixed(2) }</td>
+							</tr>
+						}
+					</tbody>
+					<tfoot>
+						<tr class="bg-green-50 border-t border-gray-200 font-semibold">
+							<td class="px-4 py-3 text-green-800">Total Revenue</td>
+							<td class="px-4 py-3 text-right font-mono text-green-800">{ plRevenueTotal(report).StringFixed(2) }</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+			<!-- Expenses section -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				<div class="px-4 py-3 bg-red-50 border-b border-gray-200">
+					<h2 class="font-semibold text-red-800 text-sm">Expenses</h2>
+				</div>
+				<table class="w-full text-sm">
+					<tbody class="divide-y divide-gray-100">
+						if len(report.Expenses) == 0 {
+							<tr>
+								<td class="px-4 py-3 text-slate-400 italic" colspan="2">No expense activity this period</td>
+							</tr>
+						}
+						for _, line := range report.Expenses {
+							<tr class="hover:bg-gray-50 transition-colors">
+								<td class="px-4 py-2.5 text-slate-800">
+									<span class="font-mono text-xs text-slate-500 mr-2">{ line.Code }</span>
+									{ line.Name }
+								</td>
+								<td class="px-4 py-2.5 text-right font-mono text-red-700">{ line.Balance.StringFixed(2) }</td>
+							</tr>
+						}
+					</tbody>
+					<tfoot>
+						<tr class="bg-red-50 border-t border-gray-200 font-semibold">
+							<td class="px-4 py-3 text-red-800">Total Expenses</td>
+							<td class="px-4 py-3 text-right font-mono text-red-800">{ plExpenseTotal(report).StringFixed(2) }</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+			<!-- Net income -->
+			<div class={ plNetIncomeClass(report) }>
+				<div class="font-semibold text-sm">Net Income / (Loss) — { plPeriodLabel(year, month) }</div>
+				<div class="text-2xl font-bold font-mono">{ report.NetIncome.StringFixed(2) }</div>
+			</div>
+		</div>
+	}
+}
+
+func plPeriodLabel(year, month int) string {
+	return fmt.Sprintf("%s %d", time.Month(month).String(), year)
+}
+
+func plYears() []int {
+	now := time.Now().Year()
+	return []int{now - 1, now, now + 1}
+}
+
+func plRevenueTotal(report *core.PLReport) decimal.Decimal {
+	total := decimal.Zero
+	for _, line := range report.Revenue {
+		total = total.Add(line.Balance)
+	}
+	return total
+}
+
+func plExpenseTotal(report *core.PLReport) decimal.Decimal {
+	total := decimal.Zero
+	for _, line := range report.Expenses {
+		total = total.Add(line.Balance)
+	}
+	return total
+}
+
+func plNetIncomeClass(report *core.PLReport) string {
+	base := "rounded-xl border p-5 flex items-center justify-between "
+	if report.NetIncome.GreaterThanOrEqual(decimal.Zero) {
+		return base + "bg-green-50 border-green-200 text-green-800"
+	}
+	return base + "bg-red-50 border-red-200 text-red-800"
+}

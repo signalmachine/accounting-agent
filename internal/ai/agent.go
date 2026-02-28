@@ -3,6 +3,7 @@ package ai
 import (
 	"accounting-agent/internal/core"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/responses"
 	"github.com/openai/openai-go/shared/constant"
 )
@@ -63,7 +65,8 @@ type AgentService interface {
 	// tool (for human confirmation), asks a clarifying question, returns an answer, or signals
 	// that the input is a financial event to be handled by InterpretEvent.
 	// InterpretEvent is not called or modified by this method.
-	InterpretDomainAction(ctx context.Context, userInput string, company *core.Company, registry *ToolRegistry) (*AgentDomainResult, error)
+	// attachments is optional — when non-empty, image content is passed to the vision model.
+	InterpretDomainAction(ctx context.Context, userInput string, company *core.Company, registry *ToolRegistry, attachments []Attachment) (*AgentDomainResult, error)
 }
 
 type Agent struct {
@@ -242,7 +245,8 @@ func generateSchema() map[string]any {
 //   - The loop terminates when the model produces a text message (answer), calls a write
 //     tool (proposed action or meta-tool), or the 5-iteration cap is reached.
 //   - InterpretEvent is not called or modified by this method.
-func (a *Agent) InterpretDomainAction(ctx context.Context, userInput string, company *core.Company, registry *ToolRegistry) (*AgentDomainResult, error) {
+//   - attachments is optional — when non-empty, image content is passed via the vision API.
+func (a *Agent) InterpretDomainAction(ctx context.Context, userInput string, company *core.Company, registry *ToolRegistry, attachments []Attachment) (*AgentDomainResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -310,8 +314,32 @@ Today's date: %s`, company.Name, company.CompanyCode, company.BaseCurrency, time
 
 	const maxLoops = 5
 	prevRespID := ""
-	inputParam := responses.ResponseNewParamsInputUnion{
-		OfString: openai.String(userInput),
+
+	// Build the initial input. If images are attached, use a content list; otherwise plain string.
+	var inputParam responses.ResponseNewParamsInputUnion
+	if len(attachments) == 0 {
+		inputParam = responses.ResponseNewParamsInputUnion{
+			OfString: openai.String(userInput),
+		}
+	} else {
+		contentList := responses.ResponseInputMessageContentListParam{
+			responses.ResponseInputContentParamOfInputText(userInput),
+		}
+		for _, att := range attachments {
+			b64 := base64.StdEncoding.EncodeToString(att.Data)
+			dataURL := fmt.Sprintf("data:%s;base64,%s", att.MimeType, b64)
+			contentList = append(contentList, responses.ResponseInputContentUnionParam{
+				OfInputImage: &responses.ResponseInputImageParam{
+					Detail:   responses.ResponseInputImageDetailAuto,
+					ImageURL: param.NewOpt(dataURL),
+				},
+			})
+		}
+		inputParam = responses.ResponseNewParamsInputUnion{
+			OfInputItemList: []responses.ResponseInputItemUnionParam{
+				responses.ResponseInputItemParamOfMessage(contentList, responses.EasyInputMessageRoleUser),
+			},
+		}
 	}
 
 	for i := 0; i < maxLoops; i++ {

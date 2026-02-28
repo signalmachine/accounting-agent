@@ -1,0 +1,89 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+)
+
+// VendorsList renders the vendor master list page.
+templ VendorsList(d layouts.AppLayoutData, result *app.VendorsResult) {
+	@layouts.AppLayout(d) {
+		<div class="space-y-5">
+			<!-- Header -->
+			<div class="flex items-center justify-between">
+				<div>
+					<h1 class="text-2xl font-bold text-slate-900">Vendors</h1>
+					<p class="text-sm text-slate-500 mt-0.5">
+						{ fmt.Sprintf("%d active vendor(s)", len(result.Vendors)) }
+					</p>
+				</div>
+				<a
+					href="/purchases/vendors/new"
+					class="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+				>
+					+ New Vendor
+				</a>
+			</div>
+			<!-- Table -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				if len(result.Vendors) == 0 {
+					<div class="p-12 text-center text-slate-500">
+						<div class="text-4xl mb-3">🏢</div>
+						<p class="font-medium">No vendors yet</p>
+						<p class="text-sm mt-1">
+							<a href="/purchases/vendors/new" class="text-slate-700 underline hover:text-slate-900">Create your first vendor</a>
+						</p>
+					</div>
+				} else {
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="border-b border-gray-200 bg-slate-50">
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Code</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Contact</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell">Email</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Payment Terms</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">AP Account</th>
+								<th class="px-4 py-3"></th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100">
+							for _, v := range result.Vendors {
+								<tr class="hover:bg-gray-50">
+									<td class="px-4 py-3 font-mono text-slate-800 font-medium">{ v.Code }</td>
+									<td class="px-4 py-3 font-medium text-slate-800">{ v.Name }</td>
+									<td class="px-4 py-3 text-slate-500 hidden md:table-cell">
+										if v.ContactPerson != nil {
+											{ *v.ContactPerson }
+										} else {
+											<span class="text-slate-300">—</span>
+										}
+									</td>
+									<td class="px-4 py-3 text-slate-500 hidden lg:table-cell">
+										if v.Email != nil {
+											{ *v.Email }
+										} else {
+											<span class="text-slate-300">—</span>
+										}
+									</td>
+									<td class="px-4 py-3 text-right text-slate-700 hidden sm:table-cell">
+										{ fmt.Sprintf("Net %d days", v.PaymentTermsDays) }
+									</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-600 hidden sm:table-cell">
+										{ v.APAccountCode }
+									</td>
+									<td class="px-4 py-3 text-right">
+										<a href={ templ.SafeURL("/purchases/vendors/" + v.Code) } class="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+											View →
+										</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+		</div>
+	}
+}

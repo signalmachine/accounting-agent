@@ -35,9 +35,14 @@ func setupTestDB(t *testing.T) *pgxpool.Pool {
 		
 		INSERT INTO companies (id, company_code, name, base_currency) VALUES (1, '1000', 'Test Company', 'INR');
 		
-		INSERT INTO accounts (company_id, code, name, type) VALUES 
-		(1, '1000', 'Test Asset', 'asset'),
-		(1, '4000', 'Test Revenue', 'revenue');
+		INSERT INTO accounts (company_id, code, name, type) VALUES
+		(1, '1000', 'Cash', 'asset'),
+		(1, '1200', 'Accounts Receivable', 'asset'),
+		(1, '2000', 'Accounts Payable', 'liability'),
+		(1, '3000', 'Share Capital', 'equity'),
+		(1, '4000', 'Sales Revenue', 'revenue'),
+		(1, '5000', 'Cost of Goods Sold', 'expense'),
+		(1, '5100', 'Operating Expense', 'expense');
 
 		INSERT INTO document_types (code, name, affects_inventory, affects_gl, affects_ar, affects_ap, numbering_strategy, resets_every_fy) VALUES
 		('JE', 'Journal Entry', false, true, false, false, 'global', false),

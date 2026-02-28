@@ -29,7 +29,17 @@ func writeJSON(w http.ResponseWriter, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// notImplemented is a stub handler that returns HTTP 501.
+// notImplemented is a stub handler that returns HTTP 501 JSON.
 func notImplemented(w http.ResponseWriter, r *http.Request) {
 	writeError(w, r, "not implemented", "NOT_IMPLEMENTED", http.StatusNotImplemented)
+}
+
+// notImplementedPage is a stub handler for browser page routes that returns a plain 501 HTML response.
+func notImplementedPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusNotImplemented)
+	_, _ = w.Write([]byte(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:2rem">
+<h2>Coming Soon</h2><p>This screen will be available in a future phase.</p>
+<a href="/dashboard" style="color:#1e293b">← Back to Dashboard</a>
+</body></html>`))
 }

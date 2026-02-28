@@ -19,9 +19,10 @@ type InventoryService interface {
 	GetDefaultWarehouse(ctx context.Context, companyCode string) (*Warehouse, error)
 	GetStockLevels(ctx context.Context, companyCode string) ([]StockLevel, error)
 	// ReceiveStock records a goods receipt: increases qty_on_hand and books DR Inventory / CR creditAccountCode.
+	// poLineID, if non-nil, links the created inventory_movement to a purchase order line.
 	ReceiveStock(ctx context.Context, companyCode, warehouseCode, productCode string,
 		qty, unitCost decimal.Decimal, movementDate, creditAccountCode string,
-		ledger *Ledger, docService DocumentService) error
+		poLineID *int, ledger *Ledger, docService DocumentService) error
 
 	// TX-scoped operations: work within a caller-provided transaction.
 	// Used by OrderService to keep inventory changes atomic with order state transitions.
@@ -149,9 +150,11 @@ func (s *inventoryService) GetStockLevels(ctx context.Context, companyCode strin
 // It updates qty_on_hand using weighted average cost and books the accounting entry:
 //
 //	DR 1400 Inventory / CR creditAccountCode (default 2000 AP)
+//
+// poLineID, if non-nil, links the created inventory_movement to a purchase order line.
 func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, warehouseCode, productCode string,
 	qty, unitCost decimal.Decimal, movementDate, creditAccountCode string,
-	ledger *Ledger, docService DocumentService) error {
+	poLineID *int, ledger *Ledger, docService DocumentService) error {
 
 	if qty.IsNegative() || qty.IsZero() {
 		return fmt.Errorf("receive quantity must be positive, got %s", qty)
@@ -262,10 +265,11 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 		parsedDate = time.Now()
 	}
 	_, err = tx.Exec(ctx, `
-		INSERT INTO inventory_movements (company_id, inventory_item_id, movement_type, quantity, unit_cost, total_cost, movement_date, notes)
-		VALUES ($1, $2, 'RECEIPT', $3, $4, $5, $6, $7)
+		INSERT INTO inventory_movements (company_id, inventory_item_id, movement_type, quantity, unit_cost, total_cost, movement_date, notes, po_line_id)
+		VALUES ($1, $2, 'RECEIPT', $3, $4, $5, $6, $7, $8)
 	`, companyID, itemID, qty, unitCost, totalCost, parsedDate.Format("2006-01-02"),
 		fmt.Sprintf("Goods receipt: %s × %s units @ %s", productCode, qty.String(), unitCost.String()),
+		poLineID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to insert inventory movement: %w", err)

@@ -82,7 +82,7 @@ func TestInventory_ReceiveStock(t *testing.T) {
 	// Receive 100 units of P001 @ 250 per unit
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(100), decimal.NewFromFloat(250),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("ReceiveStock failed: %v", err)
 	}
@@ -102,7 +102,7 @@ func TestInventory_WeightedAverageCost(t *testing.T) {
 	// First receipt: 100 @ 200 = avg 200
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(100), decimal.NewFromFloat(200),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("First ReceiveStock failed: %v", err)
 	}
@@ -110,7 +110,7 @@ func TestInventory_WeightedAverageCost(t *testing.T) {
 	// Second receipt: 100 @ 300 = avg (100*200 + 100*300) / 200 = 250
 	err = invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(100), decimal.NewFromFloat(300),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("Second ReceiveStock failed: %v", err)
 	}
@@ -139,7 +139,7 @@ func TestInventory_ReserveStock(t *testing.T) {
 	// Receive 50 units of P001 @ 200 each
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(50), decimal.NewFromFloat(200),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("ReceiveStock failed: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestInventory_InsufficientStock(t *testing.T) {
 	// Only 5 units in stock
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(5), decimal.NewFromFloat(200),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("ReceiveStock failed: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestInventory_ShipStock(t *testing.T) {
 	// Receive 100 units @ 300 each
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(100), decimal.NewFromFloat(300),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("ReceiveStock failed: %v", err)
 	}
@@ -256,7 +256,7 @@ func TestInventory_CancelOrder_ReleasesReservation(t *testing.T) {
 
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(50), decimal.NewFromFloat(200),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("ReceiveStock failed: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestInventory_FullLifecycle(t *testing.T) {
 	// 1. Receive 50 units of P001 @ 400 each
 	err := invSvc.ReceiveStock(ctx, "1000", "MAIN", "P001",
 		decimal.NewFromInt(50), decimal.NewFromFloat(400),
-		"2026-02-24", "2000", ledger.(*core.Ledger), docSvc)
+		"2026-02-24", "2000", nil, ledger.(*core.Ledger), docSvc)
 	if err != nil {
 		t.Fatalf("ReceiveStock failed: %v", err)
 	}

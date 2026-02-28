@@ -50,6 +50,64 @@ type AccountStatementResult struct {
 	Lines       []core.StatementLine
 }
 
+// UserSession is returned by AuthenticateUser on successful login.
+type UserSession struct {
+	UserID      int    `json:"user_id"`
+	Username    string `json:"username"`
+	Role        string `json:"role"`
+	CompanyCode string `json:"company_code"`
+	CompanyID   int    `json:"company_id"`
+}
+
+// UserResult is returned by GetUser.
+type UserResult struct {
+	UserID      int
+	Username    string
+	Email       string
+	Role        string
+	IsActive    bool
+	CompanyCode string
+}
+
+// VendorsResult is returned by ListVendors.
+type VendorsResult struct {
+	Vendors []core.Vendor
+}
+
+// VendorResult is returned by CreateVendor.
+type VendorResult struct {
+	Vendor *core.Vendor
+}
+
+// PurchaseOrdersResult is returned by ListPurchaseOrders.
+type PurchaseOrdersResult struct {
+	Orders []core.PurchaseOrder
+}
+
+// PurchaseOrderResult is returned by CreatePurchaseOrder and ApprovePurchaseOrder.
+type PurchaseOrderResult struct {
+	PurchaseOrder *core.PurchaseOrder
+}
+
+// POReceiptResult is returned by ReceivePurchaseOrder.
+type POReceiptResult struct {
+	PurchaseOrder *core.PurchaseOrder
+	LinesReceived int
+}
+
+// VendorInvoiceResult is returned by RecordVendorInvoice.
+type VendorInvoiceResult struct {
+	PurchaseOrder    *core.PurchaseOrder
+	PIDocumentNumber string
+	// Warning is non-empty if the invoice amount deviates > 5% from the PO total.
+	Warning string
+}
+
+// PaymentResult is returned by PayVendor.
+type PaymentResult struct {
+	PurchaseOrder *core.PurchaseOrder
+}
+
 // AIResult is returned by InterpretEvent.
 type AIResult struct {
 	Proposal             *core.Proposal

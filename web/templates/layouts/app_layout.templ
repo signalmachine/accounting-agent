@@ -1,0 +1,572 @@
+package layouts
+
+templ AppLayout(d AppLayoutData) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ d.Title } — Accounting</title>
+			<link rel="stylesheet" href="/static/css/app.css"/>
+			<script src="/static/js/htmx.min.js"></script>
+			<script src="/static/js/htmx-ext-sse.js"></script>
+			<script src="/static/js/alpine.min.js" defer></script>
+		</head>
+		<body
+			class="h-screen flex overflow-hidden bg-gray-100"
+			hx-boost="true"
+			data-active-nav={ d.ActiveNav }
+			x-data="appLayout()"
+		>
+			<!-- Sidebar -->
+			<aside
+				class="w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col transition-all duration-200"
+				x-bind:class="sidebarOpen ? 'flex' : 'hidden lg:flex'"
+			>
+				<!-- Brand -->
+				<div class="h-16 flex items-center px-6 border-b border-slate-700 flex-shrink-0">
+					<a href="/dashboard" class="flex items-center gap-2 text-white hover:text-slate-200">
+						<span class="text-xl">⌂</span>
+						<span class="font-semibold text-sm tracking-wide">Accounting</span>
+					</a>
+				</div>
+				<!-- Nav -->
+				<nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+					<!-- Home -->
+					<a
+						href="/dashboard"
+						class={ navItemClass(d.ActiveNav, "dashboard") }
+					>
+						<span class="text-base">🏠</span>
+						<span>Dashboard</span>
+					</a>
+					<!-- Sales section -->
+					<div>
+						<button
+							class="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2"
+							x-on:click="toggleSection('sales')"
+						>
+							<span>Sales</span>
+							<span x-bind:class="sections.sales ? 'rotate-180' : ''" class="transition-transform text-xs">▼</span>
+						</button>
+						<div x-show="sections.sales" x-collapse>
+							<a href="/sales/customers" class={ navItemClass(d.ActiveNav, "customers") }>
+								<span>👥</span>
+								<span>Customers</span>
+							</a>
+							<a href="/sales/orders" class={ navItemClass(d.ActiveNav, "orders") }>
+								<span>📋</span>
+								<span>Orders</span>
+							</a>
+						</div>
+					</div>
+					<!-- Purchases section -->
+					<div>
+						<button
+							class="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2"
+							x-on:click="toggleSection('purchases')"
+						>
+							<span>Purchases</span>
+							<span x-bind:class="sections.purchases ? 'rotate-180' : ''" class="transition-transform text-xs">▼</span>
+						</button>
+						<div x-show="sections.purchases" x-collapse>
+							<a href="/purchases/vendors" class={ navItemClass(d.ActiveNav, "vendors") }>
+								<span>🏢</span>
+								<span>Vendors</span>
+							</a>
+							<a href="/purchases/orders" class={ navItemClass(d.ActiveNav, "purchase-orders") }>
+								<span>📦</span>
+								<span>Purchase Orders</span>
+							</a>
+						</div>
+					</div>
+					<!-- Inventory section -->
+					<div>
+						<button
+							class="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2"
+							x-on:click="toggleSection('inventory')"
+						>
+							<span>Inventory</span>
+							<span x-bind:class="sections.inventory ? 'rotate-180' : ''" class="transition-transform text-xs">▼</span>
+						</button>
+						<div x-show="sections.inventory" x-collapse>
+							<a href="/inventory/products" class={ navItemClass(d.ActiveNav, "products") }>
+								<span>🏷️</span>
+								<span>Products</span>
+							</a>
+							<a href="/inventory/stock" class={ navItemClass(d.ActiveNav, "stock") }>
+								<span>📊</span>
+								<span>Stock Levels</span>
+							</a>
+						</div>
+					</div>
+					<!-- Reports section -->
+					<div>
+						<button
+							class="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2"
+							x-on:click="toggleSection('reports')"
+						>
+							<span>Reports</span>
+							<span x-bind:class="sections.reports ? 'rotate-180' : ''" class="transition-transform text-xs">▼</span>
+						</button>
+						<div x-show="sections.reports" x-collapse>
+							<a href="/reports/trial-balance" class={ navItemClass(d.ActiveNav, "trial-balance") }>
+								<span>⚖️</span>
+								<span>Trial Balance</span>
+							</a>
+							<a href="/reports/pl" class={ navItemClass(d.ActiveNav, "pl") }>
+								<span>📈</span>
+								<span>P&amp;L Report</span>
+							</a>
+							<a href="/reports/balance-sheet" class={ navItemClass(d.ActiveNav, "balance-sheet") }>
+								<span>📑</span>
+								<span>Balance Sheet</span>
+							</a>
+							<a href="/reports/statement" class={ navItemClass(d.ActiveNav, "statement") }>
+								<span>🗂️</span>
+								<span>Acct Statement</span>
+							</a>
+						</div>
+					</div>
+					<!-- Settings section -->
+					<div>
+						<button
+							class="w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2"
+							x-on:click="toggleSection('settings')"
+						>
+							<span>Settings</span>
+							<span x-bind:class="sections.settings ? 'rotate-180' : ''" class="transition-transform text-xs">▼</span>
+						</button>
+						<div x-show="sections.settings" x-collapse>
+							<a href="/settings/users" class={ navItemClass(d.ActiveNav, "users") }>
+								<span>👤</span>
+								<span>Users</span>
+							</a>
+							<a href="/settings/rules" class={ navItemClass(d.ActiveNav, "rules") }>
+								<span>⚙️</span>
+								<span>Account Rules</span>
+							</a>
+						</div>
+					</div>
+				</nav>
+				<!-- Sidebar footer: logged in user -->
+				<div class="border-t border-slate-700 px-4 py-3 flex-shrink-0">
+					<div class="flex items-center gap-2">
+						<div class="w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+							{ userInitial(d.Username) }
+						</div>
+						<div class="min-w-0">
+							<div class="text-sm font-medium text-white truncate">{ d.Username }</div>
+							<div class="text-xs text-slate-400 truncate">{ d.Role }</div>
+						</div>
+					</div>
+				</div>
+			</aside>
+			<!-- Main content area -->
+			<div class="flex-1 flex flex-col overflow-hidden min-w-0">
+				<!-- Top header -->
+				<header class="h-16 bg-white border-b border-gray-200 flex items-center px-4 gap-3 flex-shrink-0">
+					<!-- Hamburger (mobile + collapse toggle) -->
+					<button
+						class="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+						x-on:click="sidebarOpen = !sidebarOpen"
+						aria-label="Toggle sidebar"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+						</svg>
+					</button>
+					<!-- Company + FY badge -->
+					<div class="flex items-center gap-2 min-w-0">
+						<span class="font-semibold text-slate-800 truncate text-sm">{ d.CompanyName }</span>
+						if d.FYBadge != "" {
+							<span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full flex-shrink-0">{ d.FYBadge }</span>
+						}
+					</div>
+					<!-- Spacer -->
+					<div class="flex-1"></div>
+					<!-- Ask AI button -->
+					<button
+						class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors"
+						x-on:click="chatOpen = true"
+					>
+						<span>✨</span>
+						<span>Ask AI</span>
+					</button>
+					<!-- User menu -->
+					<div class="relative" x-data="{ open: false }">
+						<button
+							class="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-700 hover:bg-slate-300 transition-colors"
+							x-on:click="open = !open"
+						>
+							{ userInitial(d.Username) }
+						</button>
+						<div
+							x-show="open"
+							x-on:click.outside="open = false"
+							x-transition
+							class="absolute right-0 top-10 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+						>
+							<div class="px-4 py-2 border-b border-gray-100">
+								<div class="text-sm font-medium text-gray-900">{ d.Username }</div>
+								<div class="text-xs text-gray-500">{ d.Role }</div>
+							</div>
+							<form method="POST" action="/logout">
+								<button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+									Sign out
+								</button>
+							</form>
+						</div>
+					</div>
+				</header>
+				<!-- Flash message -->
+				if d.FlashMsg != "" {
+					<div
+						x-data="{ show: true }"
+						x-show="show"
+						x-init="setTimeout(() => show = false, 5000)"
+						x-transition
+						class={ flashClass(d.FlashKind) }
+					>
+						<span>{ d.FlashMsg }</span>
+						<button x-on:click="show = false" class="ml-auto text-current opacity-60 hover:opacity-100">✕</button>
+					</div>
+				}
+				<!-- Page content -->
+				<main class="flex-1 overflow-y-auto p-6">
+					{ children... }
+				</main>
+			</div>
+			<!-- Chat slide-over -->
+			<div
+				x-show="chatOpen"
+				x-transition:enter="transition ease-out duration-200"
+				x-transition:enter-start="translate-x-full"
+				x-transition:enter-end="translate-x-0"
+				x-transition:leave="transition ease-in duration-150"
+				x-transition:leave-start="translate-x-0"
+				x-transition:leave-end="translate-x-full"
+				class="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl border-l border-gray-200 flex flex-col z-40"
+			>
+				<!-- Chat header -->
+				<div class="h-14 flex items-center px-4 border-b border-gray-200 flex-shrink-0">
+					<span class="font-semibold text-slate-800 text-sm">✨ AI Assistant</span>
+					<button
+						class="ml-auto text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100"
+						x-on:click="chatOpen = false"
+					>
+						✕
+					</button>
+				</div>
+				<!-- Chat body -->
+				<div class="flex-1 overflow-y-auto p-4 space-y-3" id="slide-chat-area">
+					<div class="bg-slate-50 rounded-xl p-3 text-sm text-slate-600">
+						Hello! Ask me anything about your accounts, orders, or describe a transaction.
+					</div>
+				</div>
+				<!-- Chat input -->
+				<div class="border-t border-gray-200 p-3 flex-shrink-0">
+					<form id="slide-chat-form" class="flex gap-2">
+						<textarea
+							id="slide-chat-input"
+							rows="1"
+							placeholder="Ask anything…"
+							class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-slate-400"
+						></textarea>
+						<button type="submit" class="px-3 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors">
+							↑
+						</button>
+					</form>
+				</div>
+			</div>
+			<!-- Chat backdrop (mobile) -->
+			<div
+				x-show="chatOpen"
+				x-on:click="chatOpen = false"
+				class="fixed inset-0 bg-black bg-opacity-20 z-30 lg:hidden"
+			></div>
+			<script>
+				function appLayout() {
+					const sectionMap = {
+						'customers': 'sales', 'orders': 'sales',
+						'vendors': 'purchases', 'purchase-orders': 'purchases',
+						'products': 'inventory', 'stock': 'inventory',
+						'trial-balance': 'reports', 'pl': 'reports',
+						'balance-sheet': 'reports', 'statement': 'reports',
+						'users': 'settings', 'rules': 'settings',
+					};
+					const activeNav = document.body.dataset.activeNav || '';
+					const activeSection = sectionMap[activeNav] || '';
+					return {
+						sidebarOpen: window.innerWidth >= 1024,
+						chatOpen: false,
+						sections: {
+							sales: activeSection === 'sales',
+							purchases: activeSection === 'purchases',
+							inventory: activeSection === 'inventory',
+							reports: activeSection === 'reports',
+							settings: activeSection === 'settings',
+						},
+						toggleSection(name) {
+							this.sections[name] = !this.sections[name];
+						},
+					};
+				}
+
+				// Slide-over chat — shares conversation history with the chat home page via sessionStorage
+				(function() {
+					const form = document.getElementById('slide-chat-form');
+					const input = document.getElementById('slide-chat-input');
+					const area = document.getElementById('slide-chat-area');
+					if (!form) return;
+
+					const STORAGE_KEY = 'chat_history';
+					const companyCode = document.body.dataset.companyCode || '';
+
+					function escHTML(s) {
+						return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+					}
+
+					function toolLabel(tool) {
+						const labels = {
+							'approve_po':'Approve PO','create_vendor':'Create Vendor',
+							'create_purchase_order':'Create PO','receive_po':'Receive Goods',
+							'record_vendor_invoice':'Record Invoice','pay_vendor':'Pay Vendor',
+						};
+						return labels[tool] || tool;
+					}
+
+					function makeBubble(msg) {
+						const div = document.createElement('div');
+						if (msg.role === 'user') {
+							div.className = 'bg-slate-900 text-white rounded-xl px-3 py-2 text-sm ml-6';
+							div.textContent = msg.text || '';
+						} else if (msg.type === 'action_card') {
+							div.className = 'border border-amber-200 bg-amber-50 rounded-xl p-3 text-xs mr-6';
+							div.innerHTML = '<div class="font-semibold text-amber-800 mb-1">🔧 ' + escHTML(toolLabel(msg.tool)) + '</div>'
+								+ '<pre class="text-amber-700 overflow-auto max-h-20 mb-2">' + escHTML(JSON.stringify(msg.args, null, 2)) + '</pre>'
+								+ ((!msg.status || msg.status === 'pending')
+									? '<div class="flex gap-1 slide-btn-row">'
+										+ '<button data-token="' + escHTML(msg.token||'') + '" data-action="confirm" class="slide-confirm-btn px-2 py-1 bg-amber-600 text-white rounded text-xs">✓ Confirm</button>'
+										+ '<button data-token="' + escHTML(msg.token||'') + '" data-action="cancel" class="slide-confirm-btn px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs">✕</button>'
+										+ '</div>'
+									: '<div class="text-slate-500">' + escHTML(msg.status === 'confirmed' ? ('✓ ' + (msg.resultText||'Done.')) : 'Cancelled.') + '</div>');
+							div.dataset.msgToken = msg.token || '';
+						} else if (msg.type === 'proposal') {
+							const p = msg.proposal || {};
+							div.className = 'border border-blue-200 bg-blue-50 rounded-xl p-3 text-xs mr-6';
+							div.innerHTML = '<div class="font-semibold text-blue-800 mb-1">🧾 Journal Entry</div>'
+								+ '<div class="text-blue-700 mb-1">' + escHTML(p.summary||'') + '</div>'
+								+ '<div class="text-blue-500 mb-2">Date: ' + escHTML(p.posting_date||'') + '</div>'
+								+ ((!msg.status || msg.status === 'pending')
+									? '<div class="flex gap-1 slide-btn-row">'
+										+ '<button data-token="' + escHTML(msg.token||'') + '" data-action="confirm" class="slide-confirm-btn px-2 py-1 bg-blue-600 text-white rounded text-xs">✓ Post</button>'
+										+ '<button data-token="' + escHTML(msg.token||'') + '" data-action="cancel" class="slide-confirm-btn px-2 py-1 border border-blue-300 text-blue-700 rounded text-xs">✕</button>'
+										+ '</div>'
+									: '<div class="text-slate-500">' + escHTML(msg.status === 'confirmed' ? '✓ Posted.' : 'Cancelled.') + '</div>');
+							div.dataset.msgToken = msg.token || '';
+						} else {
+							div.className = 'bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-700 mr-6 whitespace-pre-wrap';
+							div.textContent = msg.text || '';
+						}
+						return div;
+					}
+
+					function getHistory() {
+						try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }
+					}
+
+					function saveHistory(msgs) {
+						try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch(e) {}
+					}
+
+					function attachConfirmListeners() {
+						area.querySelectorAll('.slide-confirm-btn:not([data-bound])').forEach(btn => {
+							btn.dataset.bound = '1';
+							btn.addEventListener('click', async function() {
+								const token = btn.dataset.token;
+								const action = btn.dataset.action;
+								btn.disabled = true;
+								try {
+									const resp = await fetch('/chat/confirm', {
+										method: 'POST',
+										headers: {'Content-Type': 'application/json'},
+										body: JSON.stringify({token, action}),
+									});
+									const data = await resp.json();
+									const card = area.querySelector('[data-msg-token="' + token + '"]');
+									const btnRow = card && card.querySelector('.slide-btn-row');
+									if (action === 'cancel') {
+										if (btnRow) btnRow.outerHTML = '<div class="text-slate-500">Cancelled.</div>';
+									} else if (resp.ok && data.ok) {
+										const txt = (data.result && data.result.message) || 'Done.';
+										if (btnRow) btnRow.outerHTML = '<div class="text-green-700 font-medium">✓ ' + escHTML(txt) + '</div>';
+									} else {
+										if (btnRow) btnRow.outerHTML = '<div class="text-red-600">⚠ ' + escHTML(data.error||'Failed.') + '</div>';
+									}
+									const msgs = getHistory();
+									const m = msgs.find(m => m.token === token);
+									if (m) {
+										m.status = action === 'cancel' ? 'cancelled' : (resp.ok && data.ok ? 'confirmed' : 'error');
+										if (data.result) m.resultText = data.result.message || 'Done.';
+										saveHistory(msgs);
+									}
+								} catch(e) { btn.disabled = false; }
+							});
+						});
+					}
+
+					// Restore history on slide-over open.
+					function loadHistory() {
+						const msgs = getHistory();
+						if (msgs.length > 0) {
+							// Clear default greeting
+							const greeting = area.firstElementChild;
+							if (greeting) greeting.remove();
+							for (const msg of msgs) area.appendChild(makeBubble(msg));
+							area.scrollTop = area.scrollHeight;
+							attachConfirmListeners();
+						}
+					}
+
+					// Load history when slide-over opens (watch for chatOpen toggle).
+					let historyLoaded = false;
+					document.addEventListener('alpine:initialized', () => {
+						document.body.__x && document.body.__x.$watch && document.body.__x.$watch('chatOpen', (open) => {
+							if (open && !historyLoaded) { loadHistory(); historyLoaded = true; }
+						});
+					});
+
+					form.addEventListener('submit', async function(e) {
+						e.preventDefault();
+						const text = input.value.trim();
+						if (!text) return;
+
+						const userMsg = { role: 'user', type: 'text', text };
+						const msgs = getHistory();
+						msgs.push(userMsg);
+						saveHistory(msgs);
+						if (msgs.length === 1) {
+							// Remove default greeting
+							const greeting = area.firstElementChild;
+							if (greeting) greeting.remove();
+						}
+						area.appendChild(makeBubble(userMsg));
+						input.value = '';
+
+						const thinking = document.createElement('div');
+						thinking.className = 'bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-400 mr-6';
+						thinking.textContent = 'Thinking…';
+						area.appendChild(thinking);
+						area.scrollTop = area.scrollHeight;
+
+						try {
+							const resp = await fetch('/chat', {
+								method: 'POST',
+								headers: {'Content-Type': 'application/json'},
+								body: JSON.stringify({text, company_code: companyCode, attachment_ids: []}),
+							});
+							const reader = resp.body.getReader();
+							const decoder = new TextDecoder();
+							let buf = '', replaced = false;
+							let aiMsg = null;
+
+							while (true) {
+								const {done, value} = await reader.read();
+								if (done) break;
+								buf += decoder.decode(value, {stream: true});
+								const parts = buf.split('\n\n');
+								buf = parts.pop() || '';
+								for (const part of parts) {
+									let event = 'message', data = '';
+									for (const line of part.split('\n')) {
+										if (line.startsWith('event: ')) event = line.slice(7).trim();
+										else if (line.startsWith('data: ')) data = line.slice(6);
+									}
+									if (!data) continue;
+									try {
+										const d = JSON.parse(data);
+										if (!replaced && event !== 'status') { thinking.remove(); replaced = true; }
+										const currentMsgs = getHistory();
+										if (event === 'answer') {
+											if (!aiMsg) {
+												aiMsg = { role: 'ai', type: 'text', text: d.text || '' };
+												currentMsgs.push(aiMsg); saveHistory(currentMsgs);
+												const el = makeBubble(aiMsg); el.dataset.aiLive = '1'; area.appendChild(el);
+											} else {
+												aiMsg.text += (d.text || '');
+												const live = area.querySelector('[data-ai-live]');
+												if (live) live.textContent = aiMsg.text;
+												const m2 = getHistory();
+												const last = m2[m2.length-1];
+												if (last && last.type === 'text' && last.role === 'ai') { last.text = aiMsg.text; saveHistory(m2); }
+											}
+										} else if (event === 'clarification') {
+											const msg = { role: 'ai', type: 'text', text: '❓ ' + (d.question||'') };
+											currentMsgs.push(msg); saveHistory(currentMsgs); area.appendChild(makeBubble(msg));
+										} else if (event === 'action_card') {
+											const msg = { role: 'ai', type: 'action_card', token: d.token, tool: d.tool, args: d.args, status: 'pending' };
+											currentMsgs.push(msg); saveHistory(currentMsgs);
+											area.appendChild(makeBubble(msg)); attachConfirmListeners();
+										} else if (event === 'proposal') {
+											const msg = { role: 'ai', type: 'proposal', token: d.token, proposal: d.proposal, status: 'pending' };
+											currentMsgs.push(msg); saveHistory(currentMsgs);
+											area.appendChild(makeBubble(msg)); attachConfirmListeners();
+										} else if (event === 'error') {
+											const msg = { role: 'ai', type: 'text', text: '⚠ ' + (d.message||'Error') };
+											currentMsgs.push(msg); saveHistory(currentMsgs); area.appendChild(makeBubble(msg));
+										}
+										area.scrollTop = area.scrollHeight;
+									} catch(e) {}
+								}
+							}
+							if (!replaced) { thinking.remove(); }
+						} catch(err) {
+							thinking.remove();
+							const msg = { role: 'ai', type: 'text', text: '⚠ Connection error: ' + err.message };
+							const msgs2 = getHistory(); msgs2.push(msg); saveHistory(msgs2);
+							area.appendChild(makeBubble(msg));
+						}
+						area.scrollTop = area.scrollHeight;
+					});
+				})();
+			</script>
+		</body>
+	</html>
+}
+
+// navItemClass returns the CSS classes for a sidebar nav item.
+func navItemClass(activeNav, key string) string {
+	base := "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors "
+	if activeNav == key {
+		return base + "bg-slate-700 text-white font-medium"
+	}
+	return base + "text-slate-300 hover:bg-slate-800 hover:text-white"
+}
+
+// userInitial returns the first letter of the username in uppercase.
+func userInitial(username string) string {
+	if len(username) == 0 {
+		return "?"
+	}
+	r := rune(username[0])
+	if r >= 'a' && r <= 'z' {
+		r = r - 32
+	}
+	return string(r)
+}
+
+// flashClass returns CSS classes for the flash message bar based on kind.
+func flashClass(kind string) string {
+	base := "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b flex-shrink-0 "
+	switch kind {
+	case "error":
+		return base + "bg-red-50 text-red-700 border-red-200"
+	case "warning":
+		return base + "bg-yellow-50 text-yellow-700 border-yellow-200"
+	case "success":
+		return base + "bg-green-50 text-green-700 border-green-200"
+	default:
+		return base + "bg-blue-50 text-blue-700 border-blue-200"
+	}
+}

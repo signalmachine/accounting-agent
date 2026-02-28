@@ -1,0 +1,40 @@
+package layouts
+
+// ModalShell wraps content in a full-screen Alpine.js modal overlay.
+// Usage: embed inside a parent with x-data containing an isModalOpen bool.
+// The parent controls open/close; this shell provides backdrop + container.
+templ ModalShell(title string) {
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center p-4"
+		x-show="isModalOpen"
+		x-transition:enter="transition ease-out duration-150"
+		x-transition:enter-start="opacity-0 scale-95"
+		x-transition:enter-end="opacity-100 scale-100"
+		x-transition:leave="transition ease-in duration-100"
+		x-transition:leave-start="opacity-100 scale-100"
+		x-transition:leave-end="opacity-0 scale-95"
+	>
+		<!-- Backdrop -->
+		<div
+			class="absolute inset-0 bg-black bg-opacity-40"
+			x-on:click="isModalOpen = false"
+		></div>
+		<!-- Modal panel -->
+		<div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-screen overflow-y-auto">
+			<!-- Modal header -->
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+				<h2 class="text-base font-semibold text-slate-900">{ title }</h2>
+				<button
+					class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+					x-on:click="isModalOpen = false"
+				>
+					✕
+				</button>
+			</div>
+			<!-- Modal content -->
+			<div class="px-6 py-4">
+				{ children... }
+			</div>
+		</div>
+	</div>
+}

@@ -1,0 +1,146 @@
+package pages
+
+import (
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+)
+
+// AccountStatement renders the account statement page.
+templ AccountStatement(d layouts.AppLayoutData, result *app.AccountStatementResult, accountCode, from, to string) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-5xl space-y-5">
+			<!-- Page header -->
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">Account Statement</h1>
+				if result != nil && result.AccountCode != "" {
+					<p class="text-sm text-slate-500 mt-0.5">
+						Account { result.AccountCode } · { result.Currency }
+						if from != "" || to != "" {
+							<span>
+								·
+								if from != "" {
+									{ from }
+								} else {
+									All time
+								}
+								{ " to " }
+								if to != "" {
+									{ to }
+								} else {
+									today
+								}
+							</span>
+						}
+					</p>
+				}
+			</div>
+			<!-- Filter form -->
+			<form method="GET" action="/reports/statement" class="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-end gap-4">
+				<div>
+					<label class="block text-xs font-medium text-slate-600 mb-1">Account Code</label>
+					<input
+						type="text"
+						name="account"
+						value={ accountCode }
+						placeholder="e.g. 1100"
+						class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-slate-400"
+					/>
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-slate-600 mb-1">From</label>
+					<input
+						type="date"
+						name="from"
+						value={ from }
+						class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+					/>
+				</div>
+				<div>
+					<label class="block text-xs font-medium text-slate-600 mb-1">To</label>
+					<input
+						type="date"
+						name="to"
+						value={ to }
+						class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+					/>
+				</div>
+				<button type="submit" class="px-4 py-1.5 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors">
+					View Statement
+				</button>
+				if result != nil && len(result.Lines) > 0 {
+					<a
+						href={ stmtCSVHref(result.AccountCode, from, to) }
+						class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-lg transition-colors"
+					>
+						↓ Export CSV
+					</a>
+				}
+			</form>
+			<!-- Table or empty state -->
+			if result == nil || accountCode == "" {
+				<div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-slate-400">
+					<p class="text-sm">Enter an account code above to view the statement.</p>
+				</div>
+			} else if len(result.Lines) == 0 {
+				<div class="bg-white rounded-xl border border-gray-200 p-8 text-center text-slate-400">
+					<p class="text-sm">No transactions found for account { accountCode } in the selected date range.</p>
+				</div>
+			} else {
+				<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+					<table class="w-full text-sm">
+						<thead>
+							<tr class="bg-slate-50 border-b border-gray-200">
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Date</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600">Narration</th>
+								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Reference</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28">Debit</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28">Credit</th>
+								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32">Balance</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-100">
+							for _, line := range result.Lines {
+								<tr class="hover:bg-gray-50 transition-colors">
+									<td class="px-4 py-2.5 font-mono text-xs text-slate-600">{ line.PostingDate }</td>
+									<td class="px-4 py-2.5 text-slate-800 max-w-xs truncate">{ line.Narration }</td>
+									<td class="px-4 py-2.5 font-mono text-xs text-slate-500">{ line.Reference }</td>
+									if line.Debit.IsZero() {
+										<td class="px-4 py-2.5 text-right font-mono text-slate-300">—</td>
+									} else {
+										<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ line.Debit.StringFixed(2) }</td>
+									}
+									if line.Credit.IsZero() {
+										<td class="px-4 py-2.5 text-right font-mono text-slate-300">—</td>
+									} else {
+										<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ line.Credit.StringFixed(2) }</td>
+									}
+									<td class={ "px-4 py-2.5 text-right font-mono " + stmtBalanceClass(line.RunningBalance.IsPositive()) }>
+										{ line.RunningBalance.StringFixed(2) }
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	}
+}
+
+func stmtCSVHref(accountCode, from, to string) templ.SafeURL {
+	url := "/reports/statement?account=" + accountCode + "&format=csv"
+	if from != "" {
+		url += "&from=" + from
+	}
+	if to != "" {
+		url += "&to=" + to
+	}
+	return templ.SafeURL(url)
+}
+
+func stmtBalanceClass(isPositive bool) string {
+	if isPositive {
+		return "text-slate-800"
+	}
+	return "text-red-600"
+}

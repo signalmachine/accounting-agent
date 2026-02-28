@@ -1,0 +1,490 @@
+package pages
+
+import (
+	"fmt"
+	"accounting-agent/internal/core"
+	"accounting-agent/web/templates/layouts"
+)
+
+// PODetail renders the purchase order detail page with lifecycle action buttons.
+templ PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode string) {
+	@layouts.AppLayout(d) {
+		<div class="max-w-4xl space-y-5">
+			<!-- Back link -->
+			<a href="/purchases/orders" class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+				← Purchase Orders
+			</a>
+			if po == nil {
+				<div class="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700">
+					Purchase order not found.
+				</div>
+			} else {
+				<!-- Header card -->
+				<div class="bg-white rounded-xl border border-gray-200 p-6">
+					<div class="flex items-start justify-between flex-wrap gap-4">
+						<div>
+							<div class="flex items-center gap-3 flex-wrap">
+								<h1 class="text-2xl font-bold text-slate-900">
+									if po.PONumber != nil {
+										{ *po.PONumber }
+									} else {
+										PO #{ fmt.Sprintf("%d", po.ID) }
+									}
+								</h1>
+								@poStatusBadge(po.Status)
+							</div>
+							<p class="text-sm text-slate-500 mt-1">
+								{ po.VendorName } ({ po.VendorCode }) · { po.PODate } · { po.Currency }
+							</p>
+						</div>
+					</div>
+					if po.Notes != nil {
+						<p class="mt-4 text-sm text-slate-600 bg-slate-50 rounded-lg px-4 py-3">{ *po.Notes }</p>
+					}
+					<!-- Lifecycle actions -->
+					<div
+						class="mt-5 pt-5 border-t border-gray-100"
+						x-data={ fmt.Sprintf("poActions('%s', %d)", companyCode, po.ID) }
+					>
+						<div x-show="error" class="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2" x-text="error"></div>
+						<div x-show="warning" class="mb-3 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2" x-text="warning"></div>
+						if po.Status == "DRAFT" {
+							<!-- DRAFT → APPROVED -->
+							<button
+								x-on:click="approve()"
+								x-bind:disabled="loading"
+								class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+							>
+								<span x-show="!loading">✓ Approve PO</span>
+								<span x-show="loading">Processing…</span>
+							</button>
+						}
+						if po.Status == "APPROVED" {
+							<!-- APPROVED → RECEIVED: expandable receive form -->
+							<div x-data="{ open: false }">
+								<button
+									x-on:click="open = !open"
+									class="px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+								>
+									📥 Receive Goods
+								</button>
+								<div x-show="open" class="mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3">
+									<h3 class="font-semibold text-purple-800 text-sm">Record Goods Receipt</h3>
+									<div class="space-y-2">
+										for _, line := range po.Lines {
+											<div class="flex items-center gap-3">
+												<div class="flex-1 text-sm text-slate-700">
+													if line.ProductCode != nil {
+														<span class="font-mono font-medium">{ *line.ProductCode }</span>
+														<span class="text-slate-500 ml-1">{ line.Description }</span>
+													} else {
+														<span class="text-slate-500 italic">{ line.Description }</span>
+													}
+													<span class="text-xs text-slate-400 ml-2">(ordered: { line.Quantity.StringFixed(2) })</span>
+												</div>
+												<input
+													type="number"
+													step="0.01"
+													min="0.01"
+													placeholder="Qty received"
+													class="w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-400"
+													x-model={ fmt.Sprintf("receiveLines[%d].qty", line.ID) }
+												/>
+												<input type="hidden" x-model={ fmt.Sprintf("receiveLines[%d].lineID", line.ID) } :value={ fmt.Sprintf("%d", line.ID) }/>
+											</div>
+										}
+									</div>
+									<button
+										x-on:click="receive()"
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-purple-700 hover:bg-purple-800 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">Confirm Receipt</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								</div>
+							</div>
+						}
+						if po.Status == "RECEIVED" {
+							<!-- RECEIVED → INVOICED: expandable invoice form -->
+							<div x-data="{ open: false }">
+								<button
+									x-on:click="open = !open"
+									class="px-4 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors"
+								>
+									🧾 Record Invoice
+								</button>
+								<div x-show="open" class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+									<h3 class="font-semibold text-amber-800 text-sm">Vendor Invoice Details</h3>
+									<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+										<div>
+											<label class="block text-xs font-medium text-amber-700 mb-1">Invoice Number *</label>
+											<input
+												type="text"
+												x-model="invoiceNumber"
+												placeholder="e.g. INV-2026-001"
+												class="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+											/>
+										</div>
+										<div>
+											<label class="block text-xs font-medium text-amber-700 mb-1">Invoice Date *</label>
+											<input
+												type="date"
+												x-model="invoiceDate"
+												class="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+											/>
+										</div>
+										<div>
+											<label class="block text-xs font-medium text-amber-700 mb-1">Invoice Amount *</label>
+											<input
+												type="number"
+												step="0.01"
+												min="0.01"
+												x-model="invoiceAmount"
+												placeholder={ po.TotalBase.StringFixed(2) }
+												class="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400"
+											/>
+										</div>
+									</div>
+									<button
+										x-on:click="invoice()"
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-amber-700 hover:bg-amber-800 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">Record Invoice</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								</div>
+							</div>
+						}
+						if po.Status == "INVOICED" {
+							<!-- INVOICED → PAID: expandable payment form -->
+							<div x-data="{ open: false }">
+								<button
+									x-on:click="open = !open"
+									class="px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+								>
+									💳 Pay Vendor
+								</button>
+								<div x-show="open" class="mt-4 bg-green-50 border border-green-200 rounded-xl p-4 space-y-3">
+									<h3 class="font-semibold text-green-800 text-sm">Payment Details</h3>
+									<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+										<div>
+											<label class="block text-xs font-medium text-green-700 mb-1">Bank Account Code</label>
+											<input
+												type="text"
+												x-model="bankCode"
+												placeholder="1000"
+												class="w-full border border-green-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-400"
+											/>
+										</div>
+										<div>
+											<label class="block text-xs font-medium text-green-700 mb-1">Payment Date</label>
+											<input
+												type="date"
+												x-model="paymentDate"
+												class="w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+											/>
+										</div>
+									</div>
+									<button
+										x-on:click="pay()"
+										x-bind:disabled="loading"
+										class="px-4 py-2 text-sm font-medium bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-50"
+									>
+										<span x-show="!loading">Confirm Payment</span>
+										<span x-show="loading">Processing…</span>
+									</button>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+				<!-- Totals grid -->
+				<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Total</div>
+						<div class="font-bold text-slate-900 font-mono">{ po.TotalTransaction.StringFixed(2) }</div>
+					</div>
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Currency</div>
+						<div class="font-semibold text-slate-700">{ po.Currency }</div>
+					</div>
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Lines</div>
+						<div class="font-semibold text-slate-700">{ fmt.Sprintf("%d", len(po.Lines)) }</div>
+					</div>
+					<div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+						<div class="text-xs text-slate-500 mb-1">Status</div>
+						<div class="font-semibold text-slate-700">{ po.Status }</div>
+					</div>
+				</div>
+				<!-- Line items -->
+				<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+					<div class="px-4 py-3 border-b border-gray-200 bg-slate-50">
+						<h2 class="font-semibold text-slate-700 text-sm">PO Lines</h2>
+					</div>
+					if len(po.Lines) == 0 {
+						<div class="p-6 text-center text-slate-500 text-sm">No line items.</div>
+					} else {
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="border-b border-gray-200">
+									<th class="text-left px-4 py-2.5 font-semibold text-slate-600 w-10">#</th>
+									<th class="text-left px-4 py-2.5 font-semibold text-slate-600">Description</th>
+									<th class="text-right px-4 py-2.5 font-semibold text-slate-600 w-20">Qty</th>
+									<th class="text-right px-4 py-2.5 font-semibold text-slate-600 w-28 hidden sm:table-cell">Unit Cost</th>
+									<th class="text-right px-4 py-2.5 font-semibold text-slate-600 w-32">Total</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-100">
+								for _, line := range po.Lines {
+									<tr class="hover:bg-gray-50">
+										<td class="px-4 py-2.5 text-slate-400 text-xs">{ fmt.Sprintf("%d", line.LineNumber) }</td>
+										<td class="px-4 py-2.5">
+											<div class="font-medium text-slate-800">{ line.Description }</div>
+											if line.ProductCode != nil {
+												<div class="text-xs text-slate-500 font-mono">{ *line.ProductCode }</div>
+											}
+											if line.ExpenseAccountCode != nil {
+												<div class="text-xs text-slate-500">Expense: { *line.ExpenseAccountCode }</div>
+											}
+										</td>
+										<td class="px-4 py-2.5 text-right font-mono text-slate-700">{ line.Quantity.StringFixed(2) }</td>
+										<td class="px-4 py-2.5 text-right font-mono text-slate-700 hidden sm:table-cell">{ line.UnitCost.StringFixed(2) }</td>
+										<td class="px-4 py-2.5 text-right font-mono font-semibold text-slate-800">{ line.LineTotalTransaction.StringFixed(2) }</td>
+									</tr>
+								}
+							</tbody>
+							<tfoot>
+								<tr class="border-t-2 border-gray-300 bg-slate-50 font-semibold">
+									<td class="px-4 py-3 text-slate-700" colspan="4">Total ({ po.Currency })</td>
+									<td class="px-4 py-3 text-right font-mono text-slate-900">{ po.TotalTransaction.StringFixed(2) }</td>
+								</tr>
+							</tfoot>
+						</table>
+					}
+				</div>
+				<!-- Invoice info (shown when INVOICED or PAID) -->
+				if po.Status == "INVOICED" || po.Status == "PAID" {
+					<div class="bg-white rounded-xl border border-gray-200 p-4">
+						<h2 class="font-semibold text-slate-700 text-sm mb-3">Invoice Details</h2>
+						<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+							<div>
+								<div class="text-slate-500 mb-0.5">Invoice #</div>
+								<div class="text-slate-800 font-mono">
+									if po.InvoiceNumber != nil {
+										{ *po.InvoiceNumber }
+									} else {
+										—
+									}
+								</div>
+							</div>
+							<div>
+								<div class="text-slate-500 mb-0.5">Invoice Date</div>
+								<div class="text-slate-700">
+									if po.InvoiceDate != nil {
+										{ *po.InvoiceDate }
+									} else {
+										—
+									}
+								</div>
+							</div>
+							<div>
+								<div class="text-slate-500 mb-0.5">Invoice Amount</div>
+								<div class="text-slate-800 font-mono font-semibold">
+									if po.InvoiceAmount != nil {
+										{ po.InvoiceAmount.StringFixed(2) }
+									} else {
+										—
+									}
+								</div>
+							</div>
+							<div>
+								<div class="text-slate-500 mb-0.5">PI Document</div>
+								<div class="text-slate-700 font-mono">
+									if po.PIDocumentNumber != nil {
+										{ *po.PIDocumentNumber }
+									} else {
+										—
+									}
+								</div>
+							</div>
+						</div>
+					</div>
+				}
+				<!-- Timeline -->
+				<div class="bg-white rounded-xl border border-gray-200 p-4">
+					<h2 class="font-semibold text-slate-700 text-sm mb-3">Timeline</h2>
+					<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+						<div>
+							<div class="text-slate-500 mb-0.5">Created</div>
+							<div class="text-slate-700">{ po.CreatedAt.Format("2006-01-02 15:04") }</div>
+						</div>
+						if po.ApprovedAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Approved</div>
+								<div class="text-slate-700">{ po.ApprovedAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+						if po.ReceivedAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Received</div>
+								<div class="text-slate-700">{ po.ReceivedAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+						if po.InvoicedAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Invoiced</div>
+								<div class="text-slate-700">{ po.InvoicedAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+						if po.PaidAt != nil {
+							<div>
+								<div class="text-slate-500 mb-0.5">Paid</div>
+								<div class="text-slate-700">{ po.PaidAt.Format("2006-01-02 15:04") }</div>
+							</div>
+						}
+					</div>
+				</div>
+			}
+		</div>
+		<script>
+			function poActions(companyCode, poID) {
+				// Build initial receiveLines map keyed by po_line_id
+				const lines = document.querySelectorAll('[x-model*="receiveLines"]');
+				const receiveLines = {};
+				lines.forEach(el => {
+					const m = el.getAttribute('x-model');
+					const match = m && m.match(/receiveLines\[(\d+)\]/);
+					if (match) {
+						const id = parseInt(match[1]);
+						if (!receiveLines[id]) receiveLines[id] = { lineID: id, qty: '' };
+					}
+				});
+
+				return {
+					loading: false,
+					error: '',
+					warning: '',
+					receiveLines: receiveLines,
+					invoiceNumber: '',
+					invoiceDate: new Date().toISOString().slice(0, 10),
+					invoiceAmount: '',
+					bankCode: '1000',
+					paymentDate: new Date().toISOString().slice(0, 10),
+
+					async approve() {
+						this.error = '';
+						this.loading = true;
+						try {
+							const resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/approve`, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({})
+							});
+							if (!resp.ok) {
+								const d = await resp.json().catch(() => ({}));
+								this.error = d.error || 'Approval failed.';
+							} else {
+								window.location.reload();
+							}
+						} catch (e) {
+							this.error = 'Network error.';
+						} finally {
+							this.loading = false;
+						}
+					},
+
+					async receive() {
+						this.error = '';
+						const lines = Object.values(this.receiveLines)
+							.filter(l => l.qty && parseFloat(l.qty) > 0)
+							.map(l => ({ po_line_id: l.lineID, qty_received: l.qty.toString() }));
+						if (lines.length === 0) {
+							this.error = 'Enter at least one received quantity.';
+							return;
+						}
+						this.loading = true;
+						try {
+							const resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/receive`, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({ warehouse_code: 'MAIN', lines })
+							});
+							if (!resp.ok) {
+								const d = await resp.json().catch(() => ({}));
+								this.error = d.error || 'Receipt failed.';
+							} else {
+								window.location.reload();
+							}
+						} catch (e) {
+							this.error = 'Network error.';
+						} finally {
+							this.loading = false;
+						}
+					},
+
+					async invoice() {
+						this.error = '';
+						if (!this.invoiceNumber) { this.error = 'Invoice number is required.'; return; }
+						if (!this.invoiceAmount) { this.error = 'Invoice amount is required.'; return; }
+						this.loading = true;
+						try {
+							const resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/invoice`, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									invoice_number: this.invoiceNumber,
+									invoice_date: this.invoiceDate,
+									invoice_amount: this.invoiceAmount.toString()
+								})
+							});
+							if (!resp.ok) {
+								const d = await resp.json().catch(() => ({}));
+								this.error = d.error || 'Invoice recording failed.';
+							} else {
+								const data = await resp.json();
+								if (data.warning) {
+									this.warning = '⚠ ' + data.warning;
+									setTimeout(() => window.location.reload(), 2500);
+								} else {
+									window.location.reload();
+								}
+							}
+						} catch (e) {
+							this.error = 'Network error.';
+						} finally {
+							this.loading = false;
+						}
+					},
+
+					async pay() {
+						this.error = '';
+						this.loading = true;
+						try {
+							const resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/pay`, {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({
+									bank_account_code: this.bankCode,
+									payment_date: this.paymentDate
+								})
+							});
+							if (!resp.ok) {
+								const d = await resp.json().catch(() => ({}));
+								this.error = d.error || 'Payment failed.';
+							} else {
+								window.location.reload();
+							}
+						} catch (e) {
+							this.error = 'Network error.';
+						} finally {
+							this.loading = false;
+						}
+					}
+				};
+			}
+		</script>
+	}
+}

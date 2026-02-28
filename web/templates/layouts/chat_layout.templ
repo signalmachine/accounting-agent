@@ -1,0 +1,55 @@
+package layouts
+
+// ChatLayout is a minimal layout for the AI chat home page.
+// No sidebar, minimal header, full-height chat area.
+templ ChatLayout(title string, username string, companyName string, companyCode string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } — Accounting AI</title>
+			<link rel="stylesheet" href="/static/css/app.css"/>
+			<script src="/static/js/htmx.min.js"></script>
+			<script src="/static/js/htmx-ext-sse.js"></script>
+			<script src="/static/js/alpine.min.js" defer></script>
+		</head>
+		<body class="h-screen flex flex-col bg-white" data-company-code={ companyCode }>
+			<!-- Minimal header -->
+			<header class="h-14 bg-slate-900 text-white flex items-center px-6 gap-4 flex-shrink-0">
+				<a href="/dashboard" class="text-white hover:text-slate-300 text-lg">⌂</a>
+				<span class="font-semibold text-sm">{ companyName }</span>
+				<div class="flex-1"></div>
+				<a href="/dashboard" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 text-white text-sm rounded-lg hover:bg-slate-600 transition-colors">
+					<span>⊞</span>
+					<span>Open App</span>
+				</a>
+				<div class="relative" x-data="{ open: false }">
+					<button
+						class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-sm font-bold text-white hover:bg-slate-500 transition-colors"
+						x-on:click="open = !open"
+					>
+						{ userInitial(username) }
+					</button>
+					<div
+						x-show="open"
+						x-on:click.outside="open = false"
+						x-transition
+						class="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+					>
+						<div class="px-4 py-2 border-b border-gray-100">
+							<div class="text-sm font-medium text-gray-900">{ username }</div>
+						</div>
+						<form method="POST" action="/logout">
+							<button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+								Sign out
+							</button>
+						</form>
+					</div>
+				</div>
+			</header>
+			<!-- Chat content area -->
+			{ children... }
+		</body>
+	</html>
+}
