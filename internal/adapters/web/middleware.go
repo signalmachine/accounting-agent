@@ -111,3 +111,14 @@ func contains(slice []string, s string) bool {
 	}
 	return false
 }
+
+// RequestBodyLimit returns a middleware that caps the request body at maxBytes.
+// Requests whose bodies exceed the limit receive HTTP 413 before any handler logic runs.
+func RequestBodyLimit(maxBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			next.ServeHTTP(w, r)
+		})
+	}
+}

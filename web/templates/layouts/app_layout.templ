@@ -16,6 +16,7 @@ templ AppLayout(d AppLayoutData) {
 			class="h-screen flex overflow-hidden bg-gray-100"
 			hx-boost="true"
 			data-active-nav={ d.ActiveNav }
+			data-company-code={ d.CompanyCode }
 			x-data="appLayout()"
 		>
 			<!-- Sidebar -->
@@ -32,6 +33,14 @@ templ AppLayout(d AppLayoutData) {
 				</div>
 				<!-- Nav -->
 				<nav class="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+					<!-- AI Agent -->
+					<a
+						href="/"
+						class={ navItemClass(d.ActiveNav, "ai-agent") }
+					>
+						<span class="text-base">✨</span>
+						<span>AI Agent</span>
+					</a>
 					<!-- Home -->
 					<a
 						href="/dashboard"
@@ -233,7 +242,7 @@ templ AppLayout(d AppLayoutData) {
 					</div>
 				}
 				<!-- Page content -->
-				<main class="flex-1 overflow-y-auto p-6">
+				<main class={ mainContentClass(d) }>
 					{ children... }
 				</main>
 			</div>
@@ -533,6 +542,16 @@ templ AppLayout(d AppLayoutData) {
 			</script>
 		</body>
 	</html>
+}
+
+// mainContentClass returns CSS classes for the main content area.
+// FlushContent removes padding and enables flex-col so full-height pages
+// (e.g. the AI chat) can manage their own internal scrolling.
+func mainContentClass(d AppLayoutData) string {
+	if d.FlushContent {
+		return "flex-1 overflow-hidden flex flex-col"
+	}
+	return "flex-1 overflow-y-auto p-6"
 }
 
 // navItemClass returns the CSS classes for a sidebar nav item.

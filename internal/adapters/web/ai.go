@@ -27,27 +27,12 @@ var allowedMIMETypes = map[string]bool{
 	"image/webp": true,
 }
 
-// chatHome serves GET / — the full-screen AI chat home page.
+// chatHome serves GET / — the AI Agent full-screen chat page.
 func (h *Handler) chatHome(w http.ResponseWriter, r *http.Request) {
-	claims := authFromContext(r.Context())
-	user, err := h.svc.GetUser(r.Context(), claims.UserID)
-	if err != nil {
-		http.Error(w, "failed to load user", http.StatusInternalServerError)
-		return
-	}
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "failed to load company", http.StatusInternalServerError)
-		return
-	}
-	companyName := ""
-	companyCode := ""
-	if company != nil {
-		companyName = company.Name
-		companyCode = company.CompanyCode
-	}
+	d := h.buildAppLayoutData(r, "AI Agent", "ai-agent")
+	d.FlushContent = true
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	pages.ChatHome(user.Username, companyName, companyCode).Render(r.Context(), w)
+	_ = pages.ChatHome(d).Render(r.Context(), w)
 }
 
 // chatUpload handles POST /chat/upload — saves an image and returns its attachment ID.

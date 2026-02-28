@@ -22,7 +22,7 @@ func (h *Handler) loginPage(w http.ResponseWriter, r *http.Request) {
 			return []byte(h.jwtSecret), nil
 		})
 		if err == nil && token.Valid {
-			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 	}
@@ -72,7 +72,7 @@ func (h *Handler) loginFormSubmit(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   3600,
 	})
-	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // logoutPage handles POST /logout — clears cookie and redirects to login.

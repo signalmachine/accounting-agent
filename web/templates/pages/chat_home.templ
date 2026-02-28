@@ -2,10 +2,11 @@ package pages
 
 import "accounting-agent/web/templates/layouts"
 
-// ChatHome is the full-screen AI chat home page (GET /).
-// It uses ChatLayout and manages conversation state in Alpine.js backed by sessionStorage.
-templ ChatHome(username string, companyName string, companyCode string) {
-	@layouts.ChatLayout("AI Assistant", username, companyName, companyCode) {
+// ChatHome is the AI Agent full-screen chat page (GET /).
+// Rendered inside AppLayout (sidebar visible) with FlushContent=true so the
+// chat fills the main area without padding.
+templ ChatHome(d layouts.AppLayoutData) {
+	@layouts.AppLayout(d) {
 		<div
 			class="flex-1 flex flex-col overflow-hidden"
 			x-data="chatHome()"

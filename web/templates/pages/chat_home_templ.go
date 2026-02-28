@@ -10,9 +10,10 @@ import templruntime "github.com/a-h/templ/runtime"
 
 import "accounting-agent/web/templates/layouts"
 
-// ChatHome is the full-screen AI chat home page (GET /).
-// It uses ChatLayout and manages conversation state in Alpine.js backed by sessionStorage.
-func ChatHome(username string, companyName string, companyCode string) templ.Component {
+// ChatHome is the AI Agent full-screen chat page (GET /).
+// Rendered inside AppLayout (sidebar visible) with FlushContent=true so the
+// chat fills the main area without padding.
+func ChatHome(d layouts.AppLayoutData) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -51,7 +52,7 @@ func ChatHome(username string, companyName string, companyCode string) templ.Com
 			}
 			return nil
 		})
-		templ_7745c5c3_Err = layouts.ChatLayout("AI Assistant", username, companyName, companyCode).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layouts.AppLayout(d).Render(templ.WithChildren(ctx, templ_7745c5c3_Var2), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

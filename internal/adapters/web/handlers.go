@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"net/http"
 	"os"
@@ -106,60 +107,67 @@ func NewHandler(svc app.ApplicationService, allowedOrigins, jwtSecret string) ht
 	r.Group(func(r chi.Router) {
 		r.Use(h.RequireAuth)
 
-		// Auth
-		r.Get("/api/auth/me", h.me)
-
-		// Chat — primary endpoints (WF5)
-		r.Post("/chat", h.chatMessage)
+		// File upload: body limit is managed inside the handler (multipart, up to 50 MB).
 		r.Post("/chat/upload", h.chatUpload)
-		r.Post("/chat/confirm", h.chatConfirm)
-		r.Post("/chat/clear", h.chatClear)
 
-		// Chat — legacy endpoints (kept for backward compat with old static frontend)
-		r.Post("/api/chat/message", h.chatMessage)
-		r.Post("/api/chat/confirm", h.chatConfirm)
+		// All other protected endpoints: 1 MB body limit to prevent unbounded request abuse.
+		r.Group(func(r chi.Router) {
+			r.Use(RequestBodyLimit(1 << 20)) // 1 MB
 
-		// ── Accounting (WF4) ──────────────────────────────────────────────────
-		r.Get("/api/companies/{code}/trial-balance", h.apiTrialBalance)
-		r.Get("/api/companies/{code}/accounts/{accountCode}/statement", h.apiAccountStatement)
-		r.Get("/api/companies/{code}/reports/pl", h.apiProfitAndLoss)
-		r.Get("/api/companies/{code}/reports/balance-sheet", h.apiBalanceSheet)
-		r.Post("/api/companies/{code}/reports/refresh", h.apiRefreshViews)
-		r.Post("/api/companies/{code}/journal-entries", h.apiPostJournalEntry)
-		r.Post("/api/companies/{code}/journal-entries/validate", h.apiValidateJournalEntry)
+			// Auth
+			r.Get("/api/auth/me", h.me)
 
-		// ── Sales (WD0) ───────────────────────────────────────────────────────
-		r.Get("/api/companies/{code}/customers", h.apiListCustomers)
-		r.Get("/api/companies/{code}/orders", h.apiListOrders)
-		r.Post("/api/companies/{code}/orders", h.apiCreateOrder)
-		r.Get("/api/companies/{code}/orders/{ref}", h.apiGetOrder)
-		r.Post("/api/companies/{code}/orders/{ref}/confirm", h.apiConfirmOrder)
-		r.Post("/api/companies/{code}/orders/{ref}/ship", h.apiShipOrder)
-		r.Post("/api/companies/{code}/orders/{ref}/invoice", h.apiInvoiceOrder)
-		r.Post("/api/companies/{code}/orders/{ref}/payment", h.apiPaymentOrder)
+			// Chat — primary endpoints (WF5)
+			r.Post("/chat", h.chatMessage)
+			r.Post("/chat/confirm", h.chatConfirm)
+			r.Post("/chat/clear", h.chatClear)
 
-		// ── Inventory (WD0) ───────────────────────────────────────────────────
-		r.Get("/api/companies/{code}/products", h.apiListProducts)
-		r.Get("/api/companies/{code}/warehouses", notImplemented)
-		r.Get("/api/companies/{code}/stock", notImplemented)
-		r.Post("/api/companies/{code}/stock/receive", notImplemented)
+			// Chat — legacy endpoints (kept for backward compat with old static frontend)
+			r.Post("/api/chat/message", h.chatMessage)
+			r.Post("/api/chat/confirm", h.chatConfirm)
 
-		// ── Purchases (WD1) ──────────────────────────────────────────────────
-		r.Get("/api/companies/{code}/vendors", h.apiListVendors)
-		r.Post("/api/companies/{code}/vendors", h.apiCreateVendor)
-		r.Get("/api/companies/{code}/vendors/{vendorCode}", h.apiGetVendor)
-		r.Get("/api/companies/{code}/purchase-orders", h.apiListPurchaseOrders)
-		r.Post("/api/companies/{code}/purchase-orders", h.apiCreatePurchaseOrder)
-		r.Get("/api/companies/{code}/purchase-orders/{id}", h.apiGetPurchaseOrder)
-		r.Post("/api/companies/{code}/purchase-orders/{id}/approve", h.apiApprovePO)
-		r.Post("/api/companies/{code}/purchase-orders/{id}/receive", h.apiReceivePO)
-		r.Post("/api/companies/{code}/purchase-orders/{id}/invoice", h.apiInvoicePO)
-		r.Post("/api/companies/{code}/purchase-orders/{id}/pay", h.apiPayPO)
+			// ── Accounting (WF4) ──────────────────────────────────────────────────
+			r.Get("/api/companies/{code}/trial-balance", h.apiTrialBalance)
+			r.Get("/api/companies/{code}/accounts/{accountCode}/statement", h.apiAccountStatement)
+			r.Get("/api/companies/{code}/reports/pl", h.apiProfitAndLoss)
+			r.Get("/api/companies/{code}/reports/balance-sheet", h.apiBalanceSheet)
+			r.Post("/api/companies/{code}/reports/refresh", h.apiRefreshViews)
+			r.Post("/api/companies/{code}/journal-entries", h.apiPostJournalEntry)
+			r.Post("/api/companies/{code}/journal-entries/validate", h.apiValidateJournalEntry)
 
-		// ── AI (legacy admin endpoints — company-scoped) ──────────────────────
-		r.Post("/api/companies/{code}/ai/interpret", notImplemented)
-		r.Post("/api/companies/{code}/ai/validate", notImplemented)
-		r.Post("/api/companies/{code}/ai/commit", notImplemented)
+			// ── Sales (WD0) ───────────────────────────────────────────────────────
+			r.Get("/api/companies/{code}/customers", h.apiListCustomers)
+			r.Get("/api/companies/{code}/orders", h.apiListOrders)
+			r.Post("/api/companies/{code}/orders", h.apiCreateOrder)
+			r.Get("/api/companies/{code}/orders/{ref}", h.apiGetOrder)
+			r.Post("/api/companies/{code}/orders/{ref}/confirm", h.apiConfirmOrder)
+			r.Post("/api/companies/{code}/orders/{ref}/ship", h.apiShipOrder)
+			r.Post("/api/companies/{code}/orders/{ref}/invoice", h.apiInvoiceOrder)
+			r.Post("/api/companies/{code}/orders/{ref}/payment", h.apiPaymentOrder)
+
+			// ── Inventory (WD0) ───────────────────────────────────────────────────
+			r.Get("/api/companies/{code}/products", h.apiListProducts)
+			r.Get("/api/companies/{code}/warehouses", notImplemented)
+			r.Get("/api/companies/{code}/stock", notImplemented)
+			r.Post("/api/companies/{code}/stock/receive", notImplemented)
+
+			// ── Purchases (WD1) ──────────────────────────────────────────────────
+			r.Get("/api/companies/{code}/vendors", h.apiListVendors)
+			r.Post("/api/companies/{code}/vendors", h.apiCreateVendor)
+			r.Get("/api/companies/{code}/vendors/{vendorCode}", h.apiGetVendor)
+			r.Get("/api/companies/{code}/purchase-orders", h.apiListPurchaseOrders)
+			r.Post("/api/companies/{code}/purchase-orders", h.apiCreatePurchaseOrder)
+			r.Get("/api/companies/{code}/purchase-orders/{id}", h.apiGetPurchaseOrder)
+			r.Post("/api/companies/{code}/purchase-orders/{id}/approve", h.apiApprovePO)
+			r.Post("/api/companies/{code}/purchase-orders/{id}/receive", h.apiReceivePO)
+			r.Post("/api/companies/{code}/purchase-orders/{id}/invoice", h.apiInvoicePO)
+			r.Post("/api/companies/{code}/purchase-orders/{id}/pay", h.apiPayPO)
+
+			// ── AI (legacy admin endpoints — company-scoped) ──────────────────────
+			r.Post("/api/companies/{code}/ai/interpret", notImplemented)
+			r.Post("/api/companies/{code}/ai/validate", notImplemented)
+			r.Post("/api/companies/{code}/ai/commit", notImplemented)
+		})
 	})
 
 	h.router = r
@@ -187,9 +195,16 @@ func companyCode(r *http.Request) string {
 	return chi.URLParam(r, "code")
 }
 
-// decodeJSON decodes the request body into v and returns false + writes 400 on error.
+// decodeJSON decodes the request body into v and returns false + writes an appropriate
+// error response on failure. Returns HTTP 413 when the body exceeds the size limit set
+// by RequestBodyLimit middleware; HTTP 400 for all other decode errors.
 func decodeJSON(w http.ResponseWriter, r *http.Request, v any) bool {
 	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			writeError(w, r, "request body too large", "REQUEST_TOO_LARGE", http.StatusRequestEntityTooLarge)
+			return false
+		}
 		writeError(w, r, "invalid JSON body: "+err.Error(), "BAD_REQUEST", http.StatusBadRequest)
 		return false
 	}

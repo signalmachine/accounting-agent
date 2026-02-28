@@ -58,24 +58,45 @@ func NewAppService(
 }
 
 // GetTrialBalance returns the trial balance for the given company.
+// Reads from mv_trial_balance (materialized view) for performance.
+// Call RefreshViews to include the latest postings.
 func (s *appService) GetTrialBalance(ctx context.Context, companyCode string) (*TrialBalanceResult, error) {
+	var companyID int
 	var companyName, currency string
 	if err := s.pool.QueryRow(ctx,
-		"SELECT name, base_currency FROM companies WHERE company_code = $1", companyCode,
-	).Scan(&companyName, &currency); err != nil {
+		"SELECT id, name, base_currency FROM companies WHERE company_code = $1", companyCode,
+	).Scan(&companyID, &companyName, &currency); err != nil {
 		return nil, fmt.Errorf("company %s not found: %w", companyCode, err)
 	}
 
-	balances, err := s.ledger.GetBalances(ctx, companyCode)
+	rows, err := s.pool.Query(ctx, `
+		SELECT account_code, account_name, net_balance
+		FROM mv_trial_balance
+		WHERE company_id = $1
+		ORDER BY account_code
+	`, companyID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query trial balance view: %w", err)
+	}
+	defer rows.Close()
+
+	var accounts []core.AccountBalance
+	for rows.Next() {
+		var b core.AccountBalance
+		if err := rows.Scan(&b.Code, &b.Name, &b.Balance); err != nil {
+			return nil, fmt.Errorf("failed to scan trial balance: %w", err)
+		}
+		accounts = append(accounts, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("trial balance row iteration: %w", err)
 	}
 
 	return &TrialBalanceResult{
 		CompanyCode: companyCode,
 		CompanyName: companyName,
 		Currency:    currency,
-		Accounts:    balances,
+		Accounts:    accounts,
 	}, nil
 }
 
