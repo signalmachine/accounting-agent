@@ -256,6 +256,18 @@ templ ChatHome(d layouts.AppLayoutData) {
 							body: JSON.stringify({ text, company_code: COMPANY_CODE, attachment_ids: attachmentIDs }),
 						});
 
+						if (!resp.ok) {
+							let errMsg = ;
+							try {
+								const errBody = await resp.json();
+								errMsg = errBody.message || errBody.error || errMsg;
+							} catch (_) {}
+							this.messages.push({ role: 'ai', type: 'text', text: '⚠ ' + errMsg });
+							this.saveHistory();
+							this.(() => this.scrollToBottom());
+							return;
+						}
+
 						const reader = resp.body.getReader();
 						const decoder = new TextDecoder();
 						let buf = '';

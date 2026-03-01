@@ -74,8 +74,9 @@ type PurchaseOrderService interface {
 	CreatePO(ctx context.Context, companyID, vendorID int, poDate time.Time, lines []PurchaseOrderLineInput, notes string) (*PurchaseOrder, error)
 
 	// ApprovePO transitions a DRAFT PO to APPROVED, assigning a gapless PO number.
+	// companyID must match the PO's company; returns an error if they differ.
 	// It is idempotent: approving an already-APPROVED PO is a no-op.
-	ApprovePO(ctx context.Context, poID int, docService DocumentService) error
+	ApprovePO(ctx context.Context, companyID, poID int, docService DocumentService) error
 
 	// ReceivePO records goods and/or services received against an APPROVED purchase order.
 	// For physical-goods lines (product_id set): updates inventory via InventoryService.ReceiveStock
@@ -87,10 +88,11 @@ type PurchaseOrderService interface {
 		ledger *Ledger, docService DocumentService, inv InventoryService) error
 
 	// RecordVendorInvoice records the vendor's invoice against a RECEIVED purchase order.
+	// companyID must match the PO's company; returns an error if they differ.
 	// Creates and posts a PI document (gapless number). Warns if invoiceAmount deviates
 	// more than 5% from the PO total. Transitions status to INVOICED.
 	// Returns a non-empty warning string if the amount deviation exceeds 5%.
-	RecordVendorInvoice(ctx context.Context, poID int, invoiceNumber string, invoiceDate time.Time,
+	RecordVendorInvoice(ctx context.Context, companyID, poID int, invoiceNumber string, invoiceDate time.Time,
 		invoiceAmount decimal.Decimal, docService DocumentService) (warning string, err error)
 
 	// PayVendor records payment against an INVOICED purchase order.

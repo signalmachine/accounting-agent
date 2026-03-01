@@ -245,6 +245,9 @@ func (h *Handler) orderCreateAction(w http.ResponseWriter, r *http.Request) {
 // apiListCustomers handles GET /api/companies/{code}/customers.
 func (h *Handler) apiListCustomers(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	result, err := h.svc.ListCustomers(r.Context(), code)
 	if err != nil {
 		writeError(w, r, err.Error(), "INTERNAL_ERROR", http.StatusInternalServerError)
@@ -256,6 +259,9 @@ func (h *Handler) apiListCustomers(w http.ResponseWriter, r *http.Request) {
 // apiListProducts handles GET /api/companies/{code}/products.
 func (h *Handler) apiListProducts(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	result, err := h.svc.ListProducts(r.Context(), code)
 	if err != nil {
 		writeError(w, r, err.Error(), "INTERNAL_ERROR", http.StatusInternalServerError)
@@ -267,6 +273,9 @@ func (h *Handler) apiListProducts(w http.ResponseWriter, r *http.Request) {
 // apiListOrders handles GET /api/companies/{code}/orders.
 func (h *Handler) apiListOrders(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	statusFilter := r.URL.Query().Get("status")
 	var statusPtr *string
 	if statusFilter != "" {
@@ -283,6 +292,9 @@ func (h *Handler) apiListOrders(w http.ResponseWriter, r *http.Request) {
 // apiGetOrder handles GET /api/companies/{code}/orders/{ref}.
 func (h *Handler) apiGetOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	ref := chi.URLParam(r, "ref")
 	result, err := h.svc.GetOrder(r.Context(), ref, code)
 	if err != nil {
@@ -296,6 +308,9 @@ func (h *Handler) apiGetOrder(w http.ResponseWriter, r *http.Request) {
 // Body: { customer_code, order_date?, currency?, notes?, lines: [{product_code, quantity, unit_price?}] }
 func (h *Handler) apiCreateOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 
 	var body struct {
 		CustomerCode string `json:"customer_code"`
@@ -355,6 +370,9 @@ func (h *Handler) apiCreateOrder(w http.ResponseWriter, r *http.Request) {
 // apiConfirmOrder handles POST /api/companies/{code}/orders/{ref}/confirm.
 func (h *Handler) apiConfirmOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	ref := chi.URLParam(r, "ref")
 	result, err := h.svc.ConfirmOrder(r.Context(), ref, code)
 	if err != nil {
@@ -367,6 +385,9 @@ func (h *Handler) apiConfirmOrder(w http.ResponseWriter, r *http.Request) {
 // apiShipOrder handles POST /api/companies/{code}/orders/{ref}/ship.
 func (h *Handler) apiShipOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	ref := chi.URLParam(r, "ref")
 	result, err := h.svc.ShipOrder(r.Context(), ref, code)
 	if err != nil {
@@ -379,6 +400,9 @@ func (h *Handler) apiShipOrder(w http.ResponseWriter, r *http.Request) {
 // apiInvoiceOrder handles POST /api/companies/{code}/orders/{ref}/invoice.
 func (h *Handler) apiInvoiceOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	ref := chi.URLParam(r, "ref")
 	result, err := h.svc.InvoiceOrder(r.Context(), ref, code)
 	if err != nil {
@@ -392,6 +416,9 @@ func (h *Handler) apiInvoiceOrder(w http.ResponseWriter, r *http.Request) {
 // Body: { bank_account_code? } (optional; defaults to BANK_DEFAULT rule).
 func (h *Handler) apiPaymentOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	ref := chi.URLParam(r, "ref")
 
 	var body struct {

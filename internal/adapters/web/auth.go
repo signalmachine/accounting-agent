@@ -131,6 +131,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		Value:    signed,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   3600,
 	})
@@ -144,6 +145,7 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   -1,
 	})

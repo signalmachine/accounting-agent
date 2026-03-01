@@ -28,8 +28,8 @@ type OrderService interface {
 	ConfirmOrder(ctx context.Context, orderID int, docService DocumentService, inv InventoryService) (*SalesOrder, error)
 	// ShipOrder transitions CONFIRMED → SHIPPED. Pass inv=nil to skip COGS booking.
 	ShipOrder(ctx context.Context, orderID int, inv InventoryService, ledger *Ledger, docService DocumentService) (*SalesOrder, error)
-	InvoiceOrder(ctx context.Context, orderID int, ledger LedgerService, docService DocumentService) (*SalesOrder, error)
-	RecordPayment(ctx context.Context, orderID int, bankAccountCode string, paymentDate string, ledger LedgerService) error
+	InvoiceOrder(ctx context.Context, orderID int, ledger *Ledger, docService DocumentService) (*SalesOrder, error)
+	RecordPayment(ctx context.Context, orderID int, bankAccountCode string, paymentDate string, ledger *Ledger) error
 	// CancelOrder transitions DRAFT → CANCELLED. Pass inv=nil to skip reservation release.
 	CancelOrder(ctx context.Context, orderID int, inv InventoryService) (*SalesOrder, error)
 
@@ -408,8 +408,8 @@ func (s *orderService) ShipOrder(ctx context.Context, orderID int, inv Inventory
 	return s.GetOrder(ctx, orderID)
 }
 
-func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger LedgerService, docService DocumentService) (*SalesOrder, error) {
-	// Fetch full order with lines (outside tx — ledger.Commit manages its own tx)
+func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger *Ledger, docService DocumentService) (*SalesOrder, error) {
+	// Fetch full order with lines (read-only pre-check, outside the write tx).
 	order, err := s.GetOrder(ctx, orderID)
 	if err != nil {
 		return nil, err
@@ -418,15 +418,13 @@ func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger Led
 		return nil, fmt.Errorf("order %s cannot be invoiced: status is %s (must be SHIPPED)", order.OrderNumber, order.Status)
 	}
 
-	// Find the company code for this order
+	// Resolve company code.
 	var companyCode string
-	err = s.pool.QueryRow(ctx, "SELECT company_code FROM companies WHERE id = $1", order.CompanyID).Scan(&companyCode)
-	if err != nil {
+	if err = s.pool.QueryRow(ctx, "SELECT company_code FROM companies WHERE id = $1", order.CompanyID).Scan(&companyCode); err != nil {
 		return nil, fmt.Errorf("failed to resolve company for order %d: %w", orderID, err)
 	}
 
-	// Build the accounting proposal: DR AR, CR Revenue per account
-	// Aggregate line totals by revenue account code
+	// Build accounting proposal: DR AR, CR Revenue per account.
 	revenueByAccount := make(map[string]decimal.Decimal)
 	for _, line := range order.Lines {
 		revenueByAccount[line.RevenueAccountCode] = revenueByAccount[line.RevenueAccountCode].Add(line.LineTotalTransaction)
@@ -438,15 +436,11 @@ func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger Led
 	}
 
 	var proposalLines []ProposalLine
-
-	// Debit: Accounts Receivable for full order total
 	proposalLines = append(proposalLines, ProposalLine{
 		AccountCode: arAccount,
 		IsDebit:     true,
 		Amount:      order.TotalTransaction.String(),
 	})
-
-	// Credit: Revenue accounts (one line per distinct revenue account)
 	for accountCode, amount := range revenueByAccount {
 		proposalLines = append(proposalLines, ProposalLine{
 			AccountCode: accountCode,
@@ -470,13 +464,20 @@ func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger Led
 		Lines:               proposalLines,
 	}
 
-	if err := ledger.Commit(ctx, proposal); err != nil {
+	// Wrap ledger commit and status update in one transaction — atomic.
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin invoice tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := ledger.CommitInTx(ctx, tx, proposal); err != nil {
 		return nil, fmt.Errorf("failed to commit invoice journal entry for order %s: %w", order.OrderNumber, err)
 	}
 
-	// Fetch the SI document ID that was just created (by idempotency key → journal entry → reference_id → document)
+	// Fetch the SI document ID created inside the same tx.
 	var invoiceDocID *int
-	_ = s.pool.QueryRow(ctx, `
+	_ = tx.QueryRow(ctx, `
 		SELECT d.id
 		FROM documents d
 		JOIN journal_entries je ON je.reference_id = d.document_number AND je.reference_type = 'DOCUMENT'
@@ -484,20 +485,22 @@ func (s *orderService) InvoiceOrder(ctx context.Context, orderID int, ledger Led
 		LIMIT 1
 	`, fmt.Sprintf("invoice-order-%d", orderID)).Scan(&invoiceDocID)
 
-	// Update order to INVOICED
-	_, err = s.pool.Exec(ctx, `
+	if _, err = tx.Exec(ctx, `
 		UPDATE sales_orders
 		SET status = 'INVOICED', invoiced_at = NOW(), invoice_document_id = $1
 		WHERE id = $2
-	`, invoiceDocID, orderID)
-	if err != nil {
+	`, invoiceDocID, orderID); err != nil {
 		return nil, fmt.Errorf("failed to mark order %d as INVOICED: %w", orderID, err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit invoice tx: %w", err)
 	}
 
 	return s.GetOrder(ctx, orderID)
 }
 
-func (s *orderService) RecordPayment(ctx context.Context, orderID int, bankAccountCode string, paymentDate string, ledger LedgerService) error {
+func (s *orderService) RecordPayment(ctx context.Context, orderID int, bankAccountCode string, paymentDate string, ledger *Ledger) error {
 	if bankAccountCode == "" {
 		bankAccountCode = defaultBankAccountCode
 	}
@@ -511,8 +514,7 @@ func (s *orderService) RecordPayment(ctx context.Context, orderID int, bankAccou
 	}
 
 	var companyCode string
-	err = s.pool.QueryRow(ctx, "SELECT company_code FROM companies WHERE id = $1", order.CompanyID).Scan(&companyCode)
-	if err != nil {
+	if err = s.pool.QueryRow(ctx, "SELECT company_code FROM companies WHERE id = $1", order.CompanyID).Scan(&companyCode); err != nil {
 		return fmt.Errorf("failed to resolve company for order %d: %w", orderID, err)
 	}
 
@@ -542,19 +544,25 @@ func (s *orderService) RecordPayment(ctx context.Context, orderID int, bankAccou
 		},
 	}
 
-	if err := ledger.Commit(ctx, proposal); err != nil {
+	// Wrap ledger commit and status update in one transaction — atomic.
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin payment tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := ledger.CommitInTx(ctx, tx, proposal); err != nil {
 		return fmt.Errorf("failed to commit payment journal entry for order %s: %w", order.OrderNumber, err)
 	}
 
-	_, err = s.pool.Exec(ctx,
+	if _, err = tx.Exec(ctx,
 		"UPDATE sales_orders SET status = 'PAID', paid_at = NOW() WHERE id = $1",
 		orderID,
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("failed to mark order %d as PAID: %w", orderID, err)
 	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 func (s *orderService) CancelOrder(ctx context.Context, orderID int, inv InventoryService) (*SalesOrder, error) {

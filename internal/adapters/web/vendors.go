@@ -296,6 +296,9 @@ func (h *Handler) poDetailPage(w http.ResponseWriter, r *http.Request) {
 // apiListVendors handles GET /api/companies/{code}/vendors.
 func (h *Handler) apiListVendors(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	result, err := h.svc.ListVendors(r.Context(), code)
 	if err != nil {
 		writeError(w, r, err.Error(), "INTERNAL_ERROR", http.StatusInternalServerError)
@@ -308,6 +311,9 @@ func (h *Handler) apiListVendors(w http.ResponseWriter, r *http.Request) {
 // Body: { code, name, contact_person?, email?, phone?, address?, payment_terms_days?, ap_account_code?, default_expense_account_code? }
 func (h *Handler) apiCreateVendor(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 
 	var body struct {
 		Code                      string `json:"code"`
@@ -356,6 +362,9 @@ func (h *Handler) apiCreateVendor(w http.ResponseWriter, r *http.Request) {
 // apiGetVendor handles GET /api/companies/{code}/vendors/{vendorCode}.
 func (h *Handler) apiGetVendor(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	vendorCode := chi.URLParam(r, "vendorCode")
 
 	result, err := h.svc.ListVendors(r.Context(), code)
@@ -375,6 +384,9 @@ func (h *Handler) apiGetVendor(w http.ResponseWriter, r *http.Request) {
 // apiListPurchaseOrders handles GET /api/companies/{code}/purchase-orders.
 func (h *Handler) apiListPurchaseOrders(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	statusFilter := r.URL.Query().Get("status")
 	result, err := h.svc.ListPurchaseOrders(r.Context(), code, statusFilter)
 	if err != nil {
@@ -388,6 +400,9 @@ func (h *Handler) apiListPurchaseOrders(w http.ResponseWriter, r *http.Request) 
 // Body: { vendor_code, po_date?, notes?, lines: [{product_code?, description, quantity, unit_cost, expense_account_code?}] }
 func (h *Handler) apiCreatePurchaseOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 
 	var body struct {
 		VendorCode string `json:"vendor_code"`
@@ -449,6 +464,9 @@ func (h *Handler) apiCreatePurchaseOrder(w http.ResponseWriter, r *http.Request)
 // apiGetPurchaseOrder handles GET /api/companies/{code}/purchase-orders/{id}.
 func (h *Handler) apiGetPurchaseOrder(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	poID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -466,6 +484,9 @@ func (h *Handler) apiGetPurchaseOrder(w http.ResponseWriter, r *http.Request) {
 // apiApprovePO handles POST /api/companies/{code}/purchase-orders/{id}/approve.
 func (h *Handler) apiApprovePO(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	poID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -484,6 +505,9 @@ func (h *Handler) apiApprovePO(w http.ResponseWriter, r *http.Request) {
 // Body: { warehouse_code?, lines: [{po_line_id, qty_received}] }
 func (h *Handler) apiReceivePO(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	poID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -542,6 +566,9 @@ func (h *Handler) apiReceivePO(w http.ResponseWriter, r *http.Request) {
 // Body: { invoice_number, invoice_date, invoice_amount }
 func (h *Handler) apiInvoicePO(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	poID, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -598,6 +625,9 @@ func (h *Handler) apiInvoicePO(w http.ResponseWriter, r *http.Request) {
 // Body: { bank_account_code?, payment_date? }
 func (h *Handler) apiPayPO(w http.ResponseWriter, r *http.Request) {
 	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	idStr := chi.URLParam(r, "id")
 	poID, err := strconv.Atoi(idStr)
 	if err != nil {

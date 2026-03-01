@@ -139,24 +139,29 @@ func (s *purchaseOrderService) CreatePO(ctx context.Context, companyID, vendorID
 }
 
 // ApprovePO transitions a DRAFT PO to APPROVED, assigning a gapless PO number.
+// companyID must match the PO's company — returns an error if they differ.
 // Approving an already-APPROVED PO is a no-op.
-func (s *purchaseOrderService) ApprovePO(ctx context.Context, poID int, docService DocumentService) error {
+func (s *purchaseOrderService) ApprovePO(ctx context.Context, companyID, poID int, docService DocumentService) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	var companyID int
+	var poCompanyID int
 	var status string
 	if err := tx.QueryRow(ctx,
 		"SELECT company_id, status FROM purchase_orders WHERE id = $1 FOR UPDATE",
 		poID,
-	).Scan(&companyID, &status); err != nil {
+	).Scan(&poCompanyID, &status); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("purchase order %d not found", poID)
 		}
 		return fmt.Errorf("fetch purchase order %d: %w", poID, err)
+	}
+
+	if poCompanyID != companyID {
+		return fmt.Errorf("purchase order %d does not belong to company %d", poID, companyID)
 	}
 
 	// Idempotent: already approved is a no-op
@@ -230,8 +235,8 @@ func (s *purchaseOrderService) ReceivePO(ctx context.Context, poID int, warehous
 		return fmt.Errorf("at least one received line is required")
 	}
 
-	// Load and validate PO
-	po, err := s.GetPO(ctx, poID)
+	// Load and validate PO — assert company ownership in the query so cross-company IDs are rejected.
+	po, err := s.getPOForCompany(ctx, poID, companyCode)
 	if err != nil {
 		return err
 	}
@@ -260,7 +265,26 @@ func (s *purchaseOrderService) ReceivePO(ctx context.Context, poID int, warehous
 		}
 
 		if pol.ProductID != nil {
-			// Physical goods line — receive into inventory
+			// Physical goods line — check cumulative received qty does not exceed ordered qty.
+			var alreadyReceived decimal.Decimal
+			if err := s.pool.QueryRow(ctx, `
+				SELECT COALESCE(SUM(im.quantity), 0)
+				FROM inventory_movements im
+				WHERE im.po_line_id = $1 AND im.movement_type = 'RECEIPT'`,
+				pol.ID,
+			).Scan(&alreadyReceived); err != nil {
+				return fmt.Errorf("check received quantity for PO line %d: %w", pol.ID, err)
+			}
+			totalAfterReceipt := alreadyReceived.Add(rl.QtyReceived)
+			if totalAfterReceipt.GreaterThan(pol.Quantity) {
+				return fmt.Errorf(
+					"PO line %d: would receive %s but only %s ordered (already received %s)",
+					pol.ID, totalAfterReceipt.StringFixed(4), pol.Quantity.StringFixed(4),
+					alreadyReceived.StringFixed(4),
+				)
+			}
+
+			// Receive into inventory
 			productCode := ""
 			if pol.ProductCode != nil {
 				productCode = *pol.ProductCode
@@ -319,9 +343,10 @@ func (s *purchaseOrderService) ReceivePO(ctx context.Context, poID int, warehous
 }
 
 // RecordVendorInvoice records the vendor's invoice against a RECEIVED purchase order.
+// companyID must match the PO's company — returns an error if they differ.
 // Creates and posts a PI document. Warns if invoiceAmount deviates > 5% from PO total.
 // Transitions status to INVOICED. Returns a non-empty warning if amount deviation > 5%.
-func (s *purchaseOrderService) RecordVendorInvoice(ctx context.Context, poID int,
+func (s *purchaseOrderService) RecordVendorInvoice(ctx context.Context, companyID, poID int,
 	invoiceNumber string, invoiceDate time.Time, invoiceAmount decimal.Decimal,
 	docService DocumentService) (string, error) {
 
@@ -331,17 +356,21 @@ func (s *purchaseOrderService) RecordVendorInvoice(ctx context.Context, poID int
 	}
 	defer tx.Rollback(ctx)
 
-	var companyID int
+	var poCompanyID int
 	var status string
 	var totalBase decimal.Decimal
 	if err := tx.QueryRow(ctx,
 		"SELECT company_id, status, total_base FROM purchase_orders WHERE id = $1 FOR UPDATE",
 		poID,
-	).Scan(&companyID, &status, &totalBase); err != nil {
+	).Scan(&poCompanyID, &status, &totalBase); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", fmt.Errorf("purchase order %d not found", poID)
 		}
 		return "", fmt.Errorf("fetch purchase order %d: %w", poID, err)
+	}
+
+	if poCompanyID != companyID {
+		return "", fmt.Errorf("purchase order %d does not belong to company %d", poID, companyID)
 	}
 
 	if status != "RECEIVED" {
@@ -441,13 +470,22 @@ func (s *purchaseOrderService) PayVendor(ctx context.Context, poID int,
 		return fmt.Errorf("purchase order %d cannot be paid: status is %s (must be INVOICED)", poID, status)
 	}
 
+	// Verify the PO's company matches the supplied companyCode.
+	var expectedCompanyID int
+	if err := tx.QueryRow(ctx,
+		"SELECT id FROM companies WHERE company_code = $1", companyCode,
+	).Scan(&expectedCompanyID); err != nil {
+		return fmt.Errorf("resolve company %s: %w", companyCode, err)
+	}
+	if companyID != expectedCompanyID {
+		return fmt.Errorf("purchase order %d does not belong to company %s", poID, companyCode)
+	}
+
 	// Use invoice amount if recorded, otherwise fall back to PO total
 	paymentAmount := totalBase
 	if invoiceAmount != nil && !invoiceAmount.IsZero() {
 		paymentAmount = *invoiceAmount
 	}
-
-	_ = companyID // companyCode is used for the proposal
 	paymentDateStr := paymentDate.Format("2006-01-02")
 
 	proposal := Proposal{
@@ -483,6 +521,26 @@ func (s *purchaseOrderService) PayVendor(ctx context.Context, poID int,
 	}
 
 	return nil
+}
+
+// getPOForCompany fetches a PO by ID, asserting it belongs to the given companyCode.
+// Returns pgx.ErrNoRows-wrapped error (indistinguishable from not-found) if ownership fails
+// to prevent PO enumeration across companies.
+func (s *purchaseOrderService) getPOForCompany(ctx context.Context, poID int, companyCode string) (*PurchaseOrder, error) {
+	var exists bool
+	if err := s.pool.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM purchase_orders po
+			JOIN companies c ON c.id = po.company_id
+			WHERE po.id = $1 AND c.company_code = $2
+		)`, poID, companyCode,
+	).Scan(&exists); err != nil {
+		return nil, fmt.Errorf("purchase order ownership check: %w", err)
+	}
+	if !exists {
+		return nil, fmt.Errorf("purchase order %d not found", poID)
+	}
+	return s.GetPO(ctx, poID)
 }
 
 // GetPO returns a purchase order by its internal ID, including all lines.

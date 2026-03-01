@@ -275,18 +275,15 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 		return fmt.Errorf("failed to insert inventory movement: %w", err)
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit goods receipt: %w", err)
-	}
-
-	// Book accounting entry: DR Inventory (1400), CR creditAccount — in its own TX via Ledger.Commit
+	// Book accounting entry inside the same tx: DR Inventory / CR creditAccount.
+	// Using CommitInTx ensures inventory write and journal entry commit atomically.
 	proposal := Proposal{
 		DocumentTypeCode:    "GR",
 		CompanyCode:         companyCode,
-		IdempotencyKey:      "",
+		IdempotencyKey:      fmt.Sprintf("goods-receipt-%s-%s-%s", companyCode, productCode, movementDate),
 		TransactionCurrency: baseCurrency,
 		ExchangeRate:        "1",
-		Summary:             fmt.Sprintf("Goods Receipt: %s × %s units of %s @ %s", qty.String(), qty.String(), productCode, unitCost.String()),
+		Summary:             fmt.Sprintf("Goods Receipt: %s units of %s @ %s", qty.String(), productCode, unitCost.String()),
 		PostingDate:         movementDate,
 		DocumentDate:        movementDate,
 		Confidence:          1.0,
@@ -297,8 +294,13 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 		},
 	}
 
-	if err := ledger.Commit(ctx, proposal); err != nil {
+	if err := ledger.CommitInTx(ctx, tx, proposal); err != nil {
 		return fmt.Errorf("failed to book goods receipt journal entry: %w", err)
+	}
+
+	// Single commit: inventory write + journal entry land together or not at all.
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit goods receipt: %w", err)
 	}
 
 	return nil

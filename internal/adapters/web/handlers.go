@@ -195,6 +195,23 @@ func companyCode(r *http.Request) string {
 	return chi.URLParam(r, "code")
 }
 
+// requireCompanyAccess verifies that the authenticated user belongs to the company
+// identified by requestedCode. Returns false and writes a 403 response if not.
+// Must only be called after RequireAuth or RequireAuthBrowser middleware.
+func (h *Handler) requireCompanyAccess(w http.ResponseWriter, r *http.Request, requestedCode string) bool {
+	claims := authFromContext(r.Context())
+	if claims == nil {
+		writeError(w, r, "authentication required", "UNAUTHORIZED", http.StatusUnauthorized)
+		return false
+	}
+	user, err := h.svc.GetUser(r.Context(), claims.UserID)
+	if err != nil || user.CompanyCode != requestedCode {
+		writeError(w, r, "access denied: company mismatch", "FORBIDDEN", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
 // decodeJSON decodes the request body into v and returns false + writes an appropriate
 // error response on failure. Returns HTTP 413 when the body exceeds the size limit set
 // by RequestBodyLimit middleware; HTTP 400 for all other decode errors.

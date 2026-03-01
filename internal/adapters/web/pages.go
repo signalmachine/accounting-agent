@@ -69,6 +69,7 @@ func (h *Handler) loginFormSubmit(w http.ResponseWriter, r *http.Request) {
 		Value:    signed,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   3600,
 	})
@@ -82,6 +83,7 @@ func (h *Handler) logoutPage(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   -1,
 	})
@@ -100,24 +102,26 @@ func (h *Handler) dashboardPage(w http.ResponseWriter, r *http.Request) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // buildAppLayoutData constructs AppLayoutData from the request context.
+// CompanyCode is derived from the authenticated user's record — never from LoadDefaultCompany,
+// which fails when multiple companies exist in the database.
 func (h *Handler) buildAppLayoutData(r *http.Request, title, activeNav string) layouts.AppLayoutData {
 	claims := authFromContext(r.Context())
 	username := ""
 	role := ""
+	companyCode := ""
+
 	if claims != nil {
 		user, err := h.svc.GetUser(r.Context(), claims.UserID)
 		if err == nil {
 			username = user.Username
 			role = user.Role
+			companyCode = user.CompanyCode
 		}
 	}
 
 	companyName := "Accounting"
-	companyCode := ""
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err == nil && company != nil {
-		companyName = company.Name
-		companyCode = company.CompanyCode
+	if companyCode != "" {
+		companyName = companyCode // placeholder until a GetCompanyByCode helper is wired
 	}
 
 	return layouts.AppLayoutData{

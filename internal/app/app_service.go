@@ -666,7 +666,11 @@ func (s *appService) CreatePurchaseOrder(ctx context.Context, req CreatePurchase
 
 // ApprovePurchaseOrder transitions a DRAFT PO to APPROVED, assigning a gapless PO number.
 func (s *appService) ApprovePurchaseOrder(ctx context.Context, companyCode string, poID int) (*PurchaseOrderResult, error) {
-	if err := s.purchaseOrderService.ApprovePO(ctx, poID, s.docService); err != nil {
+	company, err := s.fetchCompany(ctx, companyCode)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.purchaseOrderService.ApprovePO(ctx, company.ID, poID, s.docService); err != nil {
 		return nil, err
 	}
 	po, err := s.purchaseOrderService.GetPO(ctx, poID)
@@ -1298,8 +1302,12 @@ func (s *appService) buildToolRegistry(ctx context.Context, companyCode string) 
 
 // RecordVendorInvoice records the vendor's invoice against a RECEIVED PO.
 func (s *appService) RecordVendorInvoice(ctx context.Context, req VendorInvoiceRequest) (*VendorInvoiceResult, error) {
+	company, err := s.fetchCompany(ctx, req.CompanyCode)
+	if err != nil {
+		return nil, err
+	}
 	warning, err := s.purchaseOrderService.RecordVendorInvoice(
-		ctx, req.POID, req.InvoiceNumber, req.InvoiceDate, req.InvoiceAmount, s.docService,
+		ctx, company.ID, req.POID, req.InvoiceNumber, req.InvoiceDate, req.InvoiceAmount, s.docService,
 	)
 	if err != nil {
 		return nil, err

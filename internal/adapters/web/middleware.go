@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,6 +15,8 @@ type contextKey string
 
 const requestIDKey contextKey = "request_id"
 
+var validRequestID = regexp.MustCompile(`^[a-zA-Z0-9\-]{1,64}$`)
+
 // requestIDFromContext returns the request ID from ctx, or empty string.
 func requestIDFromContext(ctx context.Context) string {
 	v, _ := ctx.Value(requestIDKey).(string)
@@ -21,10 +24,12 @@ func requestIDFromContext(ctx context.Context) string {
 }
 
 // RequestID injects a unique X-Request-ID header into each request and its context.
+// Caller-supplied IDs are accepted only if they are safe alphanumeric/hyphen strings;
+// anything else (absent, too long, unusual characters) gets a fresh server-generated UUID.
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := r.Header.Get("X-Request-ID")
-		if id == "" {
+		if !validRequestID.MatchString(id) {
 			id = uuid.NewString()
 		}
 		w.Header().Set("X-Request-ID", id)
@@ -56,14 +61,15 @@ func Recoverer(next http.Handler) http.Handler {
 	})
 }
 
-// CORS adds permissive CORS headers for the allowed origins list.
-// allowedOrigins is a comma-separated string from ALLOWED_ORIGINS env.
+// CORS adds CORS headers only when ALLOWED_ORIGINS is explicitly configured and the
+// request origin is in the list. An empty list means CORS is disabled entirely.
+// allowedOrigins is a comma-separated string from the ALLOWED_ORIGINS env variable.
 func CORS(allowedOrigins string) func(http.Handler) http.Handler {
 	origins := splitAndTrim(allowedOrigins)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			if origin != "" && (len(origins) == 0 || contains(origins, origin) || contains(origins, "*")) {
+			if origin != "" && len(origins) > 0 && contains(origins, origin) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token, X-Request-ID")

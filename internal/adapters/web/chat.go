@@ -139,6 +139,9 @@ func (h *Handler) chatMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, r, "text and company_code are required", "BAD_REQUEST", http.StatusBadRequest)
 		return
 	}
+	if !h.requireCompanyAccess(w, r, req.CompanyCode) {
+		return
+	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -262,6 +265,11 @@ func (h *Handler) chatConfirm(w http.ResponseWriter, r *http.Request) {
 	action, ok := h.pending.get(req.Token)
 	if !ok {
 		writeError(w, r, "token not found or expired", "NOT_FOUND", http.StatusNotFound)
+		return
+	}
+
+	// Verify the confirming user still belongs to the company the action was created for.
+	if !h.requireCompanyAccess(w, r, action.CompanyCode) {
 		return
 	}
 	h.pending.delete(req.Token)

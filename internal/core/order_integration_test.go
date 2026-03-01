@@ -12,7 +12,7 @@ import (
 
 // setupOrderTestDB extends the base ledger test DB with the additional accounts,
 // document types, customers, and products needed for order tests.
-func setupOrderTestDB(t *testing.T) (*pgxpool.Pool, core.OrderService, core.LedgerService, core.DocumentService, context.Context) {
+func setupOrderTestDB(t *testing.T) (*pgxpool.Pool, core.OrderService, *core.Ledger, core.DocumentService, context.Context) {
 	t.Helper()
 	pool := setupTestDB(t) // truncates DB and seeds company 1000 + accounts 1000, 4000 + doc types JE/SI/PI
 

@@ -168,7 +168,7 @@ func TestPurchaseOrder_CreateAndApprove(t *testing.T) {
 			t.Skip("CreatePO_Success must run first")
 		}
 
-		err := poService.ApprovePO(ctx, createdPOID, docService)
+		err := poService.ApprovePO(ctx, 1, createdPOID, docService)
 		if err != nil {
 			t.Fatalf("ApprovePO: %v", err)
 		}
@@ -200,14 +200,14 @@ func TestPurchaseOrder_CreateAndApprove(t *testing.T) {
 		}
 
 		// Approving an already-APPROVED PO is a no-op, not an error
-		err := poService.ApprovePO(ctx, createdPOID, docService)
+		err := poService.ApprovePO(ctx, 1, createdPOID, docService)
 		if err != nil {
 			t.Errorf("expected idempotent approve to succeed, got: %v", err)
 		}
 	})
 
 	t.Run("ApprovePO_NotFound_Fails", func(t *testing.T) {
-		err := poService.ApprovePO(ctx, 99999, docService)
+		err := poService.ApprovePO(ctx, 1, 99999, docService)
 		if err == nil {
 			t.Error("expected error for non-existent PO, got nil")
 		}
@@ -324,7 +324,7 @@ func TestPurchaseOrder_ReceivePO(t *testing.T) {
 		t.Fatalf("CreatePO: %v", err)
 	}
 
-	if err := poService.ApprovePO(ctx, po.ID, docService); err != nil {
+	if err := poService.ApprovePO(ctx, 1, po.ID, docService); err != nil {
 		t.Fatalf("ApprovePO: %v", err)
 	}
 
@@ -471,7 +471,7 @@ func TestPurchaseOrder_FullLifecycle(t *testing.T) {
 	}
 
 	// Approve
-	if err := poService.ApprovePO(ctx, po.ID, docService); err != nil {
+	if err := poService.ApprovePO(ctx, 1, po.ID, docService); err != nil {
 		t.Fatalf("ApprovePO: %v", err)
 	}
 
@@ -493,7 +493,7 @@ func TestPurchaseOrder_FullLifecycle(t *testing.T) {
 		draftPO, _ := poService.CreatePO(ctx, companyID, vendorID, poDate, []core.PurchaseOrderLineInput{
 			{Description: "Test item", Quantity: decimal.NewFromInt(1), UnitCost: decimal.NewFromFloat(100)},
 		}, "")
-		_, err := poService.RecordVendorInvoice(ctx, draftPO.ID, "INV-9999",
+		_, err := poService.RecordVendorInvoice(ctx, 1, draftPO.ID, "INV-9999",
 			time.Date(2026, 3, 25, 0, 0, 0, 0, time.UTC),
 			decimal.NewFromFloat(100), docService)
 		if err == nil {
@@ -505,7 +505,7 @@ func TestPurchaseOrder_FullLifecycle(t *testing.T) {
 		invoiceDate := time.Date(2026, 3, 25, 0, 0, 0, 0, time.UTC)
 		invoiceAmount := decimal.NewFromFloat(10000.00) // exact match: 20×500
 
-		warning, err := poService.RecordVendorInvoice(ctx, po.ID,
+		warning, err := poService.RecordVendorInvoice(ctx, 1, po.ID,
 			"INV-2026-001", invoiceDate, invoiceAmount, docService)
 		if err != nil {
 			t.Fatalf("RecordVendorInvoice: %v", err)
@@ -546,7 +546,7 @@ func TestPurchaseOrder_FullLifecycle(t *testing.T) {
 		if err != nil {
 			t.Fatalf("CreatePO for deviation test: %v", err)
 		}
-		if err := poService.ApprovePO(ctx, po2.ID, docService); err != nil {
+		if err := poService.ApprovePO(ctx, 1, po2.ID, docService); err != nil {
 			t.Fatalf("ApprovePO for deviation test: %v", err)
 		}
 		po2, err = poService.GetPO(ctx, po2.ID)
@@ -560,7 +560,7 @@ func TestPurchaseOrder_FullLifecycle(t *testing.T) {
 		}
 
 		// Invoice with 10% more than PO total — should produce a warning
-		warning, err := poService.RecordVendorInvoice(ctx, po2.ID, "INV-HIGH",
+		warning, err := poService.RecordVendorInvoice(ctx, 1, po2.ID, "INV-HIGH",
 			time.Date(2026, 3, 26, 0, 0, 0, 0, time.UTC),
 			decimal.NewFromFloat(1100), docService)
 		if err != nil {
@@ -577,7 +577,7 @@ func TestPurchaseOrder_FullLifecycle(t *testing.T) {
 		po3, _ := poService.CreatePO(ctx, companyID, vendorID, poDate, []core.PurchaseOrderLineInput{
 			{Description: "Non-invoiced item", Quantity: decimal.NewFromInt(1), UnitCost: decimal.NewFromFloat(200)},
 		}, "")
-		_ = poService.ApprovePO(ctx, po3.ID, docService)
+		_ = poService.ApprovePO(ctx, 1, po3.ID, docService)
 		po3, _ = poService.GetPO(ctx, po3.ID)
 		_ = poService.ReceivePO(ctx, po3.ID, "MAIN", companyCode,
 			[]core.ReceivedLine{{POLineID: po3.Lines[0].ID, QtyReceived: decimal.NewFromInt(1)}},

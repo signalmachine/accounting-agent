@@ -45,8 +45,7 @@ func main() {
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		log.Println("Warning: JWT_SECRET is not set; using insecure default — set JWT_SECRET in .env")
-		jwtSecret = "insecure-default-change-me"
+		log.Fatalf("JWT_SECRET is not set — refusing to start. Set a strong random value in .env")
 	}
 
 	port := os.Getenv("SERVER_PORT")

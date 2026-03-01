@@ -22,21 +22,16 @@ import (
 func (h *Handler) trialBalancePage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Trial Balance", "trial-balance")
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
-	result, err := h.svc.GetTrialBalance(r.Context(), company.CompanyCode)
+	result, err := h.svc.GetTrialBalance(r.Context(), d.CompanyCode)
 	if err != nil {
 		d.FlashMsg = "Failed to load trial balance: " + err.Error()
 		d.FlashKind = "error"
-		result = &app.TrialBalanceResult{
-			CompanyCode: company.CompanyCode,
-			CompanyName: company.Name,
-			Currency:    company.BaseCurrency,
-		}
+		result = &app.TrialBalanceResult{CompanyCode: d.CompanyCode}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -46,6 +41,11 @@ func (h *Handler) trialBalancePage(w http.ResponseWriter, r *http.Request) {
 // plReportPage handles GET /reports/pl.
 func (h *Handler) plReportPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "P&L Report", "pl")
+
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
+		return
+	}
 
 	now := time.Now()
 	year := now.Year()
@@ -62,17 +62,11 @@ func (h *Handler) plReportPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
-		return
-	}
-
-	report, err := h.svc.GetProfitAndLoss(r.Context(), company.CompanyCode, year, month)
+	report, err := h.svc.GetProfitAndLoss(r.Context(), d.CompanyCode, year, month)
 	if err != nil {
 		d.FlashMsg = "Failed to load P&L: " + err.Error()
 		d.FlashKind = "error"
-		report = &core.PLReport{CompanyCode: company.CompanyCode, Year: year, Month: month}
+		report = &core.PLReport{CompanyCode: d.CompanyCode, Year: year, Month: month}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -83,22 +77,21 @@ func (h *Handler) plReportPage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) balanceSheetPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Balance Sheet", "balance-sheet")
 
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
+		return
+	}
+
 	asOfDate := r.URL.Query().Get("date")
 	if asOfDate == "" {
 		asOfDate = time.Now().Format("2006-01-02")
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
-		return
-	}
-
-	report, err := h.svc.GetBalanceSheet(r.Context(), company.CompanyCode, asOfDate)
+	report, err := h.svc.GetBalanceSheet(r.Context(), d.CompanyCode, asOfDate)
 	if err != nil {
 		d.FlashMsg = "Failed to load balance sheet: " + err.Error()
 		d.FlashKind = "error"
-		report = &core.BSReport{CompanyCode: company.CompanyCode, AsOfDate: asOfDate}
+		report = &core.BSReport{CompanyCode: d.CompanyCode, AsOfDate: asOfDate}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -115,19 +108,18 @@ func (h *Handler) accountStatementPage(w http.ResponseWriter, r *http.Request) {
 
 	d := h.buildAppLayoutData(r, "Account Statement", "statement")
 
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
+		return
+	}
+
 	if accountCode == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_ = pages.AccountStatement(d, nil, "", from, to).Render(r.Context(), w)
 		return
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
-		return
-	}
-
-	stmtResult, err := h.svc.GetAccountStatement(r.Context(), company.CompanyCode, accountCode, from, to)
+	stmtResult, err := h.svc.GetAccountStatement(r.Context(), d.CompanyCode, accountCode, from, to)
 	if err != nil {
 		d.FlashMsg = "Failed to load statement: " + err.Error()
 		d.FlashKind = "error"
@@ -144,8 +136,8 @@ func (h *Handler) accountStatementPage(w http.ResponseWriter, r *http.Request) {
 		for _, line := range stmtResult.Lines {
 			_ = cw.Write([]string{
 				line.PostingDate,
-				line.Narration,
-				line.Reference,
+				csvSafe(line.Narration),
+				csvSafe(line.Reference),
 				line.Debit.StringFixed(2),
 				line.Credit.StringFixed(2),
 				line.RunningBalance.StringFixed(2),
@@ -163,21 +155,37 @@ func (h *Handler) accountStatementPage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) journalEntryPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Journal Entry", "")
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = pages.JournalEntry(d, company.CompanyCode).Render(r.Context(), w)
+	_ = pages.JournalEntry(d, d.CompanyCode).Render(r.Context(), w)
+}
+
+// csvSafe prevents CSV formula injection by prefixing cells that begin with a
+// formula-triggering character with a single quote.
+func csvSafe(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	switch s[0] {
+	case '=', '+', '-', '@', '\t', '\r':
+		return "'" + s
+	}
+	return s
 }
 
 // ── API handlers ──────────────────────────────────────────────────────────────
 
 // apiTrialBalance handles GET /api/companies/{code}/trial-balance.
 func (h *Handler) apiTrialBalance(w http.ResponseWriter, r *http.Request) {
-	result, err := h.svc.GetTrialBalance(r.Context(), companyCode(r))
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
+	result, err := h.svc.GetTrialBalance(r.Context(), code)
 	if err != nil {
 		writeError(w, r, err.Error(), "INTERNAL", http.StatusInternalServerError)
 		return
@@ -187,8 +195,12 @@ func (h *Handler) apiTrialBalance(w http.ResponseWriter, r *http.Request) {
 
 // apiAccountStatement handles GET /api/companies/{code}/accounts/{accountCode}/statement.
 func (h *Handler) apiAccountStatement(w http.ResponseWriter, r *http.Request) {
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	result, err := h.svc.GetAccountStatement(r.Context(),
-		companyCode(r),
+		code,
 		chi.URLParam(r, "accountCode"),
 		r.URL.Query().Get("from"),
 		r.URL.Query().Get("to"),
@@ -202,6 +214,10 @@ func (h *Handler) apiAccountStatement(w http.ResponseWriter, r *http.Request) {
 
 // apiProfitAndLoss handles GET /api/companies/{code}/reports/pl.
 func (h *Handler) apiProfitAndLoss(w http.ResponseWriter, r *http.Request) {
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	now := time.Now()
 	year, month := now.Year(), int(now.Month())
 
@@ -216,7 +232,7 @@ func (h *Handler) apiProfitAndLoss(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.svc.GetProfitAndLoss(r.Context(), companyCode(r), year, month)
+	result, err := h.svc.GetProfitAndLoss(r.Context(), code, year, month)
 	if err != nil {
 		writeError(w, r, err.Error(), "INTERNAL", http.StatusInternalServerError)
 		return
@@ -226,7 +242,11 @@ func (h *Handler) apiProfitAndLoss(w http.ResponseWriter, r *http.Request) {
 
 // apiBalanceSheet handles GET /api/companies/{code}/reports/balance-sheet.
 func (h *Handler) apiBalanceSheet(w http.ResponseWriter, r *http.Request) {
-	result, err := h.svc.GetBalanceSheet(r.Context(), companyCode(r), r.URL.Query().Get("date"))
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
+	result, err := h.svc.GetBalanceSheet(r.Context(), code, r.URL.Query().Get("date"))
 	if err != nil {
 		writeError(w, r, err.Error(), "INTERNAL", http.StatusInternalServerError)
 		return
@@ -236,6 +256,10 @@ func (h *Handler) apiBalanceSheet(w http.ResponseWriter, r *http.Request) {
 
 // apiRefreshViews handles POST /api/companies/{code}/reports/refresh.
 func (h *Handler) apiRefreshViews(w http.ResponseWriter, r *http.Request) {
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
 	if err := h.svc.RefreshViews(r.Context()); err != nil {
 		writeError(w, r, err.Error(), "INTERNAL", http.StatusInternalServerError)
 		return
@@ -261,12 +285,17 @@ type journalEntryRequest struct {
 
 // apiPostJournalEntry handles POST /api/companies/{code}/journal-entries.
 func (h *Handler) apiPostJournalEntry(w http.ResponseWriter, r *http.Request) {
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
+
 	var req journalEntryRequest
 	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	proposal, err := buildProposal(companyCode(r), req)
+	proposal, err := buildProposal(code, req)
 	if err != nil {
 		writeError(w, r, err.Error(), "BAD_REQUEST", http.StatusBadRequest)
 		return
@@ -282,12 +311,17 @@ func (h *Handler) apiPostJournalEntry(w http.ResponseWriter, r *http.Request) {
 
 // apiValidateJournalEntry handles POST /api/companies/{code}/journal-entries/validate.
 func (h *Handler) apiValidateJournalEntry(w http.ResponseWriter, r *http.Request) {
+	code := companyCode(r)
+	if !h.requireCompanyAccess(w, r, code) {
+		return
+	}
+
 	var req journalEntryRequest
 	if !decodeJSON(w, r, &req) {
 		return
 	}
 
-	proposal, err := buildProposal(companyCode(r), req)
+	proposal, err := buildProposal(code, req)
 	if err != nil {
 		writeError(w, r, err.Error(), "BAD_REQUEST", http.StatusBadRequest)
 		return
