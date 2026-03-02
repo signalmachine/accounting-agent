@@ -28,31 +28,34 @@ templ ProductsList(d layouts.AppLayoutData, result *app.ProductListResult, stock
 			<!-- Table -->
 			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
 				if len(result.Products) == 0 {
-					<div class="p-8 text-center text-slate-500 text-sm">No products found.</div>
+					<div class="empty-state">
+						<div class="empty-state-icon">🏷️</div>
+						<div class="empty-state-title">No products found</div>
+					</div>
 				} else {
-					<table class="w-full text-sm">
+					<table class="data-table">
 						<thead>
-							<tr class="bg-slate-50 border-b border-gray-200">
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-24">Code</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-20 hidden sm:table-cell">Unit</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32">Unit Price</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">On Hand</th>
+							<tr>
+								<th class="w-24">Code</th>
+								<th>Name</th>
+								<th class="w-20 hidden sm:table-cell">Unit</th>
+								<th class="w-32">Unit Price</th>
+								<th class="w-28 hidden md:table-cell">On Hand</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-100">
+						<tbody>
 							for _, p := range result.Products {
-								<tr class="hover:bg-gray-50 transition-colors">
-									<td class="px-4 py-3 font-mono text-slate-600 text-xs">{ p.Code }</td>
-									<td class="px-4 py-3">
-										<div class="font-medium text-slate-800">{ p.Name }</div>
+								<tr>
+									<td class="font-mono text-xs text-slate-500">{ p.Code }</td>
+									<td>
+										<div class="font-medium">{ p.Name }</div>
 										if p.Description != "" {
 											<div class="text-xs text-slate-500 mt-0.5">{ p.Description }</div>
 										}
 									</td>
-									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ p.Unit }</td>
-									<td class="px-4 py-3 text-right font-mono text-slate-800">{ p.UnitPrice.StringFixed(2) }</td>
-									<td class="px-4 py-3 text-right font-mono hidden md:table-cell text-slate-700">
+									<td class="text-slate-500 hidden sm:table-cell">{ p.Unit }</td>
+									<td class="num">{ p.UnitPrice.StringFixed(2) }</td>
+									<td class="num text-slate-700 hidden md:table-cell">
 										{ plProductOnHand(stock, p.Code).StringFixed(2) }
 									</td>
 								</tr>

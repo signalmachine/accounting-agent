@@ -66,10 +66,12 @@ func NewHandler(svc app.ApplicationService, allowedOrigins, jwtSecret string) ht
 		http.StripPrefix("/static", h.fileServer).ServeHTTP(w, req)
 	})
 
-	// ── Browser login/logout (public HTML) ───────────────────────────────────
+	// ── Browser login/logout/register (public HTML) ──────────────────────────
 	r.Get("/login", h.loginPage)
 	r.Post("/login", h.loginFormSubmit)
 	r.Post("/logout", h.logoutPage)
+	r.Get("/register", h.registerPage)
+	r.Post("/register", h.registerFormSubmit)
 
 	// ── Protected browser routes (redirect to /login if unauthenticated) ─────
 	r.Group(func(r chi.Router) {
@@ -99,8 +101,14 @@ func NewHandler(svc app.ApplicationService, allowedOrigins, jwtSecret string) ht
 		r.Get("/purchases/orders/new", h.poWizardPage)
 		r.Post("/purchases/orders/new", h.poCreateAction)
 		r.Get("/purchases/orders/{id}", h.poDetailPage)
-		r.Get("/settings/users", notImplementedPage)
 		r.Get("/settings/rules", notImplementedPage)
+		// Settings — user management (ADMIN only)
+		r.With(h.RequireRoleBrowser("ADMIN")).Get("/settings/users", h.usersPage)
+		r.With(h.RequireRoleBrowser("ADMIN")).Post("/settings/users", h.usersCreateAction)
+		r.With(h.RequireRoleBrowser("ADMIN")).Post("/settings/users/{id}/role", h.usersUpdateRoleAction)
+		r.With(h.RequireRoleBrowser("ADMIN")).Post("/settings/users/{id}/active", h.usersToggleActiveAction)
+		// About
+		r.Get("/about", h.aboutPage)
 	})
 
 	// ── Protected API routes (return 401 JSON if unauthenticated) ────────────
@@ -119,19 +127,19 @@ func NewHandler(svc app.ApplicationService, allowedOrigins, jwtSecret string) ht
 
 			// Chat — primary endpoints (WF5)
 			r.Post("/chat", h.chatMessage)
-			r.Post("/chat/confirm", h.chatConfirm)
+			r.With(h.RequireRole("FINANCE_MANAGER", "ADMIN")).Post("/chat/confirm", h.chatConfirm)
 			r.Post("/chat/clear", h.chatClear)
 
 			// Chat — legacy endpoints (kept for backward compat with old static frontend)
 			r.Post("/api/chat/message", h.chatMessage)
-			r.Post("/api/chat/confirm", h.chatConfirm)
+			r.With(h.RequireRole("FINANCE_MANAGER", "ADMIN")).Post("/api/chat/confirm", h.chatConfirm)
 
 			// ── Accounting (WF4) ──────────────────────────────────────────────────
 			r.Get("/api/companies/{code}/trial-balance", h.apiTrialBalance)
 			r.Get("/api/companies/{code}/accounts/{accountCode}/statement", h.apiAccountStatement)
 			r.Get("/api/companies/{code}/reports/pl", h.apiProfitAndLoss)
 			r.Get("/api/companies/{code}/reports/balance-sheet", h.apiBalanceSheet)
-			r.Post("/api/companies/{code}/reports/refresh", h.apiRefreshViews)
+			r.With(h.RequireRole("FINANCE_MANAGER", "ADMIN")).Post("/api/companies/{code}/reports/refresh", h.apiRefreshViews)
 			r.Post("/api/companies/{code}/journal-entries", h.apiPostJournalEntry)
 			r.Post("/api/companies/{code}/journal-entries/validate", h.apiValidateJournalEntry)
 
@@ -158,10 +166,14 @@ func NewHandler(svc app.ApplicationService, allowedOrigins, jwtSecret string) ht
 			r.Get("/api/companies/{code}/purchase-orders", h.apiListPurchaseOrders)
 			r.Post("/api/companies/{code}/purchase-orders", h.apiCreatePurchaseOrder)
 			r.Get("/api/companies/{code}/purchase-orders/{id}", h.apiGetPurchaseOrder)
-			r.Post("/api/companies/{code}/purchase-orders/{id}/approve", h.apiApprovePO)
+			r.With(h.RequireRole("FINANCE_MANAGER", "ADMIN")).Post("/api/companies/{code}/purchase-orders/{id}/approve", h.apiApprovePO)
 			r.Post("/api/companies/{code}/purchase-orders/{id}/receive", h.apiReceivePO)
 			r.Post("/api/companies/{code}/purchase-orders/{id}/invoice", h.apiInvoicePO)
 			r.Post("/api/companies/{code}/purchase-orders/{id}/pay", h.apiPayPO)
+
+			// ── Users (ADMIN only) ────────────────────────────────────────────────
+			r.With(h.RequireRole("ADMIN")).Get("/api/companies/{code}/users", h.apiListUsers)
+			r.With(h.RequireRole("ADMIN")).Post("/api/companies/{code}/users", h.apiCreateUser)
 
 			// ── AI (legacy admin endpoints — company-scoped) ──────────────────────
 			r.Post("/api/companies/{code}/ai/interpret", notImplemented)
@@ -204,8 +216,7 @@ func (h *Handler) requireCompanyAccess(w http.ResponseWriter, r *http.Request, r
 		writeError(w, r, "authentication required", "UNAUTHORIZED", http.StatusUnauthorized)
 		return false
 	}
-	user, err := h.svc.GetUser(r.Context(), claims.UserID)
-	if err != nil || user.CompanyCode != requestedCode {
+	if claims.CompanyCode != requestedCode {
 		writeError(w, r, "access denied: company mismatch", "FORBIDDEN", http.StatusForbidden)
 		return false
 	}

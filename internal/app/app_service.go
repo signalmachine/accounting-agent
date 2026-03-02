@@ -811,102 +811,6 @@ func (s *appService) buildToolRegistry(ctx context.Context, companyCode string) 
 		},
 	})
 
-	registry.Register(ai.ToolDefinition{
-		Name:        "get_account_statement",
-		Description: "Get a chronological account statement showing all movements and running balance for a given account. from_date and to_date are optional.",
-		IsReadTool:  true,
-		InputSchema: map[string]any{
-			"type":                 "object",
-			"additionalProperties": false,
-			"properties": map[string]any{
-				"account_code": map[string]any{
-					"type":        "string",
-					"description": "The account code to query (e.g. '1200').",
-				},
-				"from_date": map[string]any{
-					"type":        "string",
-					"description": "Start date in YYYY-MM-DD format (optional).",
-				},
-				"to_date": map[string]any{
-					"type":        "string",
-					"description": "End date in YYYY-MM-DD format (optional).",
-				},
-			},
-			"required": []string{"account_code"},
-		},
-		Handler: func(hctx context.Context, params map[string]any) (string, error) {
-			accountCode, _ := params["account_code"].(string)
-			fromDate, _ := params["from_date"].(string)
-			toDate, _ := params["to_date"].(string)
-			return s.getAccountStatementJSON(hctx, companyCode, accountCode, fromDate, toDate)
-		},
-	})
-
-	registry.Register(ai.ToolDefinition{
-		Name:        "get_pl_report",
-		Description: "Get the Profit & Loss report for a given year and month. Returns revenue accounts, expense accounts, and net income.",
-		IsReadTool:  true,
-		InputSchema: map[string]any{
-			"type":                 "object",
-			"additionalProperties": false,
-			"properties": map[string]any{
-				"year": map[string]any{
-					"type":        "integer",
-					"description": "The calendar year (e.g. 2026).",
-				},
-				"month": map[string]any{
-					"type":        "integer",
-					"description": "The calendar month as an integer 1–12.",
-				},
-			},
-			"required": []string{"year", "month"},
-		},
-		Handler: func(hctx context.Context, params map[string]any) (string, error) {
-			year := int(params["year"].(float64))
-			month := int(params["month"].(float64))
-			return s.getPLReportJSON(hctx, companyCode, year, month)
-		},
-	})
-
-	registry.Register(ai.ToolDefinition{
-		Name:        "get_balance_sheet",
-		Description: "Get the Balance Sheet as of a given date. Returns assets, liabilities, equity, totals, and whether the sheet is balanced. If as_of_date is omitted, today's date is used.",
-		IsReadTool:  true,
-		InputSchema: map[string]any{
-			"type":                 "object",
-			"additionalProperties": false,
-			"properties": map[string]any{
-				"as_of_date": map[string]any{
-					"type":        "string",
-					"description": "Date in YYYY-MM-DD format (optional; defaults to today).",
-				},
-			},
-			"required": []string{},
-		},
-		Handler: func(hctx context.Context, params map[string]any) (string, error) {
-			asOfDate, _ := params["as_of_date"].(string)
-			return s.getBalanceSheetJSON(hctx, companyCode, asOfDate)
-		},
-	})
-
-	registry.Register(ai.ToolDefinition{
-		Name:        "refresh_views",
-		Description: "Refresh the materialized reporting views (mv_account_period_balances and mv_trial_balance). Call before generating reports if data may be stale.",
-		IsReadTool:  true,
-		InputSchema: map[string]any{
-			"type":                 "object",
-			"additionalProperties": false,
-			"properties":           map[string]any{},
-			"required":             []string{},
-		},
-		Handler: func(hctx context.Context, params map[string]any) (string, error) {
-			if err := s.reportingService.RefreshViews(hctx); err != nil {
-				return "", err
-			}
-			return `{"status":"ok","message":"Materialized views refreshed successfully."}`, nil
-		},
-	})
-
 	// Phase 11 vendor tools
 	registry.Register(ai.ToolDefinition{
 		Name:        "get_vendors",
@@ -1852,109 +1756,6 @@ func (s *appService) getAccountBalanceJSON(ctx context.Context, companyCode, acc
 	return string(data), nil
 }
 
-// getAccountStatementJSON returns a statement for the account as JSON.
-func (s *appService) getAccountStatementJSON(ctx context.Context, companyCode, accountCode, fromDate, toDate string) (string, error) {
-	lines, err := s.reportingService.GetAccountStatement(ctx, companyCode, accountCode, fromDate, toDate)
-	if err != nil {
-		return "", err
-	}
-	if len(lines) == 0 {
-		return fmt.Sprintf(`{"account_code":%q,"lines":[],"closing_balance":"0.00","note":"No movements found."}`, accountCode), nil
-	}
-
-	type jsonLine struct {
-		Date      string `json:"date"`
-		Narration string `json:"narration"`
-		Reference string `json:"reference,omitempty"`
-		Debit     string `json:"debit"`
-		Credit    string `json:"credit"`
-		Balance   string `json:"balance"`
-	}
-	out := make([]jsonLine, len(lines))
-	for i, l := range lines {
-		out[i] = jsonLine{
-			Date:      l.PostingDate,
-			Narration: l.Narration,
-			Reference: l.Reference,
-			Debit:     l.Debit.StringFixed(2),
-			Credit:    l.Credit.StringFixed(2),
-			Balance:   l.RunningBalance.StringFixed(2),
-		}
-	}
-	closing := lines[len(lines)-1].RunningBalance
-	data, _ := json.Marshal(map[string]any{
-		"account_code":    accountCode,
-		"lines":           out,
-		"closing_balance": closing.StringFixed(2),
-	})
-	return string(data), nil
-}
-
-// getPLReportJSON returns the P&L report as JSON for AI tool consumption.
-func (s *appService) getPLReportJSON(ctx context.Context, companyCode string, year, month int) (string, error) {
-	report, err := s.reportingService.GetProfitAndLoss(ctx, companyCode, year, month)
-	if err != nil {
-		return "", err
-	}
-
-	type accountLine struct {
-		Code    string `json:"code"`
-		Name    string `json:"name"`
-		Balance string `json:"balance"`
-	}
-	toLines := func(lines []core.AccountLine) []accountLine {
-		out := make([]accountLine, len(lines))
-		for i, l := range lines {
-			out[i] = accountLine{Code: l.Code, Name: l.Name, Balance: l.Balance.StringFixed(2)}
-		}
-		return out
-	}
-
-	data, _ := json.Marshal(map[string]any{
-		"company_code": companyCode,
-		"year":         year,
-		"month":        month,
-		"revenue":      toLines(report.Revenue),
-		"expenses":     toLines(report.Expenses),
-		"net_income":   report.NetIncome.StringFixed(2),
-	})
-	return string(data), nil
-}
-
-// getBalanceSheetJSON returns the Balance Sheet as JSON for AI tool consumption.
-func (s *appService) getBalanceSheetJSON(ctx context.Context, companyCode, asOfDate string) (string, error) {
-	report, err := s.reportingService.GetBalanceSheet(ctx, companyCode, asOfDate)
-	if err != nil {
-		return "", err
-	}
-
-	type accountLine struct {
-		Code    string `json:"code"`
-		Name    string `json:"name"`
-		Balance string `json:"balance"`
-	}
-	toLines := func(lines []core.AccountLine) []accountLine {
-		out := make([]accountLine, len(lines))
-		for i, l := range lines {
-			out[i] = accountLine{Code: l.Code, Name: l.Name, Balance: l.Balance.StringFixed(2)}
-		}
-		return out
-	}
-
-	data, _ := json.Marshal(map[string]any{
-		"company_code":      companyCode,
-		"as_of_date":        report.AsOfDate,
-		"assets":            toLines(report.Assets),
-		"liabilities":       toLines(report.Liabilities),
-		"equity":            toLines(report.Equity),
-		"total_assets":      report.TotalAssets.StringFixed(2),
-		"total_liabilities": report.TotalLiabilities.StringFixed(2),
-		"total_equity":      report.TotalEquity.StringFixed(2),
-		"is_balanced":       report.IsBalanced,
-	})
-	return string(data), nil
-}
-
 // ── vendor tool helpers (Phase 11) ───────────────────────────────────────────
 
 // getVendorsJSON returns all active vendors for the company as JSON.
@@ -2230,4 +2031,229 @@ func (s *appService) GetUser(ctx context.Context, userID int) (*UserResult, erro
 		IsActive:    user.IsActive,
 		CompanyCode: companyCode,
 	}, nil
+}
+
+func (s *appService) ListUsers(ctx context.Context, companyCode string) (*UsersResult, error) {
+	var companyID int
+	if err := s.pool.QueryRow(ctx,
+		"SELECT id FROM companies WHERE company_code = $1", companyCode,
+	).Scan(&companyID); err != nil {
+		return nil, fmt.Errorf("company %s not found: %w", companyCode, err)
+	}
+	users, err := s.userService.ListUsers(ctx, companyID)
+	if err != nil {
+		return nil, err
+	}
+	result := &UsersResult{Users: make([]UserResult, 0, len(users))}
+	for _, u := range users {
+		result.Users = append(result.Users, UserResult{
+			UserID:      u.ID,
+			Username:    u.Username,
+			Email:       u.Email,
+			Role:        u.Role,
+			IsActive:    u.IsActive,
+			CompanyCode: companyCode,
+		})
+	}
+	return result, nil
+}
+
+func (s *appService) CreateUser(ctx context.Context, req CreateUserRequest) (*UserResult, error) {
+	var companyID int
+	if err := s.pool.QueryRow(ctx,
+		"SELECT id FROM companies WHERE company_code = $1", req.CompanyCode,
+	).Scan(&companyID); err != nil {
+		return nil, fmt.Errorf("company %s not found: %w", req.CompanyCode, err)
+	}
+	user, err := s.userService.CreateUser(ctx, companyID, core.CreateUserParams{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+		Role:     req.Role,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &UserResult{
+		UserID:      user.ID,
+		Username:    user.Username,
+		Email:       user.Email,
+		Role:        user.Role,
+		IsActive:    user.IsActive,
+		CompanyCode: req.CompanyCode,
+	}, nil
+}
+
+// RegisterCompany creates a new tenant company and its first ADMIN user in a single
+// atomic transaction. Returns a UserSession ready to be signed into a JWT.
+func (s *appService) RegisterCompany(ctx context.Context, req RegisterCompanyRequest) (*UserSession, error) {
+	// Validate password policy: 8+ chars, at least one uppercase, one digit.
+	if err := validateRegistrationPassword(req.Password); err != nil {
+		return nil, err
+	}
+
+	// Hash the password before opening the transaction.
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+
+	// Generate a unique 4-char company code derived from the company name.
+	code, err := s.generateUniqueCompanyCode(ctx, req.CompanyName)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	var companyID int
+	err = tx.QueryRow(ctx, `
+		INSERT INTO companies (company_code, name, base_currency)
+		VALUES ($1, $2, 'INR')
+		RETURNING id`,
+		code, req.CompanyName,
+	).Scan(&companyID)
+	if err != nil {
+		if strings.Contains(err.Error(), "companies_name_unique") || strings.Contains(err.Error(), "unique") {
+			return nil, fmt.Errorf("company name %q is already registered", req.CompanyName)
+		}
+		return nil, fmt.Errorf("create company: %w", err)
+	}
+
+	var userID int
+	err = tx.QueryRow(ctx, `
+		INSERT INTO users (company_id, username, email, password_hash, role)
+		VALUES ($1, $2, $3, $4, 'ADMIN')
+		RETURNING id`,
+		companyID, req.Username, req.Email, string(hash),
+	).Scan(&userID)
+	if err != nil {
+		if strings.Contains(err.Error(), "unique") {
+			return nil, fmt.Errorf("username %q is already taken", req.Username)
+		}
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit registration: %w", err)
+	}
+
+	return &UserSession{
+		UserID:      userID,
+		Username:    req.Username,
+		Role:        "ADMIN",
+		CompanyCode: code,
+		CompanyID:   companyID,
+	}, nil
+}
+
+// generateUniqueCompanyCode derives a 4-character company code from the given name
+// and ensures it does not collide with an existing company_code.
+func (s *appService) generateUniqueCompanyCode(ctx context.Context, name string) (string, error) {
+	// Build a 4-char base: first 4 uppercase alphanumeric characters.
+	var base []byte
+	for _, ch := range strings.ToUpper(name) {
+		if (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') {
+			base = append(base, byte(ch))
+			if len(base) == 4 {
+				break
+			}
+		}
+	}
+	for len(base) < 4 {
+		base = append(base, 'X')
+	}
+
+	for i := 0; i <= 20; i++ {
+		var code string
+		if i == 0 {
+			code = string(base)
+		} else {
+			suffix := strconv.Itoa(i + 1)
+			code = string(base[:4-len(suffix)]) + suffix
+		}
+		var exists bool
+		if err := s.pool.QueryRow(ctx,
+			"SELECT EXISTS(SELECT 1 FROM companies WHERE company_code = $1)", code,
+		).Scan(&exists); err != nil {
+			return "", fmt.Errorf("check company code: %w", err)
+		}
+		if !exists {
+			return code, nil
+		}
+	}
+	return "", fmt.Errorf("could not generate a unique company code for %q — please contact support", name)
+}
+
+// validateRegistrationPassword enforces the password policy for self-service registration.
+func validateRegistrationPassword(p string) error {
+	if len(p) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	}
+	hasUpper, hasDigit := false, false
+	for _, c := range p {
+		if c >= 'A' && c <= 'Z' {
+			hasUpper = true
+		}
+		if c >= '0' && c <= '9' {
+			hasDigit = true
+		}
+	}
+	if !hasUpper {
+		return fmt.Errorf("password must contain at least one uppercase letter")
+	}
+	if !hasDigit {
+		return fmt.Errorf("password must contain at least one number")
+	}
+	return nil
+}
+
+func (s *appService) UpdateUserRole(ctx context.Context, req UpdateUserRoleRequest) error {
+	var companyID int
+	if err := s.pool.QueryRow(ctx,
+		"SELECT id FROM companies WHERE company_code = $1", req.CompanyCode,
+	).Scan(&companyID); err != nil {
+		return fmt.Errorf("company %s not found: %w", req.CompanyCode, err)
+	}
+	return s.userService.UpdateUserRole(ctx, companyID, req.UserID, req.Role)
+}
+
+func (s *appService) SetUserActive(ctx context.Context, companyCode string, userID int, active bool) error {
+	var companyID int
+	if err := s.pool.QueryRow(ctx,
+		"SELECT id FROM companies WHERE company_code = $1", companyCode,
+	).Scan(&companyID); err != nil {
+		return fmt.Errorf("company %s not found: %w", companyCode, err)
+	}
+	return s.userService.SetUserActive(ctx, companyID, userID, active)
+}
+
+func (s *appService) GetAccountNamesByCode(ctx context.Context, companyCode string, codes []string) (map[string]string, error) {
+	var companyID int
+	if err := s.pool.QueryRow(ctx,
+		"SELECT id FROM companies WHERE company_code = $1", companyCode,
+	).Scan(&companyID); err != nil {
+		return nil, fmt.Errorf("company %s not found: %w", companyCode, err)
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT code, name FROM accounts WHERE company_id = $1 AND code = ANY($2)`,
+		companyID, codes,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := make(map[string]string, len(codes))
+	for rows.Next() {
+		var code, name string
+		if err := rows.Scan(&code, &name); err != nil {
+			return nil, err
+		}
+		result[code] = name
+	}
+	return result, rows.Err()
 }

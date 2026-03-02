@@ -1,0 +1,173 @@
+package pages
+
+import (
+	"fmt"
+	"strconv"
+	"accounting-agent/internal/app"
+	"accounting-agent/web/templates/layouts"
+)
+
+// UsersList renders the admin user management page.
+templ UsersList(d layouts.AppLayoutData, result *app.UsersResult, currentUserID int) {
+	@layouts.AppLayout(d) {
+		<div class="space-y-6">
+			<!-- Header -->
+			<div>
+				<h1 class="text-2xl font-bold text-slate-900">Users</h1>
+				<p class="text-sm text-slate-500 mt-0.5">Manage user accounts and roles for your company.</p>
+			</div>
+
+			<!-- User Table -->
+			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+				if result == nil || len(result.Users) == 0 {
+					<div class="empty-state">
+						<div class="empty-state-icon">👤</div>
+						<div class="empty-state-title">No users found</div>
+						<div class="empty-state-text">Use the form below to add a user.</div>
+					</div>
+				} else {
+					<table class="data-table">
+						<thead>
+							<tr>
+								<th>Username</th>
+								<th>Email</th>
+								<th>Role</th>
+								<th>Status</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, u := range result.Users {
+								<tr>
+									<td class="font-medium">{ u.Username }</td>
+									<td class="text-slate-500">{ u.Email }</td>
+									<td>
+										<span class={ roleBadgeClass(u.Role) }>
+											{ u.Role }
+										</span>
+									</td>
+									<td>
+										if u.IsActive {
+											<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
+										} else {
+											<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">Inactive</span>
+										}
+									</td>
+									<td>
+										if u.UserID != currentUserID {
+											<div class="flex items-center gap-2">
+												<!-- Role change form -->
+												<form action={ templ.SafeURL("/settings/users/" + strconv.Itoa(u.UserID) + "/role") } method="POST" class="flex items-center gap-1">
+													<select name="role" class="text-xs border border-gray-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-slate-400">
+														<option value="ACCOUNTANT" selected?={ u.Role == "ACCOUNTANT" }>ACCOUNTANT</option>
+														<option value="FINANCE_MANAGER" selected?={ u.Role == "FINANCE_MANAGER" }>FINANCE_MANAGER</option>
+														<option value="ADMIN" selected?={ u.Role == "ADMIN" }>ADMIN</option>
+													</select>
+													<button type="submit" class="text-xs px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors">Set</button>
+												</form>
+												<!-- Deactivate / Activate button -->
+												<form action={ templ.SafeURL("/settings/users/" + strconv.Itoa(u.UserID) + "/active") } method="POST">
+													if u.IsActive {
+														<input type="hidden" name="active" value="false"/>
+														<button type="submit" class="text-xs px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded transition-colors">Deactivate</button>
+													} else {
+														<input type="hidden" name="active" value="true"/>
+														<button type="submit" class="text-xs px-2 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded transition-colors">Activate</button>
+													}
+												</form>
+											</div>
+										} else {
+											<span class="text-xs text-slate-400 italic">You</span>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+
+			<!-- Add User Form -->
+			<div class="bg-white rounded-xl border border-gray-200">
+				<div class="px-6 py-4 border-b border-gray-100">
+					<h2 class="text-base font-semibold text-slate-800">Add New User</h2>
+					<p class="text-sm text-slate-500 mt-0.5">
+						{ fmt.Sprintf("New users are scoped to company %s.", d.CompanyCode) }
+					</p>
+				</div>
+				<form action="/settings/users" method="POST" class="px-6 py-5 space-y-4">
+					<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div>
+							<label class="block text-sm font-medium text-slate-700 mb-1" for="username">Username</label>
+							<input
+								id="username"
+								name="username"
+								type="text"
+								required
+								autocomplete="off"
+								placeholder="e.g. john.doe"
+								class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-slate-700 mb-1" for="email">Email</label>
+							<input
+								id="email"
+								name="email"
+								type="email"
+								required
+								placeholder="user@example.com"
+								class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-slate-700 mb-1" for="password">Password</label>
+							<input
+								id="password"
+								name="password"
+								type="password"
+								required
+								minlength="8"
+								placeholder="Min. 8 characters"
+								class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+							/>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-slate-700 mb-1" for="role">Role</label>
+							<select
+								id="role"
+								name="role"
+								required
+								class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+							>
+								<option value="ACCOUNTANT">ACCOUNTANT — read + create orders/POs/journal entries</option>
+								<option value="FINANCE_MANAGER">FINANCE_MANAGER — ACCOUNTANT + approve POs + confirm AI actions</option>
+								<option value="ADMIN">ADMIN — full access including user management</option>
+							</select>
+						</div>
+					</div>
+					<div>
+						<button
+							type="submit"
+							class="px-4 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+						>
+							Create User
+						</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
+}
+
+// roleBadgeClass returns a Tailwind badge class for the given role string.
+func roleBadgeClass(role string) string {
+	switch role {
+	case "ADMIN":
+		return "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800"
+	case "FINANCE_MANAGER":
+		return "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800"
+	default:
+		return "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700"
+	}
+}

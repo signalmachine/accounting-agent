@@ -27,36 +27,39 @@ templ StockLevels(d layouts.AppLayoutData, result *app.StockResult) {
 			<!-- Table -->
 			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
 				if len(result.Levels) == 0 {
-					<div class="p-8 text-center text-slate-500 text-sm">No inventory items found.</div>
+					<div class="empty-state">
+						<div class="empty-state-icon">📊</div>
+						<div class="empty-state-title">No inventory items found</div>
+					</div>
 				} else {
-					<table class="w-full text-sm">
+					<table class="data-table">
 						<thead>
-							<tr class="bg-slate-50 border-b border-gray-200">
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-24">Product</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Warehouse</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28">On Hand</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">Reserved</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">Available</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32 hidden lg:table-cell">Unit Cost</th>
+							<tr>
+								<th class="w-24">Product</th>
+								<th>Name</th>
+								<th class="hidden sm:table-cell">Warehouse</th>
+								<th class="w-28">On Hand</th>
+								<th class="w-28 hidden md:table-cell">Reserved</th>
+								<th class="w-28 hidden md:table-cell">Available</th>
+								<th class="w-32 hidden lg:table-cell">Unit Cost</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-100">
+						<tbody>
 							for _, s := range result.Levels {
-								<tr class="hover:bg-gray-50 transition-colors">
-									<td class="px-4 py-3 font-mono text-slate-600 text-xs">{ s.ProductCode }</td>
-									<td class="px-4 py-3 text-slate-800 font-medium">{ s.ProductName }</td>
-									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ s.WarehouseName }</td>
-									<td class="px-4 py-3 text-right font-mono text-slate-800">{ s.OnHand.StringFixed(2) }</td>
-									<td class="px-4 py-3 text-right font-mono text-slate-500 hidden md:table-cell">{ s.Reserved.StringFixed(2) }</td>
-									<td class="px-4 py-3 text-right font-mono hidden md:table-cell">
+								<tr>
+									<td class="font-mono text-xs text-slate-500">{ s.ProductCode }</td>
+									<td class="font-medium">{ s.ProductName }</td>
+									<td class="text-slate-500 hidden sm:table-cell">{ s.WarehouseName }</td>
+									<td class="num">{ s.OnHand.StringFixed(2) }</td>
+									<td class="num text-slate-500 hidden md:table-cell">{ s.Reserved.StringFixed(2) }</td>
+									<td class="num hidden md:table-cell">
 										if s.Available.GreaterThan(decimal.Zero) {
 											<span class="text-green-700">{ s.Available.StringFixed(2) }</span>
 										} else {
 											<span class="text-amber-600 font-semibold">{ s.Available.StringFixed(2) }</span>
 										}
 									</td>
-									<td class="px-4 py-3 text-right font-mono text-slate-600 hidden lg:table-cell">{ s.UnitCost.StringFixed(2) }</td>
+									<td class="num text-slate-600 hidden lg:table-cell">{ s.UnitCost.StringFixed(2) }</td>
 								</tr>
 							}
 						</tbody>

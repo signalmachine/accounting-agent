@@ -42,14 +42,14 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Accounting</title><link rel=\"stylesheet\" href=\"/static/css/app.css\"><script src=\"/static/js/htmx.min.js\"></script><script src=\"/static/js/htmx-ext-sse.js\"></script><script src=\"/static/js/alpine.min.js\" defer></script></head><body class=\"h-screen flex overflow-hidden bg-gray-100\" hx-boost=\"true\" data-active-nav=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " — Accounting by Signal Machine</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/static/favicon.svg\"><link rel=\"stylesheet\" href=\"/static/css/app.css\"><script src=\"/static/js/htmx.min.js\"></script><script src=\"/static/js/htmx-ext-sse.js\"></script><script src=\"/static/js/marked.min.js\"></script><script src=\"/static/js/alpine.min.js\" defer></script></head><body class=\"h-screen flex overflow-hidden bg-gray-100\" hx-boost=\"true\" data-active-nav=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(d.ActiveNav)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 18, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 20, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -62,44 +62,58 @@ func AppLayout(d AppLayoutData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(d.CompanyCode)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 19, Col: 36}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 21, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" x-data=\"appLayout()\"><!-- Sidebar --><aside class=\"w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col transition-all duration-200\" x-bind:class=\"sidebarOpen ? 'flex' : 'hidden lg:flex'\"><!-- Brand --><div class=\"h-16 flex items-center px-6 border-b border-slate-700 flex-shrink-0\"><a href=\"/dashboard\" class=\"flex items-center gap-2 text-white hover:text-slate-200\"><span class=\"text-xl\">⌂</span> <span class=\"font-semibold text-sm tracking-wide\">Accounting</span></a></div><!-- Nav --><nav class=\"flex-1 overflow-y-auto py-3 px-2 space-y-0.5\"><!-- AI Agent -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" x-data=\"appLayout()\"><!-- Sidebar --><aside class=\"w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col transition-all duration-200\" x-bind:class=\"sidebarOpen ? 'flex' : 'hidden lg:flex'\"><!-- Brand (with gradient + desktop company/FY) --><div class=\"sidebar-brand h-16 flex flex-col justify-center px-4 border-b border-slate-700 flex-shrink-0\"><a href=\"/dashboard\" class=\"flex items-center gap-2 text-white hover:text-slate-200\"><span class=\"text-lg\">⌂</span> <span class=\"font-semibold text-sm tracking-wide leading-tight\">Accounting<br><span class=\"font-normal text-xs text-slate-400\">by Signal Machine</span></span></a><!-- Company + FY — visible only on desktop where the top header is hidden --><div class=\"hidden lg:flex items-center gap-1.5 mt-0.5\"><span class=\"text-xs text-slate-400 font-medium truncate\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var5 = []any{navItemClass(d.ActiveNav, "ai-agent")}
-		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var5...)
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(d.CompanyName)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 37, Col: 79}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<a href=\"/\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</span> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var5).String())
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
+		if d.FYBadge != "" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<span class=\"text-xs text-slate-500 flex-shrink-0\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var6 string
+			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(d.FYBadge)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 39, Col: 69}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div></div><!-- Nav --><nav class=\"flex-1 overflow-y-auto py-3 px-2 space-y-0.5\"><!-- AI Agent -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><span class=\"text-base\">✨</span> <span>AI Agent</span></a><!-- Home -->")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var7 = []any{navItemClass(d.ActiveNav, "dashboard")}
+		var templ_7745c5c3_Var7 = []any{navItemClass(d.ActiveNav, "ai-agent")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var7...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<a href=\"/dashboard\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<a href=\"/\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -112,16 +126,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"><span class=\"text-base\">🏠</span> <span>Dashboard</span></a><!-- Sales section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('sales')\"><span>Sales</span> <span x-bind:class=\"sections.sales ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.sales\" x-collapse>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"><span class=\"text-base\">✨</span> <span>AI Agent</span></a><!-- Home -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var9 = []any{navItemClass(d.ActiveNav, "customers")}
+		var templ_7745c5c3_Var9 = []any{navItemClass(d.ActiveNav, "dashboard")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var9...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<a href=\"/sales/customers\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<a href=\"/dashboard\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -134,16 +148,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"><span>👥</span> <span>Customers</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><span class=\"text-base\">🏠</span> <span>Dashboard</span></a><!-- Sales section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-xs text-slate-500 uppercase tracking-widest font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('sales')\"><span>Sales</span> <span x-bind:class=\"sections.sales ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.sales\" x-collapse>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var11 = []any{navItemClass(d.ActiveNav, "orders")}
+		var templ_7745c5c3_Var11 = []any{navItemClass(d.ActiveNav, "customers")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var11...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<a href=\"/sales/orders\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<a href=\"/sales/customers\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -156,16 +170,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"><span>📋</span> <span>Orders</span></a></div></div><!-- Purchases section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('purchases')\"><span>Purchases</span> <span x-bind:class=\"sections.purchases ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.purchases\" x-collapse>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><span>👥</span> <span>Customers</span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var13 = []any{navItemClass(d.ActiveNav, "vendors")}
+		var templ_7745c5c3_Var13 = []any{navItemClass(d.ActiveNav, "orders")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var13...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<a href=\"/purchases/vendors\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<a href=\"/sales/orders\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -178,16 +192,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><span>🏢</span> <span>Vendors</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\"><span>📋</span> <span>Orders</span></a></div></div><!-- Purchases section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-xs text-slate-500 uppercase tracking-widest font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('purchases')\"><span>Purchases</span> <span x-bind:class=\"sections.purchases ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.purchases\" x-collapse>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var15 = []any{navItemClass(d.ActiveNav, "purchase-orders")}
+		var templ_7745c5c3_Var15 = []any{navItemClass(d.ActiveNav, "vendors")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var15...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<a href=\"/purchases/orders\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<a href=\"/purchases/vendors\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -200,16 +214,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\"><span>📦</span> <span>Purchase Orders</span></a></div></div><!-- Inventory section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('inventory')\"><span>Inventory</span> <span x-bind:class=\"sections.inventory ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.inventory\" x-collapse>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\"><span>🏢</span> <span>Vendors</span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var17 = []any{navItemClass(d.ActiveNav, "products")}
+		var templ_7745c5c3_Var17 = []any{navItemClass(d.ActiveNav, "purchase-orders")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var17...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<a href=\"/inventory/products\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<a href=\"/purchases/orders\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -222,16 +236,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\"><span>🏷️</span> <span>Products</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\"><span>📦</span> <span>Purchase Orders</span></a></div></div><!-- Inventory section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-xs text-slate-500 uppercase tracking-widest font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('inventory')\"><span>Inventory</span> <span x-bind:class=\"sections.inventory ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.inventory\" x-collapse>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var19 = []any{navItemClass(d.ActiveNav, "stock")}
+		var templ_7745c5c3_Var19 = []any{navItemClass(d.ActiveNav, "products")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<a href=\"/inventory/stock\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<a href=\"/inventory/products\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -244,16 +258,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\"><span>📊</span> <span>Stock Levels</span></a></div></div><!-- Reports section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('reports')\"><span>Reports</span> <span x-bind:class=\"sections.reports ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.reports\" x-collapse>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\"><span>🏷️</span> <span>Products</span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var21 = []any{navItemClass(d.ActiveNav, "trial-balance")}
+		var templ_7745c5c3_Var21 = []any{navItemClass(d.ActiveNav, "stock")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var21...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<a href=\"/reports/trial-balance\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<a href=\"/inventory/stock\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -266,16 +280,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "\"><span>⚖️</span> <span>Trial Balance</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\"><span>📊</span> <span>Stock Levels</span></a></div></div><!-- Reports section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-xs text-slate-500 uppercase tracking-widest font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('reports')\"><span>Reports</span> <span x-bind:class=\"sections.reports ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.reports\" x-collapse>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var23 = []any{navItemClass(d.ActiveNav, "pl")}
+		var templ_7745c5c3_Var23 = []any{navItemClass(d.ActiveNav, "trial-balance")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var23...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<a href=\"/reports/pl\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<a href=\"/reports/trial-balance\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -288,16 +302,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "\"><span>📈</span> <span>P&amp;L Report</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"><span>⚖️</span> <span>Trial Balance</span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var25 = []any{navItemClass(d.ActiveNav, "balance-sheet")}
+		var templ_7745c5c3_Var25 = []any{navItemClass(d.ActiveNav, "pl")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var25...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<a href=\"/reports/balance-sheet\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<a href=\"/reports/pl\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -310,16 +324,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\"><span>📑</span> <span>Balance Sheet</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\"><span>📈</span> <span>P&amp;L Report</span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var27 = []any{navItemClass(d.ActiveNav, "statement")}
+		var templ_7745c5c3_Var27 = []any{navItemClass(d.ActiveNav, "balance-sheet")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var27...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<a href=\"/reports/statement\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<a href=\"/reports/balance-sheet\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -332,16 +346,16 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\"><span>🗂️</span> <span>Acct Statement</span></a></div></div><!-- Settings section --><div><button class=\"w-full flex items-center justify-between px-3 py-2 text-sm text-slate-400 uppercase tracking-wider font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('settings')\"><span>Settings</span> <span x-bind:class=\"sections.settings ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.settings\" x-collapse>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\"><span>📑</span> <span>Balance Sheet</span></a> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var29 = []any{navItemClass(d.ActiveNav, "users")}
+		var templ_7745c5c3_Var29 = []any{navItemClass(d.ActiveNav, "statement")}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var29...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<a href=\"/settings/users\" class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<a href=\"/reports/statement\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -354,206 +368,224 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\"><span>👤</span> <span>Users</span></a> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\"><span>🗂️</span> <span>Acct Statement</span></a></div></div><!-- Settings section (ADMIN only) -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var31 = []any{navItemClass(d.ActiveNav, "rules")}
-		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var31...)
+		if d.Role == "ADMIN" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<div><button class=\"w-full flex items-center justify-between px-3 py-2 text-xs text-slate-500 uppercase tracking-widest font-semibold hover:text-slate-200 transition-colors mt-2\" x-on:click=\"toggleSection('settings')\"><span>Settings</span> <span x-bind:class=\"sections.settings ? 'rotate-180' : ''\" class=\"transition-transform text-xs\">▼</span></button><div x-show=\"sections.settings\" x-collapse>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var31 = []any{navItemClass(d.ActiveNav, "users")}
+			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var31...)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "<a href=\"/settings/users\" class=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var32 string
+			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var31).String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "\"><span>👤</span> <span>Users</span></a> ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var33 = []any{navItemClass(d.ActiveNav, "rules")}
+			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var33...)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "<a href=\"/settings/rules\" class=\"")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var34 string
+			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var33).String())
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "\"><span>⚙️</span> <span>Account Rules</span></a></div></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<!-- About — visible to all roles -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<a href=\"/settings/rules\" class=\"")
+		var templ_7745c5c3_Var35 = []any{navItemClass(d.ActiveNav, "about")}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var35...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var32 string
-		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var31).String())
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\"><span>⚙️</span> <span>Account Rules</span></a></div></div></nav><!-- Sidebar footer: logged in user --><div class=\"border-t border-slate-700 px-4 py-3 flex-shrink-0\"><div class=\"flex items-center gap-2\"><div class=\"w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var33 string
-		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(userInitial(d.Username))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 165, Col: 32}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</div><div class=\"min-w-0\"><div class=\"text-sm font-medium text-white truncate\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var34 string
-		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(d.Username)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 168, Col: 72}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div><div class=\"text-xs text-slate-400 truncate\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var35 string
-		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(d.Role)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 169, Col: 60}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div></div></div></div></aside><!-- Main content area --><div class=\"flex-1 flex flex-col overflow-hidden min-w-0\"><!-- Top header --><header class=\"h-16 bg-white border-b border-gray-200 flex items-center px-4 gap-3 flex-shrink-0\"><!-- Hamburger (mobile + collapse toggle) --><button class=\"text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors\" x-on:click=\"sidebarOpen = !sidebarOpen\" aria-label=\"Toggle sidebar\"><svg class=\"w-5 h-5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button><!-- Company + FY badge --><div class=\"flex items-center gap-2 min-w-0\"><span class=\"font-semibold text-slate-800 truncate text-sm\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<a href=\"/about\" class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var36 string
-		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(d.CompanyName)
+		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var35).String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 190, Col: 81}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</span> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "\"><span class=\"text-base\">ℹ️</span> <span>About</span></a></nav><!-- Sidebar footer: logged in user --><div class=\"border-t border-slate-700 px-4 py-3 flex-shrink-0\"><div class=\"flex items-center gap-2\"><div class=\"w-7 h-7 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if d.FYBadge != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<span class=\"px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full flex-shrink-0\">")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			var templ_7745c5c3_Var37 string
-			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(d.FYBadge)
-			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 192, Col: 119}
-			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</span>")
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		var templ_7745c5c3_Var37 string
+		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(userInitial(d.Username))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 184, Col: 32}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "</div><!-- Spacer --><div class=\"flex-1\"></div><!-- Ask AI button --><button class=\"flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors\" x-on:click=\"chatOpen = true\"><span>✨</span> <span>Ask AI</span></button><!-- User menu --><div class=\"relative\" x-data=\"{ open: false }\"><button class=\"w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-700 hover:bg-slate-300 transition-colors\" x-on:click=\"open = !open\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</div><div class=\"min-w-0\"><div class=\"text-sm font-medium text-white truncate\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var38 string
-		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(userInitial(d.Username))
+		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(d.Username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 211, Col: 32}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 187, Col: 72}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</button><div x-show=\"open\" x-on:click.outside=\"open = false\" x-transition class=\"absolute right-0 top-10 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50\"><div class=\"px-4 py-2 border-b border-gray-100\"><div class=\"text-sm font-medium text-gray-900\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div><div class=\"text-xs text-slate-400 truncate\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var39 string
-		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(d.Username)
+		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(d.Role)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 220, Col: 67}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 188, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</div><div class=\"text-xs text-gray-500\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div></div></div></div></aside><!-- Main content area --><div class=\"flex-1 flex flex-col overflow-hidden min-w-0\"><!-- Top header — always visible (New Chat accessible at every zoom level) --><header class=\"h-10 bg-white border-b border-gray-200 flex items-center px-3 flex-shrink-0\"><!-- Hamburger --><button class=\"text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100 transition-colors\" x-on:click=\"sidebarOpen = !sidebarOpen\" aria-label=\"Toggle sidebar\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></button><!-- New Chat centred --><div class=\"flex-1 flex justify-center\"><a href=\"/?new=1\" class=\"flex items-center gap-1.5 px-3 py-1 rounded-lg text-slate-600 hover:text-indigo-700 hover:bg-indigo-50 transition-colors\"><svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z\"></path></svg> <span class=\"text-xs font-semibold\">New Chat</span></a></div><!-- User menu --><div class=\"relative\" x-data=\"{ open: false }\"><button class=\"w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-700 hover:bg-slate-300 transition-colors\" x-on:click=\"open = !open\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var40 string
-		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(d.Role)
+		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(userInitial(d.Username))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 221, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 225, Col: 32}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div></div><form method=\"POST\" action=\"/logout\"><button type=\"submit\" class=\"w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors\">Sign out</button></form></div></div></header><!-- Flash message -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "</button><div x-show=\"open\" x-on:click.outside=\"open = false\" x-transition class=\"absolute right-0 top-9 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50\"><div class=\"px-4 py-2 border-b border-gray-100\"><div class=\"text-sm font-medium text-gray-900\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var41 string
+		templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(d.Username)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 234, Col: 67}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</div><div class=\"text-xs text-gray-500\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var42 string
+		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(d.Role)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 235, Col: 51}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</div></div><form method=\"POST\" action=\"/logout\"><button type=\"submit\" class=\"w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors\">Sign out</button></form></div></div></header><!-- Flash message -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if d.FlashMsg != "" {
-			var templ_7745c5c3_Var41 = []any{flashClass(d.FlashKind)}
-			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var41...)
+			var templ_7745c5c3_Var43 = []any{flashClass(d.FlashKind)}
+			templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var43...)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<div x-data=\"{ show: true }\" x-show=\"show\" x-init=\"setTimeout(() => show = false, 5000)\" x-transition class=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<div x-data=\"{ show: true }\" x-show=\"show\" x-init=\"setTimeout(() => show = false, 5000)\" x-transition class=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var42 string
-			templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var41).String())
+			var templ_7745c5c3_Var44 string
+			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var43).String())
 			if templ_7745c5c3_Err != nil {
 				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "\"><span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\"><span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			var templ_7745c5c3_Var43 string
-			templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(d.FlashMsg)
+			var templ_7745c5c3_Var45 string
+			templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(d.FlashMsg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 240, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 254, Col: 24}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</span> <button x-on:click=\"show = false\" class=\"ml-auto text-current opacity-60 hover:opacity-100\">✕</button></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</span> <button x-on:click=\"show = false\" class=\"ml-auto text-current opacity-60 hover:opacity-100\">✕</button></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "<!-- Page content -->")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "<!-- Page content -->")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var44 = []any{mainContentClass(d)}
-		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var44...)
+		var templ_7745c5c3_Var46 = []any{mainContentClass(d)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var46...)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "<main class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "<main class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var45 string
-		templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var44).String())
+		var templ_7745c5c3_Var47 string
+		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var46).String())
 		if templ_7745c5c3_Err != nil {
 			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/layouts/app_layout.templ`, Line: 1, Col: 0}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -561,7 +593,7 @@ func AppLayout(d AppLayoutData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</main></div><!-- Chat slide-over --><div x-show=\"chatOpen\" x-transition:enter=\"transition ease-out duration-200\" x-transition:enter-start=\"translate-x-full\" x-transition:enter-end=\"translate-x-0\" x-transition:leave=\"transition ease-in duration-150\" x-transition:leave-start=\"translate-x-0\" x-transition:leave-end=\"translate-x-full\" class=\"fixed inset-y-0 right-0 w-96 bg-white shadow-2xl border-l border-gray-200 flex flex-col z-40\"><!-- Chat header --><div class=\"h-14 flex items-center px-4 border-b border-gray-200 flex-shrink-0\"><span class=\"font-semibold text-slate-800 text-sm\">✨ AI Assistant</span> <button class=\"ml-auto text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100\" x-on:click=\"chatOpen = false\">✕</button></div><!-- Chat body --><div class=\"flex-1 overflow-y-auto p-4 space-y-3\" id=\"slide-chat-area\"><div class=\"bg-slate-50 rounded-xl p-3 text-sm text-slate-600\">Hello! Ask me anything about your accounts, orders, or describe a transaction.</div></div><!-- Chat input --><div class=\"border-t border-gray-200 p-3 flex-shrink-0\"><form id=\"slide-chat-form\" class=\"flex gap-2\"><textarea id=\"slide-chat-input\" rows=\"1\" placeholder=\"Ask anything…\" class=\"flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-slate-400\"></textarea> <button type=\"submit\" class=\"px-3 py-2 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors\">↑</button></form></div></div><!-- Chat backdrop (mobile) --><div x-show=\"chatOpen\" x-on:click=\"chatOpen = false\" class=\"fixed inset-0 bg-black bg-opacity-20 z-30 lg:hidden\"></div><script>\r\n\t\t\t\tfunction appLayout() {\r\n\t\t\t\t\tconst sectionMap = {\r\n\t\t\t\t\t\t'customers': 'sales', 'orders': 'sales',\r\n\t\t\t\t\t\t'vendors': 'purchases', 'purchase-orders': 'purchases',\r\n\t\t\t\t\t\t'products': 'inventory', 'stock': 'inventory',\r\n\t\t\t\t\t\t'trial-balance': 'reports', 'pl': 'reports',\r\n\t\t\t\t\t\t'balance-sheet': 'reports', 'statement': 'reports',\r\n\t\t\t\t\t\t'users': 'settings', 'rules': 'settings',\r\n\t\t\t\t\t};\r\n\t\t\t\t\tconst activeNav = document.body.dataset.activeNav || '';\r\n\t\t\t\t\tconst activeSection = sectionMap[activeNav] || '';\r\n\t\t\t\t\treturn {\r\n\t\t\t\t\t\tsidebarOpen: window.innerWidth >= 1024,\r\n\t\t\t\t\t\tchatOpen: false,\r\n\t\t\t\t\t\tsections: {\r\n\t\t\t\t\t\t\tsales: activeSection === 'sales',\r\n\t\t\t\t\t\t\tpurchases: activeSection === 'purchases',\r\n\t\t\t\t\t\t\tinventory: activeSection === 'inventory',\r\n\t\t\t\t\t\t\treports: activeSection === 'reports',\r\n\t\t\t\t\t\t\tsettings: activeSection === 'settings',\r\n\t\t\t\t\t\t},\r\n\t\t\t\t\t\ttoggleSection(name) {\r\n\t\t\t\t\t\t\tthis.sections[name] = !this.sections[name];\r\n\t\t\t\t\t\t},\r\n\t\t\t\t\t};\r\n\t\t\t\t}\r\n\r\n\t\t\t\t// Slide-over chat — shares conversation history with the chat home page via sessionStorage\r\n\t\t\t\t(function() {\r\n\t\t\t\t\tconst form = document.getElementById('slide-chat-form');\r\n\t\t\t\t\tconst input = document.getElementById('slide-chat-input');\r\n\t\t\t\t\tconst area = document.getElementById('slide-chat-area');\r\n\t\t\t\t\tif (!form) return;\r\n\r\n\t\t\t\t\tconst STORAGE_KEY = 'chat_history';\r\n\t\t\t\t\tconst companyCode = document.body.dataset.companyCode || '';\r\n\r\n\t\t\t\t\tfunction escHTML(s) {\r\n\t\t\t\t\t\treturn String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction toolLabel(tool) {\r\n\t\t\t\t\t\tconst labels = {\r\n\t\t\t\t\t\t\t'approve_po':'Approve PO','create_vendor':'Create Vendor',\r\n\t\t\t\t\t\t\t'create_purchase_order':'Create PO','receive_po':'Receive Goods',\r\n\t\t\t\t\t\t\t'record_vendor_invoice':'Record Invoice','pay_vendor':'Pay Vendor',\r\n\t\t\t\t\t\t};\r\n\t\t\t\t\t\treturn labels[tool] || tool;\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction makeBubble(msg) {\r\n\t\t\t\t\t\tconst div = document.createElement('div');\r\n\t\t\t\t\t\tif (msg.role === 'user') {\r\n\t\t\t\t\t\t\tdiv.className = 'bg-slate-900 text-white rounded-xl px-3 py-2 text-sm ml-6';\r\n\t\t\t\t\t\t\tdiv.textContent = msg.text || '';\r\n\t\t\t\t\t\t} else if (msg.type === 'action_card') {\r\n\t\t\t\t\t\t\tdiv.className = 'border border-amber-200 bg-amber-50 rounded-xl p-3 text-xs mr-6';\r\n\t\t\t\t\t\t\tdiv.innerHTML = '<div class=\"font-semibold text-amber-800 mb-1\">🔧 ' + escHTML(toolLabel(msg.tool)) + '</div>'\r\n\t\t\t\t\t\t\t\t+ '<pre class=\"text-amber-700 overflow-auto max-h-20 mb-2\">' + escHTML(JSON.stringify(msg.args, null, 2)) + '</pre>'\r\n\t\t\t\t\t\t\t\t+ ((!msg.status || msg.status === 'pending')\r\n\t\t\t\t\t\t\t\t\t? '<div class=\"flex gap-1 slide-btn-row\">'\r\n\t\t\t\t\t\t\t\t\t\t+ '<button data-token=\"' + escHTML(msg.token||'') + '\" data-action=\"confirm\" class=\"slide-confirm-btn px-2 py-1 bg-amber-600 text-white rounded text-xs\">✓ Confirm</button>'\r\n\t\t\t\t\t\t\t\t\t\t+ '<button data-token=\"' + escHTML(msg.token||'') + '\" data-action=\"cancel\" class=\"slide-confirm-btn px-2 py-1 border border-amber-300 text-amber-700 rounded text-xs\">✕</button>'\r\n\t\t\t\t\t\t\t\t\t\t+ '</div>'\r\n\t\t\t\t\t\t\t\t\t: '<div class=\"text-slate-500\">' + escHTML(msg.status === 'confirmed' ? ('✓ ' + (msg.resultText||'Done.')) : 'Cancelled.') + '</div>');\r\n\t\t\t\t\t\t\tdiv.dataset.msgToken = msg.token || '';\r\n\t\t\t\t\t\t} else if (msg.type === 'proposal') {\r\n\t\t\t\t\t\t\tconst p = msg.proposal || {};\r\n\t\t\t\t\t\t\tdiv.className = 'border border-blue-200 bg-blue-50 rounded-xl p-3 text-xs mr-6';\r\n\t\t\t\t\t\t\tdiv.innerHTML = '<div class=\"font-semibold text-blue-800 mb-1\">🧾 Journal Entry</div>'\r\n\t\t\t\t\t\t\t\t+ '<div class=\"text-blue-700 mb-1\">' + escHTML(p.summary||'') + '</div>'\r\n\t\t\t\t\t\t\t\t+ '<div class=\"text-blue-500 mb-2\">Date: ' + escHTML(p.posting_date||'') + '</div>'\r\n\t\t\t\t\t\t\t\t+ ((!msg.status || msg.status === 'pending')\r\n\t\t\t\t\t\t\t\t\t? '<div class=\"flex gap-1 slide-btn-row\">'\r\n\t\t\t\t\t\t\t\t\t\t+ '<button data-token=\"' + escHTML(msg.token||'') + '\" data-action=\"confirm\" class=\"slide-confirm-btn px-2 py-1 bg-blue-600 text-white rounded text-xs\">✓ Post</button>'\r\n\t\t\t\t\t\t\t\t\t\t+ '<button data-token=\"' + escHTML(msg.token||'') + '\" data-action=\"cancel\" class=\"slide-confirm-btn px-2 py-1 border border-blue-300 text-blue-700 rounded text-xs\">✕</button>'\r\n\t\t\t\t\t\t\t\t\t\t+ '</div>'\r\n\t\t\t\t\t\t\t\t\t: '<div class=\"text-slate-500\">' + escHTML(msg.status === 'confirmed' ? '✓ Posted.' : 'Cancelled.') + '</div>');\r\n\t\t\t\t\t\t\tdiv.dataset.msgToken = msg.token || '';\r\n\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\tdiv.className = 'bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-700 mr-6 whitespace-pre-wrap';\r\n\t\t\t\t\t\t\tdiv.textContent = msg.text || '';\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\treturn div;\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction getHistory() {\r\n\t\t\t\t\t\ttry { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { return []; }\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction saveHistory(msgs) {\r\n\t\t\t\t\t\ttry { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(msgs)); } catch(e) {}\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\tfunction attachConfirmListeners() {\r\n\t\t\t\t\t\tarea.querySelectorAll('.slide-confirm-btn:not([data-bound])').forEach(btn => {\r\n\t\t\t\t\t\t\tbtn.dataset.bound = '1';\r\n\t\t\t\t\t\t\tbtn.addEventListener('click', async function() {\r\n\t\t\t\t\t\t\t\tconst token = btn.dataset.token;\r\n\t\t\t\t\t\t\t\tconst action = btn.dataset.action;\r\n\t\t\t\t\t\t\t\tbtn.disabled = true;\r\n\t\t\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\t\t\tconst resp = await fetch('/chat/confirm', {\r\n\t\t\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json'},\r\n\t\t\t\t\t\t\t\t\t\tbody: JSON.stringify({token, action}),\r\n\t\t\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\t\t\tconst data = await resp.json();\r\n\t\t\t\t\t\t\t\t\tconst card = area.querySelector('[data-msg-token=\"' + token + '\"]');\r\n\t\t\t\t\t\t\t\t\tconst btnRow = card && card.querySelector('.slide-btn-row');\r\n\t\t\t\t\t\t\t\t\tif (action === 'cancel') {\r\n\t\t\t\t\t\t\t\t\t\tif (btnRow) btnRow.outerHTML = '<div class=\"text-slate-500\">Cancelled.</div>';\r\n\t\t\t\t\t\t\t\t\t} else if (resp.ok && data.ok) {\r\n\t\t\t\t\t\t\t\t\t\tconst txt = (data.result && data.result.message) || 'Done.';\r\n\t\t\t\t\t\t\t\t\t\tif (btnRow) btnRow.outerHTML = '<div class=\"text-green-700 font-medium\">✓ ' + escHTML(txt) + '</div>';\r\n\t\t\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\t\t\tif (btnRow) btnRow.outerHTML = '<div class=\"text-red-600\">⚠ ' + escHTML(data.error||'Failed.') + '</div>';\r\n\t\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t\tconst msgs = getHistory();\r\n\t\t\t\t\t\t\t\t\tconst m = msgs.find(m => m.token === token);\r\n\t\t\t\t\t\t\t\t\tif (m) {\r\n\t\t\t\t\t\t\t\t\t\tm.status = action === 'cancel' ? 'cancelled' : (resp.ok && data.ok ? 'confirmed' : 'error');\r\n\t\t\t\t\t\t\t\t\t\tif (data.result) m.resultText = data.result.message || 'Done.';\r\n\t\t\t\t\t\t\t\t\t\tsaveHistory(msgs);\r\n\t\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t} catch(e) { btn.disabled = false; }\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\t// Restore history on slide-over open.\r\n\t\t\t\t\tfunction loadHistory() {\r\n\t\t\t\t\t\tconst msgs = getHistory();\r\n\t\t\t\t\t\tif (msgs.length > 0) {\r\n\t\t\t\t\t\t\t// Clear default greeting\r\n\t\t\t\t\t\t\tconst greeting = area.firstElementChild;\r\n\t\t\t\t\t\t\tif (greeting) greeting.remove();\r\n\t\t\t\t\t\t\tfor (const msg of msgs) area.appendChild(makeBubble(msg));\r\n\t\t\t\t\t\t\tarea.scrollTop = area.scrollHeight;\r\n\t\t\t\t\t\t\tattachConfirmListeners();\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t}\r\n\r\n\t\t\t\t\t// Load history when slide-over opens (watch for chatOpen toggle).\r\n\t\t\t\t\tlet historyLoaded = false;\r\n\t\t\t\t\tdocument.addEventListener('alpine:initialized', () => {\r\n\t\t\t\t\t\tdocument.body.__x && document.body.__x.$watch && document.body.__x.$watch('chatOpen', (open) => {\r\n\t\t\t\t\t\t\tif (open && !historyLoaded) { loadHistory(); historyLoaded = true; }\r\n\t\t\t\t\t\t});\r\n\t\t\t\t\t});\r\n\r\n\t\t\t\t\tform.addEventListener('submit', async function(e) {\r\n\t\t\t\t\t\te.preventDefault();\r\n\t\t\t\t\t\tconst text = input.value.trim();\r\n\t\t\t\t\t\tif (!text) return;\r\n\r\n\t\t\t\t\t\tconst userMsg = { role: 'user', type: 'text', text };\r\n\t\t\t\t\t\tconst msgs = getHistory();\r\n\t\t\t\t\t\tmsgs.push(userMsg);\r\n\t\t\t\t\t\tsaveHistory(msgs);\r\n\t\t\t\t\t\tif (msgs.length === 1) {\r\n\t\t\t\t\t\t\t// Remove default greeting\r\n\t\t\t\t\t\t\tconst greeting = area.firstElementChild;\r\n\t\t\t\t\t\t\tif (greeting) greeting.remove();\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tarea.appendChild(makeBubble(userMsg));\r\n\t\t\t\t\t\tinput.value = '';\r\n\r\n\t\t\t\t\t\tconst thinking = document.createElement('div');\r\n\t\t\t\t\t\tthinking.className = 'bg-slate-50 rounded-xl px-3 py-2 text-sm text-slate-400 mr-6';\r\n\t\t\t\t\t\tthinking.textContent = 'Thinking…';\r\n\t\t\t\t\t\tarea.appendChild(thinking);\r\n\t\t\t\t\t\tarea.scrollTop = area.scrollHeight;\r\n\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch('/chat', {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: {'Content-Type': 'application/json'},\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({text, company_code: companyCode, attachment_ids: []}),\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tconst reader = resp.body.getReader();\r\n\t\t\t\t\t\t\tconst decoder = new TextDecoder();\r\n\t\t\t\t\t\t\tlet buf = '', replaced = false;\r\n\t\t\t\t\t\t\tlet aiMsg = null;\r\n\r\n\t\t\t\t\t\t\twhile (true) {\r\n\t\t\t\t\t\t\t\tconst {done, value} = await reader.read();\r\n\t\t\t\t\t\t\t\tif (done) break;\r\n\t\t\t\t\t\t\t\tbuf += decoder.decode(value, {stream: true});\r\n\t\t\t\t\t\t\t\tconst parts = buf.split('\\n\\n');\r\n\t\t\t\t\t\t\t\tbuf = parts.pop() || '';\r\n\t\t\t\t\t\t\t\tfor (const part of parts) {\r\n\t\t\t\t\t\t\t\t\tlet event = 'message', data = '';\r\n\t\t\t\t\t\t\t\t\tfor (const line of part.split('\\n')) {\r\n\t\t\t\t\t\t\t\t\t\tif (line.startsWith('event: ')) event = line.slice(7).trim();\r\n\t\t\t\t\t\t\t\t\t\telse if (line.startsWith('data: ')) data = line.slice(6);\r\n\t\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t\tif (!data) continue;\r\n\t\t\t\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\t\t\t\tconst d = JSON.parse(data);\r\n\t\t\t\t\t\t\t\t\t\tif (!replaced && event !== 'status') { thinking.remove(); replaced = true; }\r\n\t\t\t\t\t\t\t\t\t\tconst currentMsgs = getHistory();\r\n\t\t\t\t\t\t\t\t\t\tif (event === 'answer') {\r\n\t\t\t\t\t\t\t\t\t\t\tif (!aiMsg) {\r\n\t\t\t\t\t\t\t\t\t\t\t\taiMsg = { role: 'ai', type: 'text', text: d.text || '' };\r\n\t\t\t\t\t\t\t\t\t\t\t\tcurrentMsgs.push(aiMsg); saveHistory(currentMsgs);\r\n\t\t\t\t\t\t\t\t\t\t\t\tconst el = makeBubble(aiMsg); el.dataset.aiLive = '1'; area.appendChild(el);\r\n\t\t\t\t\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\t\t\t\t\taiMsg.text += (d.text || '');\r\n\t\t\t\t\t\t\t\t\t\t\t\tconst live = area.querySelector('[data-ai-live]');\r\n\t\t\t\t\t\t\t\t\t\t\t\tif (live) live.textContent = aiMsg.text;\r\n\t\t\t\t\t\t\t\t\t\t\t\tconst m2 = getHistory();\r\n\t\t\t\t\t\t\t\t\t\t\t\tconst last = m2[m2.length-1];\r\n\t\t\t\t\t\t\t\t\t\t\t\tif (last && last.type === 'text' && last.role === 'ai') { last.text = aiMsg.text; saveHistory(m2); }\r\n\t\t\t\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t\t\t} else if (event === 'clarification') {\r\n\t\t\t\t\t\t\t\t\t\t\tconst msg = { role: 'ai', type: 'text', text: '❓ ' + (d.question||'') };\r\n\t\t\t\t\t\t\t\t\t\t\tcurrentMsgs.push(msg); saveHistory(currentMsgs); area.appendChild(makeBubble(msg));\r\n\t\t\t\t\t\t\t\t\t\t} else if (event === 'action_card') {\r\n\t\t\t\t\t\t\t\t\t\t\tconst msg = { role: 'ai', type: 'action_card', token: d.token, tool: d.tool, args: d.args, status: 'pending' };\r\n\t\t\t\t\t\t\t\t\t\t\tcurrentMsgs.push(msg); saveHistory(currentMsgs);\r\n\t\t\t\t\t\t\t\t\t\t\tarea.appendChild(makeBubble(msg)); attachConfirmListeners();\r\n\t\t\t\t\t\t\t\t\t\t} else if (event === 'proposal') {\r\n\t\t\t\t\t\t\t\t\t\t\tconst msg = { role: 'ai', type: 'proposal', token: d.token, proposal: d.proposal, status: 'pending' };\r\n\t\t\t\t\t\t\t\t\t\t\tcurrentMsgs.push(msg); saveHistory(currentMsgs);\r\n\t\t\t\t\t\t\t\t\t\t\tarea.appendChild(makeBubble(msg)); attachConfirmListeners();\r\n\t\t\t\t\t\t\t\t\t\t} else if (event === 'error') {\r\n\t\t\t\t\t\t\t\t\t\t\tconst msg = { role: 'ai', type: 'text', text: '⚠ ' + (d.message||'Error') };\r\n\t\t\t\t\t\t\t\t\t\t\tcurrentMsgs.push(msg); saveHistory(currentMsgs); area.appendChild(makeBubble(msg));\r\n\t\t\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t\t\t\tarea.scrollTop = area.scrollHeight;\r\n\t\t\t\t\t\t\t\t\t} catch(e) {}\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\tif (!replaced) { thinking.remove(); }\r\n\t\t\t\t\t\t} catch(err) {\r\n\t\t\t\t\t\t\tthinking.remove();\r\n\t\t\t\t\t\t\tconst msg = { role: 'ai', type: 'text', text: '⚠ Connection error: ' + err.message };\r\n\t\t\t\t\t\t\tconst msgs2 = getHistory(); msgs2.push(msg); saveHistory(msgs2);\r\n\t\t\t\t\t\t\tarea.appendChild(makeBubble(msg));\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tarea.scrollTop = area.scrollHeight;\r\n\t\t\t\t\t});\r\n\t\t\t\t})();\r\n\t\t\t</script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "</main></div><script>\n\t\t\t\tfunction appLayout() {\n\t\t\t\t\tconst sectionMap = {\n\t\t\t\t\t\t'customers': 'sales', 'orders': 'sales',\n\t\t\t\t\t\t'vendors': 'purchases', 'purchase-orders': 'purchases',\n\t\t\t\t\t\t'products': 'inventory', 'stock': 'inventory',\n\t\t\t\t\t\t'trial-balance': 'reports', 'pl': 'reports',\n\t\t\t\t\t\t'balance-sheet': 'reports', 'statement': 'reports',\n\t\t\t\t\t\t'users': 'settings', 'rules': 'settings',\n\t\t\t\t\t};\n\t\t\t\t\tconst activeNav = document.body.dataset.activeNav || '';\n\t\t\t\t\tconst activeSection = sectionMap[activeNav] || '';\n\t\t\t\t\treturn {\n\t\t\t\t\t\tsidebarOpen: window.innerWidth >= 1024,\n\t\t\t\t\t\tsections: {\n\t\t\t\t\t\t\tsales: activeSection === 'sales',\n\t\t\t\t\t\t\tpurchases: activeSection === 'purchases',\n\t\t\t\t\t\t\tinventory: activeSection === 'inventory',\n\t\t\t\t\t\t\treports: activeSection === 'reports',\n\t\t\t\t\t\t\tsettings: activeSection === 'settings',\n\t\t\t\t\t\t},\n\t\t\t\t\t\ttoggleSection(name) {\n\t\t\t\t\t\t\tthis.sections[name] = !this.sections[name];\n\t\t\t\t\t\t},\n\t\t\t\t\t};\n\t\t\t\t}\n\n\t\t\t</script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -581,11 +613,11 @@ func mainContentClass(d AppLayoutData) string {
 
 // navItemClass returns the CSS classes for a sidebar nav item.
 func navItemClass(activeNav, key string) string {
-	base := "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors "
+	base := "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm "
 	if activeNav == key {
-		return base + "bg-slate-700 text-white font-medium"
+		return base + "nav-item-active"
 	}
-	return base + "text-slate-300 hover:bg-slate-800 hover:text-white"
+	return base + "nav-item"
 }
 
 // userInitial returns the first letter of the username in uppercase.

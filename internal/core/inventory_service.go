@@ -264,13 +264,15 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 	if parsedDate.IsZero() {
 		parsedDate = time.Now()
 	}
-	_, err = tx.Exec(ctx, `
+	var movementID int
+	err = tx.QueryRow(ctx, `
 		INSERT INTO inventory_movements (company_id, inventory_item_id, movement_type, quantity, unit_cost, total_cost, movement_date, notes, po_line_id)
 		VALUES ($1, $2, 'RECEIPT', $3, $4, $5, $6, $7, $8)
+		RETURNING id
 	`, companyID, itemID, qty, unitCost, totalCost, parsedDate.Format("2006-01-02"),
 		fmt.Sprintf("Goods receipt: %s × %s units @ %s", productCode, qty.String(), unitCost.String()),
 		poLineID,
-	)
+	).Scan(&movementID)
 	if err != nil {
 		return fmt.Errorf("failed to insert inventory movement: %w", err)
 	}
@@ -280,7 +282,7 @@ func (s *inventoryService) ReceiveStock(ctx context.Context, companyCode, wareho
 	proposal := Proposal{
 		DocumentTypeCode:    "GR",
 		CompanyCode:         companyCode,
-		IdempotencyKey:      fmt.Sprintf("goods-receipt-%s-%s-%s", companyCode, productCode, movementDate),
+		IdempotencyKey:      fmt.Sprintf("goods-receipt-mv-%d", movementID),
 		TransactionCurrency: baseCurrency,
 		ExchangeRate:        "1",
 		Summary:             fmt.Sprintf("Goods Receipt: %s units of %s @ %s", qty.String(), productCode, unitCost.String()),

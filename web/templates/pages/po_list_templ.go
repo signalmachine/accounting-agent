@@ -94,17 +94,17 @@ func POList(d layouts.AppLayoutData, result *app.PurchaseOrdersResult, statusFil
 				return templ_7745c5c3_Err
 			}
 			if len(result.Orders) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"p-12 text-center text-slate-500\"><div class=\"text-4xl mb-3\">📦</div><p class=\"font-medium\">No purchase orders</p><p class=\"text-sm mt-1\"><a href=\"/purchases/orders/new\" class=\"text-slate-700 underline hover:text-slate-900\">Create your first PO</a></p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"empty-state\"><div class=\"empty-state-icon\">📦</div><div class=\"empty-state-title\">No purchase orders</div><div class=\"empty-state-text\"><a href=\"/purchases/orders/new\" class=\"text-slate-700 underline hover:text-slate-900\">Create your first PO</a></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<table class=\"w-full text-sm\"><thead><tr class=\"border-b border-gray-200 bg-slate-50\"><th class=\"text-left px-4 py-3 font-semibold text-slate-600\">PO Number</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600\">Vendor</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell\">Date</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600\">Status</th><th class=\"text-right px-4 py-3 font-semibold text-slate-600 hidden md:table-cell\">Total</th><th class=\"px-4 py-3\"></th></tr></thead> <tbody class=\"divide-y divide-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<table class=\"data-table\"><thead><tr><th>PO Number</th><th>Vendor</th><th class=\"hidden sm:table-cell\">Date</th><th>Status</th><th class=\"hidden md:table-cell\">Total</th><th></th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, po := range result.Orders {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<tr class=\"hover:bg-gray-50\"><td class=\"px-4 py-3 font-mono font-medium text-slate-800\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<tr><td class=\"font-mono font-medium\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -137,7 +137,7 @@ func POList(d layouts.AppLayoutData, result *app.PurchaseOrdersResult, statusFil
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</td><td class=\"px-4 py-3 text-slate-700\"><div class=\"font-medium\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</td><td><div class=\"font-medium\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -163,20 +163,20 @@ func POList(d layouts.AppLayoutData, result *app.PurchaseOrdersResult, statusFil
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div></td><td class=\"px-4 py-3 text-slate-500 hidden sm:table-cell\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</div></td><td class=\"text-slate-500 hidden sm:table-cell\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var8 string
 					templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(po.PODate)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_list.templ`, Line: 73, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_list.templ`, Line: 73, Col: 68}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</td><td class=\"px-4 py-3\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</td><td>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -184,7 +184,7 @@ func POList(d layouts.AppLayoutData, result *app.PurchaseOrdersResult, statusFil
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</td><td class=\"px-4 py-3 text-right font-mono text-slate-700 hidden md:table-cell\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</td><td class=\"num text-slate-700 hidden md:table-cell\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -197,7 +197,7 @@ func POList(d layouts.AppLayoutData, result *app.PurchaseOrdersResult, statusFil
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</td><td class=\"px-4 py-3 text-right\"><a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</td><td class=\"text-right\"><a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -386,17 +386,17 @@ func poPillClass(status, active string) string {
 func poBadgeClass(status string) string {
 	switch status {
 	case "DRAFT":
-		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600"
+		return "badge badge-draft"
 	case "APPROVED":
-		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700"
+		return "badge badge-approved"
 	case "RECEIVED":
-		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700"
+		return "badge badge-received"
 	case "INVOICED":
-		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700"
+		return "badge badge-invoiced"
 	case "PAID":
-		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700"
+		return "badge badge-paid"
 	default:
-		return "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600"
+		return "badge badge-draft"
 	}
 }
 

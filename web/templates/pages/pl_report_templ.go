@@ -203,18 +203,18 @@ func PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) t
 					}
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</select></div><button type=\"submit\" class=\"px-4 py-1.5 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors\">View Report</button></form><!-- Revenue section --><div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><div class=\"px-4 py-3 bg-green-50 border-b border-gray-200\"><h2 class=\"font-semibold text-green-800 text-sm\">Revenue</h2></div><table class=\"w-full text-sm\"><tbody class=\"divide-y divide-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</select></div><button type=\"submit\" class=\"px-4 py-1.5 bg-slate-900 text-white text-sm rounded-lg hover:bg-slate-800 transition-colors\">View Report</button></form><!-- Revenue section --><div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><div class=\"px-4 py-3 bg-green-50 border-b border-gray-200\"><h2 class=\"font-semibold text-green-800 text-sm\">Revenue</h2></div><table class=\"data-table\"><tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(report.Revenue) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<tr><td class=\"px-4 py-3 text-slate-400 italic\" colspan=\"2\">No revenue activity this period</td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<tr><td class=\"italic text-slate-400\" colspan=\"2\">No revenue activity this period</td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			for _, line := range report.Revenue {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<tr class=\"hover:bg-gray-50 transition-colors\"><td class=\"px-4 py-2.5 text-slate-800\"><span class=\"font-mono text-xs text-slate-500 mr-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<tr><td><span class=\"font-mono text-xs text-slate-500 mr-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -240,14 +240,14 @@ func PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) t
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</td><td class=\"px-4 py-2.5 text-right font-mono text-green-700\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</td><td class=\"num num-credit\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(line.Balance.StringFixed(2))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 70, Col: 97}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 70, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -258,31 +258,31 @@ func PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) t
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</tbody><tfoot><tr class=\"bg-green-50 border-t border-gray-200 font-semibold\"><td class=\"px-4 py-3 text-green-800\">Total Revenue</td><td class=\"px-4 py-3 text-right font-mono text-green-800\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</tbody><tfoot><tr><td class=\"text-green-800\">Total Revenue</td><td class=\"num text-green-800\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(plRevenueTotal(report).StringFixed(2))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 77, Col: 104}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 77, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</td></tr></tfoot></table></div><!-- Expenses section --><div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><div class=\"px-4 py-3 bg-red-50 border-b border-gray-200\"><h2 class=\"font-semibold text-red-800 text-sm\">Expenses</h2></div><table class=\"w-full text-sm\"><tbody class=\"divide-y divide-gray-100\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</td></tr></tfoot></table></div><!-- Expenses section --><div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><div class=\"px-4 py-3 bg-red-50 border-b border-gray-200\"><h2 class=\"font-semibold text-red-800 text-sm\">Expenses</h2></div><table class=\"data-table\"><tbody>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if len(report.Expenses) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<tr><td class=\"px-4 py-3 text-slate-400 italic\" colspan=\"2\">No expense activity this period</td></tr>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "<tr><td class=\"italic text-slate-400\" colspan=\"2\">No expense activity this period</td></tr>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
 			for _, line := range report.Expenses {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<tr class=\"hover:bg-gray-50 transition-colors\"><td class=\"px-4 py-2.5 text-slate-800\"><span class=\"font-mono text-xs text-slate-500 mr-2\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<tr><td><span class=\"font-mono text-xs text-slate-500 mr-2\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
@@ -308,14 +308,14 @@ func PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) t
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</td><td class=\"px-4 py-2.5 text-right font-mono text-red-700\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "</td><td class=\"num num-debit\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(line.Balance.StringFixed(2))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 100, Col: 95}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 100, Col: 63}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -326,14 +326,14 @@ func PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) t
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</tbody><tfoot><tr class=\"bg-red-50 border-t border-gray-200 font-semibold\"><td class=\"px-4 py-3 text-red-800\">Total Expenses</td><td class=\"px-4 py-3 text-right font-mono text-red-800\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "</tbody><tfoot><tr><td class=\"text-red-800\">Total Expenses</td><td class=\"num text-red-800\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(plExpenseTotal(report).StringFixed(2))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 107, Col: 102}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/pl_report.templ`, Line: 107, Col: 75}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {

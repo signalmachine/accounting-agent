@@ -98,11 +98,31 @@ type ApplicationService interface {
 	// otherwise expects exactly one company in the database.
 	LoadDefaultCompany(ctx context.Context) (*core.Company, error)
 
+	// RegisterCompany creates a new tenant company and its first ADMIN user atomically.
+	// Returns a UserSession ready to be signed into a JWT.
+	RegisterCompany(ctx context.Context, req RegisterCompanyRequest) (*UserSession, error)
+
 	// AuthenticateUser verifies credentials and returns a session on success.
 	AuthenticateUser(ctx context.Context, username, password string) (*UserSession, error)
 
 	// GetUser returns user profile by ID.
 	GetUser(ctx context.Context, userID int) (*UserResult, error)
+
+	// ListUsers returns all users for the given company.
+	ListUsers(ctx context.Context, companyCode string) (*UsersResult, error)
+
+	// CreateUser creates a new user for the given company.
+	CreateUser(ctx context.Context, req CreateUserRequest) (*UserResult, error)
+
+	// UpdateUserRole changes the role of a user within the caller's company.
+	UpdateUserRole(ctx context.Context, req UpdateUserRoleRequest) error
+
+	// SetUserActive activates or deactivates a user within the caller's company.
+	SetUserActive(ctx context.Context, companyCode string, userID int, active bool) error
+
+	// GetAccountNamesByCode returns a map of account_code → name for the given company.
+	// Codes not found are silently omitted from the result.
+	GetAccountNamesByCode(ctx context.Context, companyCode string, codes []string) (map[string]string, error)
 
 	// ListVendors returns all active vendors for a company.
 	ListVendors(ctx context.Context, companyCode string) (*VendorsResult, error)

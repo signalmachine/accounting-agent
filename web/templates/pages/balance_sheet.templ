@@ -78,27 +78,27 @@ templ bsSection(title, headerBg, headerText string, lines []core.AccountLine, to
 		<div class={ "px-4 py-3 border-b border-gray-200 " + headerBg }>
 			<h2 class={ "font-semibold text-sm " + headerText }>{ title }</h2>
 		</div>
-		<table class="w-full text-sm">
-			<tbody class="divide-y divide-gray-100">
+		<table class="data-table">
+			<tbody>
 				if len(lines) == 0 {
 					<tr>
-						<td class="px-4 py-3 text-slate-400 italic" colspan="2">No { title } accounts</td>
+						<td class="italic text-slate-400" colspan="2">No { title } accounts</td>
 					</tr>
 				}
 				for _, line := range lines {
-					<tr class="hover:bg-gray-50 transition-colors">
-						<td class="px-4 py-2.5 text-slate-800">
+					<tr>
+						<td>
 							<span class="font-mono text-xs text-slate-500 mr-2">{ line.Code }</span>
 							{ line.Name }
 						</td>
-						<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ line.Balance.StringFixed(2) }</td>
+						<td class="num">{ line.Balance.StringFixed(2) }</td>
 					</tr>
 				}
 			</tbody>
 			<tfoot>
-				<tr class={ "border-t border-gray-200 font-semibold " + headerBg }>
-					<td class={ "px-4 py-3 " + headerText }>Total { title }</td>
-					<td class={ "px-4 py-3 text-right font-mono " + headerText }>{ total.StringFixed(2) }</td>
+				<tr>
+					<td class={ headerText }>Total { title }</td>
+					<td class={ "num " + headerText }>{ total.StringFixed(2) }</td>
 				</tr>
 			</tfoot>
 		</table>

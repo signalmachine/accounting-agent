@@ -35,39 +35,45 @@ templ OrdersList(d layouts.AppLayoutData, result *app.OrderListResult, statusFil
 			<!-- Table -->
 			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
 				if len(result.Orders) == 0 {
-					<div class="p-8 text-center text-slate-500 text-sm">No orders found.</div>
+					<div class="empty-state">
+						<div class="empty-state-icon">📋</div>
+						<div class="empty-state-title">No orders found</div>
+						<div class="empty-state-text">
+							<a href="/sales/orders/new" class="text-slate-700 underline hover:text-slate-900">Create your first order</a>
+						</div>
+					</div>
 				} else {
-					<table class="w-full text-sm">
+					<table class="data-table">
 						<thead>
-							<tr class="bg-slate-50 border-b border-gray-200">
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-36">Order #</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600">Customer</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28 hidden sm:table-cell">Date</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Status</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32 hidden md:table-cell">Total</th>
+							<tr>
+								<th class="w-36">Order #</th>
+								<th>Customer</th>
+								<th class="w-28 hidden sm:table-cell">Date</th>
+								<th class="w-28">Status</th>
+								<th class="w-32 hidden md:table-cell">Total</th>
 								<th class="w-16"></th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-100">
+						<tbody>
 							for _, o := range result.Orders {
-								<tr class="hover:bg-gray-50 transition-colors">
-									<td class="px-4 py-3 font-mono text-slate-700 text-xs">
+								<tr>
+									<td class="font-mono text-xs text-slate-500">
 										if o.OrderNumber != "" {
 											{ o.OrderNumber }
 										} else {
 											<span class="text-slate-400">DRAFT-{ orderIDStr(o.ID) }</span>
 										}
 									</td>
-									<td class="px-4 py-3 text-slate-800">
+									<td>
 										<div class="font-medium">{ o.CustomerName }</div>
 										<div class="text-xs text-slate-500">{ o.CustomerCode }</div>
 									</td>
-									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ o.OrderDate }</td>
-									<td class="px-4 py-3">
+									<td class="text-slate-500 hidden sm:table-cell">{ o.OrderDate }</td>
+									<td>
 										@orderStatusBadge(o.Status)
 									</td>
-									<td class="px-4 py-3 text-right font-mono text-slate-800 hidden md:table-cell">{ o.TotalTransaction.StringFixed(2) }</td>
-									<td class="px-4 py-3 text-right">
+									<td class="num text-slate-700 hidden md:table-cell">{ o.TotalTransaction.StringFixed(2) }</td>
+									<td class="text-right">
 										<a
 											href={ templ.SafeURL("/sales/orders/" + orderIDStr(o.ID)) }
 											class="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2 transition-colors"

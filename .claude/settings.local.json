@@ -59,7 +59,14 @@
       "Bash(ss:*)",
       "Bash(DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb_test?sslmode=disable\" go run:*)",
       "Bash(TEST_DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb_test?sslmode=disable\" go test:*)",
-      "Bash(DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb?sslmode=disable\" go run:*)"
+      "Bash(DATABASE_URL=\"postgres://app:electron@127.0.0.1:5432/appdb?sslmode=disable\" go run:*)",
+      "Bash(make generate:*)",
+      "Bash(where:*)",
+      "Bash(make css:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(touch:*)",
+      "Bash(rm:*)"
     ]
   }
 }

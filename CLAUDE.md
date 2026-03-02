@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Change Philosophy
+
+We are free to make **extensive and breaking changes** to this application — including database design, schema migrations, data modeling, domain services, API contracts, and web UI. Redesigning a table, renaming columns, restructuring a domain model, or replacing an approach entirely are all acceptable and expected as the system evolves.
+
+**Only the AI Agent is an exception — nothing else in the codebase is off-limits.** See the "AI Agent — Change Policy" section for the strict rules that apply there.
+
 ## Commands
 
 ```bash
@@ -107,6 +113,18 @@ Input has no /       →  AI agent (GPT-4o), regardless of length or content
 **AI prompt behaviour for non-accounting input:**
 The AI prompt instructs GPT-4o: if the input is a non-financial/operational request (e.g. "list orders", "confirm shipment"), respond with `is_clarification_request: true` and redirect to the relevant slash command. This is the AI's mechanism for gracefully handling misrouted input — it does not always fire perfectly for ambiguous single-word inputs.
 
+### REPL and CLI — Permanent Features
+
+The interactive REPL (`./app.exe`) and stateless CLI (`./app.exe propose|validate|commit|balances`) are **permanent, first-class features** of this application. They are not deprecated and will not be removed.
+
+**Why they are kept:**
+- **Power users**: The REPL provides a fast, keyboard-driven workflow without browser overhead.
+- **Testing and debugging**: When a web UI feature is broken or under development, the REPL allows immediate verification that the underlying domain logic is correct.
+- **Automation and scripting**: The stateless CLI one-shot commands (`propose`, `validate`, `commit`, `balances`) are composable in shell pipelines and scripts.
+- **Diagnostics**: `go run ./cmd/verify-agent` and `./app.exe balances` serve as smoke tests that work without a running web server.
+
+**Policy:** New domain features should have REPL slash commands added alongside their web UI counterparts. The REPL is a sibling interface, not a fallback that gets retired once the web UI exists.
+
 ### OpenAI Integration
 
 - Model: GPT-4o via Responses API (`openai-go` SDK)
@@ -160,6 +178,29 @@ Gapless document numbers use PostgreSQL row-level locks on `document_sequences` 
 
 **Refactoring discipline.** When modifying existing behavior: don't change behavior silently, add tests before changing logic, preserve backward compatibility unless explicitly breaking.
 
+## AI Agent — Change Policy
+
+The AI Agent is **working correctly and stably**. This is a hard-won state. Breaking it is easy; fixing it is expensive.
+
+**General application changes (database schema, data modeling, domain services, web UI) can be extensive and breaking — that is fine.** The AI Agent is the exception.
+
+### Rules for AI Agent changes
+
+1. **Default to no change.** If a task can be achieved without touching `internal/ai/`, do it that way.
+2. **No opportunistic improvements.** Do not tidy, refactor, or "improve" agent code while working on an unrelated task.
+3. **Plan before touching.** Any change to `internal/ai/agent.go`, `internal/ai/tools.go`, `AgentService`, `InterpretEvent`, `InterpretDomainAction`, or the tool registry requires a written plan reviewed before a single line is changed.
+4. **One concern at a time.** Each AI Agent change must address exactly one well-scoped concern. Do not bundle agent changes with other work.
+5. **Test before and after.** Run `go run ./cmd/verify-agent` and the full integration suite (`go test ./internal/core -v`) before and after any agent change. Both must pass.
+6. **`InterpretEvent` is frozen.** Do not modify `InterpretEvent` or its schema — it is the stable journal-entry path. All new AI capability goes through `InterpretDomainAction`.
+7. **Additive tool changes only.** New tools may be added to the registry. Existing tool names, input schemas, and handler signatures must not change without an explicit migration plan.
+8. **Invoke the skill first.** Before writing or modifying any code that touches the OpenAI Go SDK, invoke `/openai-integration`. This skill contains project-specific rules that must be followed exactly.
+
+### Permitted AI Agent work
+- Adding new read tools (autonomous, no human confirm required) for newly stable domains.
+- Adding new write tools (require human confirm) when a domain phase is complete and tests pass.
+- Targeted bug fixes with a clear root cause, minimal diff, and before/after test verification.
+- Future planned layers (RAG, skills framework) — but only after MVP is stable in production.
+
 ## Pending Roadmap
 
 ### AI Agent Upgrade Principle
@@ -185,7 +226,8 @@ Concretely:
 
 | Document | Role | Read when |
 |---|---|---|
-| [`docs/One_final_implementation_plan.md`](docs/One_final_implementation_plan.md) | **MVP roadmap — all phases complete.** WF2–WF5, Phases 11–14, WD0–WD1 all done. | For historical reference or re-implementation |
+| [`docs/archive/One_final_implementation_plan.md`](docs/archive/One_final_implementation_plan.md) | **Archived — MVP roadmap, all phases complete.** WF2–WF5, Phases 11–14, WD0–WD1 all done. | Historical reference only |
+| [`docs/archive/multi_tenancy.md`](docs/archive/multi_tenancy.md) | **Archived — all MT phases complete.** MT-1 (user-company binding), MT-2 (self-service registration), MT-3 (per-company user management) all done 2026-03-02. | Historical reference only |
 | [`docs/Tax_Regulatory_Future_Plan.md`](docs/Tax_Regulatory_Future_Plan.md) | **Deferred.** GST, TDS, TCS, period locking, GSTR export (Phases 22–30). Do not start until MVP is stable in production. | Before implementing any tax compliance work |
 
 Archived (superseded): `docs/archive/Implementation_plan_upgrade.md`, `docs/archive/web_ui_plan.md`, `docs/archive/ai_agent_upgrade.md`, `docs/archive/plan_gaps.md`
@@ -198,7 +240,7 @@ Archived (superseded): `docs/archive/Implementation_plan_upgrade.md`, `docs/arch
 - **Phase 4**: CLI adapter — `internal/adapters/cli/cli.go` + `main.go` slimmed to 48 lines. `LoadDefaultCompany` and `ValidateProposal` added to `ApplicationService`.
 - **Phase 5**: `account_rules` table + seed (migrations 011–012). 6 rules seeded for Company 1000.
 - **Phase 6**: `RuleEngine` service (`internal/core/rule_engine.go`) wired into `OrderService`. `arAccountCode` constant removed. 5 new `TestRuleEngine_ResolveAccount` subtests added.
-- **Phase 7**: `RuleEngine` wired into `InventoryService`. `inventoryAccountCode`, `cogsAccountCode`, and `defaultReceiptCreditAccountCode` constants removed. `NewInventoryService` now takes `ruleEngine` parameter. `setupInventoryTestDB` seeds INVENTORY/COGS/RECEIPT_CREDIT rules. All 32 tests pass. REPL deprecation clock starts — no new REPL slash commands from this point.
+- **Phase 7**: `RuleEngine` wired into `InventoryService`. `inventoryAccountCode`, `cogsAccountCode`, and `defaultReceiptCreditAccountCode` constants removed. `NewInventoryService` now takes `ruleEngine` parameter. `setupInventoryTestDB` seeds INVENTORY/COGS/RECEIPT_CREDIT rules. All 32 tests pass.
 - **Phase 7.5**: AI Tool Architecture — `internal/ai/tools.go` (`ToolRegistry`, `ToolDefinition`, `ToolHandler`). `InterpretDomainAction` added to `AgentService` + `ApplicationService` alongside existing `InterpretEvent` (untouched). 5 Phase 7.5 read tools registered: `search_accounts`, `search_customers`, `search_products`, `get_stock_levels`, `get_warehouses`. Agentic tool loop: max 5 iterations, `PreviousResponseID` for multi-turn, read tools execute autonomously, `request_clarification` and `route_to_journal_entry` meta-tools terminate the loop. REPL AI path updated to route through `InterpretDomainAction`; journal entry events route back to `InterpretEvent`. Migration 013: `pg_trgm` extension + GIN indexes on `accounts.name`, `customers.name`, `products.name`. All 32 tests pass.
 - **Phase 8**: Account statement report — `internal/core/reporting_service.go` (`ReportingService`, `StatementLine`, `GetAccountStatement`). `AccountStatementResult` added to `app/result_types.go`. `GetAccountStatement` added to `ApplicationService`. `NewAppService` updated in both `cmd/app` and `cmd/server`. REPL command `/statement <account-code> [from-date] [to-date]` added. Read tools `get_account_balance` and `get_account_statement` registered in `buildToolRegistry`. Integration test `TestReporting_GetAccountStatement` (3 sub-tests: full, date-range, empty). 35 tests pass.
 - **Phase WF1**: Server + chat UI shell — `cmd/server/main.go`, `internal/adapters/web/` (handlers, middleware, errors, chat). `POST /api/chat/message` SSE endpoint (calls `InterpretDomainAction`, routes journal entries to `InterpretEvent`, emits typed SSE events). `POST /api/chat/confirm` (token-based pending-action store with 10-min TTL, commits journal entries via `CommitProposal`). `web/web.go` + `web/static/index.html` embedded static chat frontend (vanilla JS, no external deps, Fetch API streaming, action cards with confirm/cancel). All packages build clean.
@@ -213,8 +255,11 @@ Archived (superseded): `docs/archive/Implementation_plan_upgrade.md`, `docs/arch
 - **Phase WF5**: AI Chat Home + Document Upload — `GET /` serves `chat_home.templ` (full-screen chat, `ChatLayout`). `POST /chat` SSE streaming, `POST /chat/upload` (JPG/PNG/WEBP, UUID filename, 30-min cleanup), `POST /chat/confirm` executes write tools via `ExecuteWriteTool`, `POST /chat/clear`. `Attachment` struct added to `internal/app` and `internal/ai`; `InterpretDomainAction` variadic (`...Attachment`). `pendingStore` TTL 15 min, background purge every 5 min. `sessionStorage['chat_history']` shared between chat home and app-layout slide-over. New files: `internal/adapters/web/ai.go`, `web/templates/pages/chat_home.templ`.
 - **Phase WD0**: Sales Order Web UI — `GetOrder` added to `ApplicationService`. `internal/adapters/web/orders.go` (page + API handlers). Templates: `customers_list.templ`, `products_list.templ`, `stock_levels.templ`, `orders_list.templ` (status filter pills), `order_detail.templ` (Alpine.js lifecycle buttons), `order_wizard.templ` (Alpine.js dynamic lines, auto-fill unit price), `order_shared.templ`. All browser routes for sales/inventory wired. Full SO lifecycle (DRAFT → PAID) completable from web UI.
 - **Phase WD1**: Vendor & PO Web UI — **FINAL MVP PHASE**. `GetPurchaseOrder` added to `ApplicationService`. `internal/adapters/web/vendors.go` (page + API handlers). Templates: `vendors_list.templ`, `vendor_form.templ`, `po_list.templ`, `po_detail.templ` (inline expandable lifecycle forms for approve/receive/invoice/pay), `po_wizard.templ` (dual line types: goods vs service/expense). 7 browser routes + 10 API routes wired. Full procurement lifecycle (DRAFT → PAID) completable from web UI. 70 tests passing, `go build ./...` clean.
+- **Phase MT-1**: User-to-Company Binding. Added `Username` and `CompanyCode` to `jwtClaims` and `AuthClaims`. Both login handlers (API + form) embed all claims at sign-in. `buildAppLayoutData` reads username/role/companyCode directly from JWT — no DB call per page render. `requireCompanyAccess` compares `claims.CompanyCode` directly — no DB call per API request. All `LoadDefaultCompany()` calls removed from web page handlers (`orders.go`, `vendors.go`, `users.go`) — replaced with `d.CompanyCode` (page handlers) or `authFromContext().CompanyCode` (POST actions). `LoadDefaultCompany()` retained for health endpoint and REPL/CLI path only. 70 tests passing, `go build ./...` clean.
+- **Phase MT-2**: Self-Service Company Registration. Migration 027 (`companies_name_unique` constraint). `RegisterCompanyRequest` + `RegisterCompany` on `ApplicationService` (atomic TX: auto-generate 4-char company code → INSERT company → INSERT admin user). Password policy enforced in app layer (8+ chars, 1 uppercase, 1 digit). `register.templ` page. `GET /register` + `POST /register` public routes. Login page links to `/register`. 70 tests passing, `go build ./...` clean.
+- **Phase MT-3**: Per-Company User Management. `UpdateUserRole` + `SetUserActive` added to `UserService` interface + `userService` impl (both scoped by `company_id`). `UpdateUserRole` + `SetUserActive` added to `ApplicationService`. `users_list.templ` updated: inline role-change form + Activate/Deactivate button per row; ADMIN now in create-user dropdown; logged-in user shown as "You" with no action buttons (self-lock-out prevention). `usersUpdateRoleAction` + `usersToggleActiveAction` handlers in `users.go`. `POST /settings/users/{id}/role` + `POST /settings/users/{id}/active` routes wired (ADMIN only). ADMIN restriction removed from user creation. 70 tests passing, `go build ./...` clean.
 
-**MVP complete.** All phases (WF2–WF5, 11–14, WD0–WD1) are done. 70 tests passing. Next work items are deferred phases from `docs/Tax_Regulatory_Future_Plan.md` (GST, TDS, GSTR) or user testing guides.
+**MVP + Multi-Tenancy complete.** All phases (WF2–WF5, 11–14, WD0–WD1, MT-1–MT-3) are done. 70 tests passing. 27 migrations applied.
 
 **Pending — User Testing Guides:**
 - `docs/user_testing/` contains a `README.md` defining the structure and scope of workflow testing guides for the web UI.
@@ -224,4 +269,4 @@ Archived (superseded): `docs/archive/Implementation_plan_upgrade.md`, `docs/arch
 
 When implementing future phases: New domains call `Ledger.Commit()` or `Ledger.CommitInTx()` — they never construct `journal_lines` directly. Follow the TX-scoped service method pattern from `InventoryService` for any operations that must be atomic with order state transitions.
 
-**Multi-company usage:** When the database contains more than one company, set `COMPANY_CODE=<code>` in `.env`. Without it, the system selects the single company automatically and errors if multiple companies are found.
+**Multi-company usage:** Web requests are always scoped to the company bound to the authenticated user's JWT — no env var needed. `COMPANY_CODE=<code>` in `.env` is still required for the REPL and CLI (`./app.exe`) when multiple companies exist in the database.

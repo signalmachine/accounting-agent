@@ -236,45 +236,45 @@ func AccountStatement(d layouts.AppLayoutData, result *app.AccountStatementResul
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><table class=\"w-full text-sm\"><thead><tr class=\"bg-slate-50 border-b border-gray-200\"><th class=\"text-left px-4 py-3 font-semibold text-slate-600 w-28\">Date</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600\">Narration</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600 w-28\">Reference</th><th class=\"text-right px-4 py-3 font-semibold text-slate-600 w-28\">Debit</th><th class=\"text-right px-4 py-3 font-semibold text-slate-600 w-28\">Credit</th><th class=\"text-right px-4 py-3 font-semibold text-slate-600 w-32\">Balance</th></tr></thead> <tbody class=\"divide-y divide-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "<div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><table class=\"data-table\"><thead><tr><th class=\"w-28\">Date</th><th>Narration</th><th class=\"w-28\">Reference</th><th class=\"w-28\">Debit</th><th class=\"w-28\">Credit</th><th class=\"w-32\">Balance</th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, line := range result.Lines {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<tr class=\"hover:bg-gray-50 transition-colors\"><td class=\"px-4 py-2.5 font-mono text-xs text-slate-600\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<tr><td class=\"font-mono text-xs text-slate-500\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var13 string
 					templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(line.PostingDate)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 104, Col: 84}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 104, Col: 72}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</td><td class=\"px-4 py-2.5 text-slate-800 max-w-xs truncate\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</td><td class=\"max-w-xs truncate\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var14 string
 					templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(line.Narration)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 105, Col: 82}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 105, Col: 55}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</td><td class=\"px-4 py-2.5 font-mono text-xs text-slate-500\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "</td><td class=\"font-mono text-xs text-slate-500\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var15 string
 					templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(line.Reference)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 106, Col: 82}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 106, Col: 70}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 					if templ_7745c5c3_Err != nil {
@@ -285,19 +285,19 @@ func AccountStatement(d layouts.AppLayoutData, result *app.AccountStatementResul
 						return templ_7745c5c3_Err
 					}
 					if line.Debit.IsZero() {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<td class=\"px-4 py-2.5 text-right font-mono text-slate-300\">—</td>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "<td class=\"num text-slate-300\">—</td>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<td class=\"px-4 py-2.5 text-right font-mono text-slate-800\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "<td class=\"num\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var16 string
 						templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(line.Debit.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 110, Col: 97}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 110, Col: 53}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 						if templ_7745c5c3_Err != nil {
@@ -309,19 +309,19 @@ func AccountStatement(d layouts.AppLayoutData, result *app.AccountStatementResul
 						}
 					}
 					if line.Credit.IsZero() {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<td class=\"px-4 py-2.5 text-right font-mono text-slate-300\">—</td>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "<td class=\"num text-slate-300\">—</td>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<td class=\"px-4 py-2.5 text-right font-mono text-slate-800\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<td class=\"num\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var17 string
 						templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(line.Credit.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 115, Col: 98}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/account_statement.templ`, Line: 115, Col: 54}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 						if templ_7745c5c3_Err != nil {
@@ -332,7 +332,7 @@ func AccountStatement(d layouts.AppLayoutData, result *app.AccountStatementResul
 							return templ_7745c5c3_Err
 						}
 					}
-					var templ_7745c5c3_Var18 = []any{"px-4 py-2.5 text-right font-mono " + stmtBalanceClass(line.RunningBalance.IsPositive())}
+					var templ_7745c5c3_Var18 = []any{"num " + stmtBalanceClass(line.RunningBalance.IsPositive())}
 					templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var18...)
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err

@@ -188,63 +188,56 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 					return templ_7745c5c3_Err
 				}
 				if po.Status == "DRAFT" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<!-- DRAFT → APPROVED --> <button x-on:click=\"approve()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">✓ Approve PO</span> <span x-show=\"loading\">Processing…</span></button> ")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<!-- DRAFT → APPROVED: FINANCE_MANAGER or ADMIN only --> ")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
+					if d.Role == "FINANCE_MANAGER" || d.Role == "ADMIN" {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<button x-on:click=\"approve()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">✓ Approve PO</span> <span x-show=\"loading\">Processing…</span></button> ")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					} else {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<span class=\"inline-flex items-center px-3 py-2 text-sm text-slate-400 bg-slate-50 border border-slate-200 rounded-lg\">Approval requires Finance Manager role</span> ")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					}
 				}
 				if po.Status == "APPROVED" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<!-- APPROVED → RECEIVED: expandable receive form --> <div x-data=\"{ open: false }\"><button x-on:click=\"open = !open\" class=\"px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors\">📥 Receive Goods</button><div x-show=\"open\" class=\"mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3\"><h3 class=\"font-semibold text-purple-800 text-sm\">Record Goods Receipt</h3><div class=\"space-y-2\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<!-- APPROVED → RECEIVED: expandable receive form --> <div x-data=\"{ open: false }\"><button x-on:click=\"open = !open\" class=\"px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors\">📥 Receive Goods</button><div x-show=\"open\" class=\"mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-3\"><h3 class=\"font-semibold text-purple-800 text-sm\">Record Goods Receipt</h3><div class=\"space-y-2\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					for _, line := range po.Lines {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<div class=\"flex items-center gap-3\"><div class=\"flex-1 text-sm text-slate-700\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "<div class=\"flex items-center gap-3\"><div class=\"flex-1 text-sm text-slate-700\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						if line.ProductCode != nil {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<span class=\"font-mono font-medium\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "<span class=\"font-mono font-medium\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var11 string
 							templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(*line.ProductCode)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 78, Col: 69}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 84, Col: 69}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "</span> <span class=\"text-slate-500 ml-1\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</span> <span class=\"text-slate-500 ml-1\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var12 string
 							templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(line.Description)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 79, Col: 66}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 85, Col: 66}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</span> ")
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-						} else {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "<span class=\"text-slate-500 italic\">")
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-							var templ_7745c5c3_Var13 string
-							templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(line.Description)
-							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 81, Col: 68}
-							}
-							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -252,221 +245,220 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
+						} else {
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"text-slate-500 italic\">")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							var templ_7745c5c3_Var13 string
+							templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(line.Description)
+							if templ_7745c5c3_Err != nil {
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 87, Col: 68}
+							}
+							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, "</span> ")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "<span class=\"text-xs text-slate-400 ml-2\">(ordered: ")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "<span class=\"text-xs text-slate-400 ml-2\">(ordered: ")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var14 string
 						templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(line.Quantity.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 83, Col: 95}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 89, Col: 95}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 24, ")</span></div><input type=\"number\" step=\"0.01\" min=\"0.01\" placeholder=\"Qty received\" class=\"w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-400\" x-model=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, ")</span></div><input type=\"number\" step=\"0.01\" min=\"0.01\" placeholder=\"Qty received\" class=\"w-32 border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-400\" x-model=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var15 string
 						templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("receiveLines[%d].qty", line.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 91, Col: 67}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 97, Col: 67}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 25, "\"> <input type=\"hidden\" x-model=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\"> <input type=\"hidden\" x-model=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var16 string
 						templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("receiveLines[%d].lineID", line.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 93, Col: 90}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 99, Col: 90}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 26, "\" :value=\"")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "\" :value=\"")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var17 string
 						templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", line.ID))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 93, Col: 128}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 99, Col: 128}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 27, "\"></div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\"></div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 28, "</div><button x-on:click=\"receive()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-purple-700 hover:bg-purple-800 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">Confirm Receipt</span> <span x-show=\"loading\">Processing…</span></button></div></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "</div><button x-on:click=\"receive()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-purple-700 hover:bg-purple-800 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">Confirm Receipt</span> <span x-show=\"loading\">Processing…</span></button></div></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 				if po.Status == "RECEIVED" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "<!-- RECEIVED → INVOICED: expandable invoice form --> <div x-data=\"{ open: false }\"><button x-on:click=\"open = !open\" class=\"px-4 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors\">🧾 Record Invoice</button><div x-show=\"open\" class=\"mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3\"><h3 class=\"font-semibold text-amber-800 text-sm\">Vendor Invoice Details</h3><div class=\"grid grid-cols-1 sm:grid-cols-3 gap-3\"><div><label class=\"block text-xs font-medium text-amber-700 mb-1\">Invoice Number *</label> <input type=\"text\" x-model=\"invoiceNumber\" placeholder=\"e.g. INV-2026-001\" class=\"w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400\"></div><div><label class=\"block text-xs font-medium text-amber-700 mb-1\">Invoice Date *</label> <input type=\"date\" x-model=\"invoiceDate\" class=\"w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400\"></div><div><label class=\"block text-xs font-medium text-amber-700 mb-1\">Invoice Amount *</label> <input type=\"number\" step=\"0.01\" min=\"0.01\" x-model=\"invoiceAmount\" placeholder=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<!-- RECEIVED → INVOICED: expandable invoice form --> <div x-data=\"{ open: false }\"><button x-on:click=\"open = !open\" class=\"px-4 py-2 text-sm font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors\">🧾 Record Invoice</button><div x-show=\"open\" class=\"mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3\"><h3 class=\"font-semibold text-amber-800 text-sm\">Vendor Invoice Details</h3><div class=\"grid grid-cols-1 sm:grid-cols-3 gap-3\"><div><label class=\"block text-xs font-medium text-amber-700 mb-1\">Invoice Number *</label> <input type=\"text\" x-model=\"invoiceNumber\" placeholder=\"e.g. INV-2026-001\" class=\"w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400\"></div><div><label class=\"block text-xs font-medium text-amber-700 mb-1\">Invoice Date *</label> <input type=\"date\" x-model=\"invoiceDate\" class=\"w-full border border-amber-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400\"></div><div><label class=\"block text-xs font-medium text-amber-700 mb-1\">Invoice Amount *</label> <input type=\"number\" step=\"0.01\" min=\"0.01\" x-model=\"invoiceAmount\" placeholder=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var18 string
 					templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(po.TotalBase.StringFixed(2))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 144, Col: 53}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 150, Col: 53}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 30, "\" class=\"w-full border border-amber-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400\"></div></div><button x-on:click=\"invoice()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-amber-700 hover:bg-amber-800 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">Record Invoice</span> <span x-show=\"loading\">Processing…</span></button></div></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" class=\"w-full border border-amber-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400\"></div></div><button x-on:click=\"invoice()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-amber-700 hover:bg-amber-800 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">Record Invoice</span> <span x-show=\"loading\">Processing…</span></button></div></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
 				if po.Status == "INVOICED" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 31, "<!-- INVOICED → PAID: expandable payment form --> <div x-data=\"{ open: false }\"><button x-on:click=\"open = !open\" class=\"px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors\">💳 Pay Vendor</button><div x-show=\"open\" class=\"mt-4 bg-green-50 border border-green-200 rounded-xl p-4 space-y-3\"><h3 class=\"font-semibold text-green-800 text-sm\">Payment Details</h3><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\"><div><label class=\"block text-xs font-medium text-green-700 mb-1\">Bank Account Code</label> <input type=\"text\" x-model=\"bankCode\" placeholder=\"1000\" class=\"w-full border border-green-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-400\"></div><div><label class=\"block text-xs font-medium text-green-700 mb-1\">Payment Date</label> <input type=\"date\" x-model=\"paymentDate\" class=\"w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400\"></div></div><button x-on:click=\"pay()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">Confirm Payment</span> <span x-show=\"loading\">Processing…</span></button></div></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "<!-- INVOICED → PAID: expandable payment form --> <div x-data=\"{ open: false }\"><button x-on:click=\"open = !open\" class=\"px-4 py-2 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors\">💳 Pay Vendor</button><div x-show=\"open\" class=\"mt-4 bg-green-50 border border-green-200 rounded-xl p-4 space-y-3\"><h3 class=\"font-semibold text-green-800 text-sm\">Payment Details</h3><div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3\"><div><label class=\"block text-xs font-medium text-green-700 mb-1\">Bank Account Code</label> <input type=\"text\" x-model=\"bankCode\" placeholder=\"1000\" class=\"w-full border border-green-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-400\"></div><div><label class=\"block text-xs font-medium text-green-700 mb-1\">Payment Date</label> <input type=\"date\" x-model=\"paymentDate\" class=\"w-full border border-green-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400\"></div></div><button x-on:click=\"pay()\" x-bind:disabled=\"loading\" class=\"px-4 py-2 text-sm font-medium bg-green-700 hover:bg-green-800 text-white rounded-lg transition-colors disabled:opacity-50\"><span x-show=\"!loading\">Confirm Payment</span> <span x-show=\"loading\">Processing…</span></button></div></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "</div></div><!-- Totals grid --> <div class=\"grid grid-cols-2 sm:grid-cols-4 gap-3\"><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Total</div><div class=\"font-bold text-slate-900 font-mono\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><!-- Totals grid --> <div class=\"grid grid-cols-2 sm:grid-cols-4 gap-3\"><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Total</div><div class=\"font-bold text-slate-900 font-mono\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(po.TotalTransaction.StringFixed(2))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 207, Col: 90}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 213, Col: 90}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 33, "</div></div><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Currency</div><div class=\"font-semibold text-slate-700\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div></div><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Currency</div><div class=\"font-semibold text-slate-700\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(po.Currency)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 211, Col: 61}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 217, Col: 61}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 34, "</div></div><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Lines</div><div class=\"font-semibold text-slate-700\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div></div><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Lines</div><div class=\"font-semibold text-slate-700\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", len(po.Lines)))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 215, Col: 82}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 221, Col: 82}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 35, "</div></div><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Status</div><div class=\"font-semibold text-slate-700\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "</div></div><div class=\"bg-white rounded-xl border border-gray-200 p-4 text-center\"><div class=\"text-xs text-slate-500 mb-1\">Status</div><div class=\"font-semibold text-slate-700\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(po.Status)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 219, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 225, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 36, "</div></div></div><!-- Line items --> <div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><div class=\"px-4 py-3 border-b border-gray-200 bg-slate-50\"><h2 class=\"font-semibold text-slate-700 text-sm\">PO Lines</h2></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "</div></div></div><!-- Line items --> <div class=\"bg-white rounded-xl border border-gray-200 overflow-hidden\"><div class=\"px-4 py-3 border-b border-gray-200 bg-slate-50\"><h2 class=\"font-semibold text-slate-700 text-sm\">PO Lines</h2></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if len(po.Lines) == 0 {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 37, "<div class=\"p-6 text-center text-slate-500 text-sm\">No line items.</div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<div class=\"p-6 text-center text-slate-500 text-sm\">No line items.</div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				} else {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 38, "<table class=\"w-full text-sm\"><thead><tr class=\"border-b border-gray-200\"><th class=\"text-left px-4 py-2.5 font-semibold text-slate-600 w-10\">#</th><th class=\"text-left px-4 py-2.5 font-semibold text-slate-600\">Description</th><th class=\"text-right px-4 py-2.5 font-semibold text-slate-600 w-20\">Qty</th><th class=\"text-right px-4 py-2.5 font-semibold text-slate-600 w-28 hidden sm:table-cell\">Unit Cost</th><th class=\"text-right px-4 py-2.5 font-semibold text-slate-600 w-32\">Total</th></tr></thead> <tbody class=\"divide-y divide-gray-100\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "<table class=\"w-full text-sm\"><thead><tr class=\"border-b border-gray-200\"><th class=\"text-left px-4 py-2.5 font-semibold text-slate-600 w-10\">#</th><th class=\"text-left px-4 py-2.5 font-semibold text-slate-600\">Description</th><th class=\"text-right px-4 py-2.5 font-semibold text-slate-600 w-20\">Qty</th><th class=\"text-right px-4 py-2.5 font-semibold text-slate-600 w-28 hidden sm:table-cell\">Unit Cost</th><th class=\"text-right px-4 py-2.5 font-semibold text-slate-600 w-32\">Total</th></tr></thead> <tbody class=\"divide-y divide-gray-100\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					for _, line := range po.Lines {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 39, "<tr class=\"hover:bg-gray-50\"><td class=\"px-4 py-2.5 text-slate-400 text-xs\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<tr class=\"hover:bg-gray-50\"><td class=\"px-4 py-2.5 text-slate-400 text-xs\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var23 string
 						templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d", line.LineNumber))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 243, Col: 93}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 249, Col: 93}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</td><td class=\"px-4 py-2.5\"><div class=\"font-medium text-slate-800\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</td><td class=\"px-4 py-2.5\"><div class=\"font-medium text-slate-800\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var24 string
 						templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(line.Description)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 245, Col: 69}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 251, Col: 69}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "</div>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						if line.ProductCode != nil {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<div class=\"text-xs text-slate-500 font-mono\">")
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<div class=\"text-xs text-slate-500 font-mono\">")
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
 							var templ_7745c5c3_Var25 string
 							templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(*line.ProductCode)
 							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 247, Col: 77}
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 253, Col: 77}
 							}
 							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "</div>")
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-						}
-						if line.ExpenseAccountCode != nil {
-							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<div class=\"text-xs text-slate-500\">Expense: ")
-							if templ_7745c5c3_Err != nil {
-								return templ_7745c5c3_Err
-							}
-							var templ_7745c5c3_Var26 string
-							templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(*line.ExpenseAccountCode)
-							if templ_7745c5c3_Err != nil {
-								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 250, Col: 83}
-							}
-							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 							if templ_7745c5c3_Err != nil {
 								return templ_7745c5c3_Err
 							}
@@ -475,87 +467,106 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 								return templ_7745c5c3_Err
 							}
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</td><td class=\"px-4 py-2.5 text-right font-mono text-slate-700\">")
+						if line.ExpenseAccountCode != nil {
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "<div class=\"text-xs text-slate-500\">Expense: ")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							var templ_7745c5c3_Var26 string
+							templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(*line.ExpenseAccountCode)
+							if templ_7745c5c3_Err != nil {
+								return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 256, Col: 83}
+							}
+							_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+							templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</div>")
+							if templ_7745c5c3_Err != nil {
+								return templ_7745c5c3_Err
+							}
+						}
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</td><td class=\"px-4 py-2.5 text-right font-mono text-slate-700\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var27 string
 						templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(line.Quantity.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 253, Col: 100}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 259, Col: 100}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</td><td class=\"px-4 py-2.5 text-right font-mono text-slate-700 hidden sm:table-cell\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</td><td class=\"px-4 py-2.5 text-right font-mono text-slate-700 hidden sm:table-cell\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var28 string
 						templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(line.UnitCost.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 254, Col: 121}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 260, Col: 121}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</td><td class=\"px-4 py-2.5 text-right font-mono font-semibold text-slate-800\">")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</td><td class=\"px-4 py-2.5 text-right font-mono font-semibold text-slate-800\">")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 						var templ_7745c5c3_Var29 string
 						templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(line.LineTotalTransaction.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 255, Col: 126}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 261, Col: 126}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "</td></tr>")
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, "</td></tr>")
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</tbody><tfoot><tr class=\"border-t-2 border-gray-300 bg-slate-50 font-semibold\"><td class=\"px-4 py-3 text-slate-700\" colspan=\"4\">Total (")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</tbody><tfoot><tr class=\"border-t-2 border-gray-300 bg-slate-50 font-semibold\"><td class=\"px-4 py-3 text-slate-700\" colspan=\"4\">Total (")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var30 string
 					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(po.Currency)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 261, Col: 78}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 267, Col: 78}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 51, ")</td><td class=\"px-4 py-3 text-right font-mono text-slate-900\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, ")</td><td class=\"px-4 py-3 text-right font-mono text-slate-900\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var31 string
 					templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(po.TotalTransaction.StringFixed(2))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 262, Col: 103}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 268, Col: 103}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 52, "</td></tr></tfoot></table>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "</td></tr></tfoot></table>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 53, "</div><!-- Invoice info (shown when INVOICED or PAID) --> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "</div><!-- Invoice info (shown when INVOICED or PAID) --> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if po.Status == "INVOICED" || po.Status == "PAID" {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 54, "<div class=\"bg-white rounded-xl border border-gray-200 p-4\"><h2 class=\"font-semibold text-slate-700 text-sm mb-3\">Invoice Details</h2><div class=\"grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs\"><div><div class=\"text-slate-500 mb-0.5\">Invoice #</div><div class=\"text-slate-800 font-mono\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "<div class=\"bg-white rounded-xl border border-gray-200 p-4\"><h2 class=\"font-semibold text-slate-700 text-sm mb-3\">Invoice Details</h2><div class=\"grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs\"><div><div class=\"text-slate-500 mb-0.5\">Invoice #</div><div class=\"text-slate-800 font-mono\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -563,29 +574,9 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 						var templ_7745c5c3_Var32 string
 						templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(*po.InvoiceNumber)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 277, Col: 29}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 283, Col: 29}
 						}
 						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-					} else {
-						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 55, "—")
-						if templ_7745c5c3_Err != nil {
-							return templ_7745c5c3_Err
-						}
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 56, "</div></div><div><div class=\"text-slate-500 mb-0.5\">Invoice Date</div><div class=\"text-slate-700\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					if po.InvoiceDate != nil {
-						var templ_7745c5c3_Var33 string
-						templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(*po.InvoiceDate)
-						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 287, Col: 27}
-						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -595,17 +586,17 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "</div></div><div><div class=\"text-slate-500 mb-0.5\">Invoice Amount</div><div class=\"text-slate-800 font-mono font-semibold\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 58, "</div></div><div><div class=\"text-slate-500 mb-0.5\">Invoice Date</div><div class=\"text-slate-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if po.InvoiceAmount != nil {
-						var templ_7745c5c3_Var34 string
-						templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(po.InvoiceAmount.StringFixed(2))
+					if po.InvoiceDate != nil {
+						var templ_7745c5c3_Var33 string
+						templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(*po.InvoiceDate)
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 297, Col: 43}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 293, Col: 27}
 						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -615,17 +606,17 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</div></div><div><div class=\"text-slate-500 mb-0.5\">PI Document</div><div class=\"text-slate-700 font-mono\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 60, "</div></div><div><div class=\"text-slate-500 mb-0.5\">Invoice Amount</div><div class=\"text-slate-800 font-mono font-semibold\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					if po.PIDocumentNumber != nil {
-						var templ_7745c5c3_Var35 string
-						templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(*po.PIDocumentNumber)
+					if po.InvoiceAmount != nil {
+						var templ_7745c5c3_Var34 string
+						templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(po.InvoiceAmount.StringFixed(2))
 						if templ_7745c5c3_Err != nil {
-							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 307, Col: 32}
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 303, Col: 43}
 						}
-						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 						if templ_7745c5c3_Err != nil {
 							return templ_7745c5c3_Err
 						}
@@ -635,58 +626,59 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "</div></div></div></div>")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 62, "</div></div><div><div class=\"text-slate-500 mb-0.5\">PI Document</div><div class=\"text-slate-700 font-mono\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					if po.PIDocumentNumber != nil {
+						var templ_7745c5c3_Var35 string
+						templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(*po.PIDocumentNumber)
+						if templ_7745c5c3_Err != nil {
+							return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 313, Col: 32}
+						}
+						_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					} else {
+						templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, "—")
+						if templ_7745c5c3_Err != nil {
+							return templ_7745c5c3_Err
+						}
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "</div></div></div></div>")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 63, " <!-- Timeline --> <div class=\"bg-white rounded-xl border border-gray-200 p-4\"><h2 class=\"font-semibold text-slate-700 text-sm mb-3\">Timeline</h2><div class=\"grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs\"><div><div class=\"text-slate-500 mb-0.5\">Created</div><div class=\"text-slate-700\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, " <!-- Timeline --> <div class=\"bg-white rounded-xl border border-gray-200 p-4\"><h2 class=\"font-semibold text-slate-700 text-sm mb-3\">Timeline</h2><div class=\"grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs\"><div><div class=\"text-slate-500 mb-0.5\">Created</div><div class=\"text-slate-700\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var36 string
 				templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(po.CreatedAt.Format("2006-01-02 15:04"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 322, Col: 76}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 328, Col: 76}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 64, "</div></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				if po.ApprovedAt != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 65, "<div><div class=\"text-slate-500 mb-0.5\">Approved</div><div class=\"text-slate-700\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<div><div class=\"text-slate-500 mb-0.5\">Approved</div><div class=\"text-slate-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var37 string
 					templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(po.ApprovedAt.Format("2006-01-02 15:04"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 327, Col: 78}
-					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 66, "</div></div>")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-				}
-				if po.ReceivedAt != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 67, "<div><div class=\"text-slate-500 mb-0.5\">Received</div><div class=\"text-slate-700\">")
-					if templ_7745c5c3_Err != nil {
-						return templ_7745c5c3_Err
-					}
-					var templ_7745c5c3_Var38 string
-					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(po.ReceivedAt.Format("2006-01-02 15:04"))
-					if templ_7745c5c3_Err != nil {
 						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 333, Col: 78}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -695,17 +687,17 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 						return templ_7745c5c3_Err
 					}
 				}
-				if po.InvoicedAt != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "<div><div class=\"text-slate-500 mb-0.5\">Invoiced</div><div class=\"text-slate-700\">")
+				if po.ReceivedAt != nil {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 69, "<div><div class=\"text-slate-500 mb-0.5\">Received</div><div class=\"text-slate-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var39 string
-					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(po.InvoicedAt.Format("2006-01-02 15:04"))
+					var templ_7745c5c3_Var38 string
+					templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(po.ReceivedAt.Format("2006-01-02 15:04"))
 					if templ_7745c5c3_Err != nil {
 						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 339, Col: 78}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -714,17 +706,17 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 						return templ_7745c5c3_Err
 					}
 				}
-				if po.PaidAt != nil {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "<div><div class=\"text-slate-500 mb-0.5\">Paid</div><div class=\"text-slate-700\">")
+				if po.InvoicedAt != nil {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 71, "<div><div class=\"text-slate-500 mb-0.5\">Invoiced</div><div class=\"text-slate-700\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					var templ_7745c5c3_Var40 string
-					templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(po.PaidAt.Format("2006-01-02 15:04"))
+					var templ_7745c5c3_Var39 string
+					templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(po.InvoicedAt.Format("2006-01-02 15:04"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 345, Col: 74}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 345, Col: 78}
 					}
-					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -733,12 +725,31 @@ func PODetail(d layouts.AppLayoutData, po *core.PurchaseOrder, companyCode strin
 						return templ_7745c5c3_Err
 					}
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "</div></div>")
+				if po.PaidAt != nil {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 73, "<div><div class=\"text-slate-500 mb-0.5\">Paid</div><div class=\"text-slate-700\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var40 string
+					templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(po.PaidAt.Format("2006-01-02 15:04"))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/po_detail.templ`, Line: 351, Col: 74}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "</div></div>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "</div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 74, "</div><script>\r\n\t\t\tfunction poActions(companyCode, poID) {\r\n\t\t\t\t// Build initial receiveLines map keyed by po_line_id\r\n\t\t\t\tconst lines = document.querySelectorAll('[x-model*=\"receiveLines\"]');\r\n\t\t\t\tconst receiveLines = {};\r\n\t\t\t\tlines.forEach(el => {\r\n\t\t\t\t\tconst m = el.getAttribute('x-model');\r\n\t\t\t\t\tconst match = m && m.match(/receiveLines\\[(\\d+)\\]/);\r\n\t\t\t\t\tif (match) {\r\n\t\t\t\t\t\tconst id = parseInt(match[1]);\r\n\t\t\t\t\t\tif (!receiveLines[id]) receiveLines[id] = { lineID: id, qty: '' };\r\n\t\t\t\t\t}\r\n\t\t\t\t});\r\n\r\n\t\t\t\treturn {\r\n\t\t\t\t\tloading: false,\r\n\t\t\t\t\terror: '',\r\n\t\t\t\t\twarning: '',\r\n\t\t\t\t\treceiveLines: receiveLines,\r\n\t\t\t\t\tinvoiceNumber: '',\r\n\t\t\t\t\tinvoiceDate: new Date().toISOString().slice(0, 10),\r\n\t\t\t\t\tinvoiceAmount: '',\r\n\t\t\t\t\tbankCode: '1000',\r\n\t\t\t\t\tpaymentDate: new Date().toISOString().slice(0, 10),\r\n\r\n\t\t\t\t\tasync approve() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/approve`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({})\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Approval failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t},\r\n\r\n\t\t\t\t\tasync receive() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tconst lines = Object.values(this.receiveLines)\r\n\t\t\t\t\t\t\t.filter(l => l.qty && parseFloat(l.qty) > 0)\r\n\t\t\t\t\t\t\t.map(l => ({ po_line_id: l.lineID, qty_received: l.qty.toString() }));\r\n\t\t\t\t\t\tif (lines.length === 0) {\r\n\t\t\t\t\t\t\tthis.error = 'Enter at least one received quantity.';\r\n\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/receive`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({ warehouse_code: 'MAIN', lines })\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Receipt failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t},\r\n\r\n\t\t\t\t\tasync invoice() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tif (!this.invoiceNumber) { this.error = 'Invoice number is required.'; return; }\r\n\t\t\t\t\t\tif (!this.invoiceAmount) { this.error = 'Invoice amount is required.'; return; }\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/invoice`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({\r\n\t\t\t\t\t\t\t\t\tinvoice_number: this.invoiceNumber,\r\n\t\t\t\t\t\t\t\t\tinvoice_date: this.invoiceDate,\r\n\t\t\t\t\t\t\t\t\tinvoice_amount: this.invoiceAmount.toString()\r\n\t\t\t\t\t\t\t\t})\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Invoice recording failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\tconst data = await resp.json();\r\n\t\t\t\t\t\t\t\tif (data.warning) {\r\n\t\t\t\t\t\t\t\t\tthis.warning = '⚠ ' + data.warning;\r\n\t\t\t\t\t\t\t\t\tsetTimeout(() => window.location.reload(), 2500);\r\n\t\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t},\r\n\r\n\t\t\t\t\tasync pay() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/pay`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({\r\n\t\t\t\t\t\t\t\t\tbank_account_code: this.bankCode,\r\n\t\t\t\t\t\t\t\t\tpayment_date: this.paymentDate\r\n\t\t\t\t\t\t\t\t})\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Payment failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t}\r\n\t\t\t\t};\r\n\t\t\t}\r\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "</div><script>\r\n\t\t\tfunction poActions(companyCode, poID) {\r\n\t\t\t\t// Build initial receiveLines map keyed by po_line_id\r\n\t\t\t\tconst lines = document.querySelectorAll('[x-model*=\"receiveLines\"]');\r\n\t\t\t\tconst receiveLines = {};\r\n\t\t\t\tlines.forEach(el => {\r\n\t\t\t\t\tconst m = el.getAttribute('x-model');\r\n\t\t\t\t\tconst match = m && m.match(/receiveLines\\[(\\d+)\\]/);\r\n\t\t\t\t\tif (match) {\r\n\t\t\t\t\t\tconst id = parseInt(match[1]);\r\n\t\t\t\t\t\tif (!receiveLines[id]) receiveLines[id] = { lineID: id, qty: '' };\r\n\t\t\t\t\t}\r\n\t\t\t\t});\r\n\r\n\t\t\t\treturn {\r\n\t\t\t\t\tloading: false,\r\n\t\t\t\t\terror: '',\r\n\t\t\t\t\twarning: '',\r\n\t\t\t\t\treceiveLines: receiveLines,\r\n\t\t\t\t\tinvoiceNumber: '',\r\n\t\t\t\t\tinvoiceDate: new Date().toISOString().slice(0, 10),\r\n\t\t\t\t\tinvoiceAmount: '',\r\n\t\t\t\t\tbankCode: '1000',\r\n\t\t\t\t\tpaymentDate: new Date().toISOString().slice(0, 10),\r\n\r\n\t\t\t\t\tasync approve() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/approve`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({})\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Approval failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t},\r\n\r\n\t\t\t\t\tasync receive() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tconst lines = Object.values(this.receiveLines)\r\n\t\t\t\t\t\t\t.filter(l => l.qty && parseFloat(l.qty) > 0)\r\n\t\t\t\t\t\t\t.map(l => ({ po_line_id: l.lineID, qty_received: l.qty.toString() }));\r\n\t\t\t\t\t\tif (lines.length === 0) {\r\n\t\t\t\t\t\t\tthis.error = 'Enter at least one received quantity.';\r\n\t\t\t\t\t\t\treturn;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/receive`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({ warehouse_code: 'MAIN', lines })\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Receipt failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t},\r\n\r\n\t\t\t\t\tasync invoice() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tif (!this.invoiceNumber) { this.error = 'Invoice number is required.'; return; }\r\n\t\t\t\t\t\tif (!this.invoiceAmount) { this.error = 'Invoice amount is required.'; return; }\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/invoice`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({\r\n\t\t\t\t\t\t\t\t\tinvoice_number: this.invoiceNumber,\r\n\t\t\t\t\t\t\t\t\tinvoice_date: this.invoiceDate,\r\n\t\t\t\t\t\t\t\t\tinvoice_amount: this.invoiceAmount.toString()\r\n\t\t\t\t\t\t\t\t})\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Invoice recording failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\tconst data = await resp.json();\r\n\t\t\t\t\t\t\t\tif (data.warning) {\r\n\t\t\t\t\t\t\t\t\tthis.warning = '⚠ ' + data.warning;\r\n\t\t\t\t\t\t\t\t\tsetTimeout(() => window.location.reload(), 2500);\r\n\t\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t},\r\n\r\n\t\t\t\t\tasync pay() {\r\n\t\t\t\t\t\tthis.error = '';\r\n\t\t\t\t\t\tthis.loading = true;\r\n\t\t\t\t\t\ttry {\r\n\t\t\t\t\t\t\tconst resp = await fetch(`/api/companies/${companyCode}/purchase-orders/${poID}/pay`, {\r\n\t\t\t\t\t\t\t\tmethod: 'POST',\r\n\t\t\t\t\t\t\t\theaders: { 'Content-Type': 'application/json' },\r\n\t\t\t\t\t\t\t\tbody: JSON.stringify({\r\n\t\t\t\t\t\t\t\t\tbank_account_code: this.bankCode,\r\n\t\t\t\t\t\t\t\t\tpayment_date: this.paymentDate\r\n\t\t\t\t\t\t\t\t})\r\n\t\t\t\t\t\t\t});\r\n\t\t\t\t\t\t\tif (!resp.ok) {\r\n\t\t\t\t\t\t\t\tconst d = await resp.json().catch(() => ({}));\r\n\t\t\t\t\t\t\t\tthis.error = d.error || 'Payment failed.';\r\n\t\t\t\t\t\t\t} else {\r\n\t\t\t\t\t\t\t\twindow.location.reload();\r\n\t\t\t\t\t\t\t}\r\n\t\t\t\t\t\t} catch (e) {\r\n\t\t\t\t\t\t\tthis.error = 'Network error.';\r\n\t\t\t\t\t\t} finally {\r\n\t\t\t\t\t\t\tthis.loading = false;\r\n\t\t\t\t\t\t}\r\n\t\t\t\t\t}\r\n\t\t\t\t};\r\n\t\t\t}\r\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

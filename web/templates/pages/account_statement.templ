@@ -87,34 +87,34 @@ templ AccountStatement(d layouts.AppLayoutData, result *app.AccountStatementResu
 				</div>
 			} else {
 				<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-					<table class="w-full text-sm">
+					<table class="data-table">
 						<thead>
-							<tr class="bg-slate-50 border-b border-gray-200">
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Date</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600">Narration</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Reference</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28">Debit</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28">Credit</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-32">Balance</th>
+							<tr>
+								<th class="w-28">Date</th>
+								<th>Narration</th>
+								<th class="w-28">Reference</th>
+								<th class="w-28">Debit</th>
+								<th class="w-28">Credit</th>
+								<th class="w-32">Balance</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-100">
+						<tbody>
 							for _, line := range result.Lines {
-								<tr class="hover:bg-gray-50 transition-colors">
-									<td class="px-4 py-2.5 font-mono text-xs text-slate-600">{ line.PostingDate }</td>
-									<td class="px-4 py-2.5 text-slate-800 max-w-xs truncate">{ line.Narration }</td>
-									<td class="px-4 py-2.5 font-mono text-xs text-slate-500">{ line.Reference }</td>
+								<tr>
+									<td class="font-mono text-xs text-slate-500">{ line.PostingDate }</td>
+									<td class="max-w-xs truncate">{ line.Narration }</td>
+									<td class="font-mono text-xs text-slate-500">{ line.Reference }</td>
 									if line.Debit.IsZero() {
-										<td class="px-4 py-2.5 text-right font-mono text-slate-300">—</td>
+										<td class="num text-slate-300">—</td>
 									} else {
-										<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ line.Debit.StringFixed(2) }</td>
+										<td class="num">{ line.Debit.StringFixed(2) }</td>
 									}
 									if line.Credit.IsZero() {
-										<td class="px-4 py-2.5 text-right font-mono text-slate-300">—</td>
+										<td class="num text-slate-300">—</td>
 									} else {
-										<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ line.Credit.StringFixed(2) }</td>
+										<td class="num">{ line.Credit.StringFixed(2) }</td>
 									}
-									<td class={ "px-4 py-2.5 text-right font-mono " + stmtBalanceClass(line.RunningBalance.IsPositive()) }>
+									<td class={ "num " + stmtBalanceClass(line.RunningBalance.IsPositive()) }>
 										{ line.RunningBalance.StringFixed(2) }
 									</td>
 								</tr>

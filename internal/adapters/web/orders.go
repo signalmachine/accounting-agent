@@ -19,14 +19,12 @@ import (
 // customersListPage handles GET /sales/customers.
 func (h *Handler) customersListPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Customers", "customers")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
-	result, err := h.svc.ListCustomers(r.Context(), company.CompanyCode)
+	result, err := h.svc.ListCustomers(r.Context(), d.CompanyCode)
 	if err != nil {
 		d.FlashMsg = "Failed to load customers: " + err.Error()
 		d.FlashKind = "error"
@@ -40,21 +38,19 @@ func (h *Handler) customersListPage(w http.ResponseWriter, r *http.Request) {
 // productsListPage handles GET /inventory/products.
 func (h *Handler) productsListPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Products", "products")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
-	products, err := h.svc.ListProducts(r.Context(), company.CompanyCode)
+	products, err := h.svc.ListProducts(r.Context(), d.CompanyCode)
 	if err != nil {
 		d.FlashMsg = "Failed to load products: " + err.Error()
 		d.FlashKind = "error"
 		products = &app.ProductListResult{}
 	}
 
-	stock, _ := h.svc.GetStockLevels(r.Context(), company.CompanyCode)
+	stock, _ := h.svc.GetStockLevels(r.Context(), d.CompanyCode)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = pages.ProductsList(d, products, stock).Render(r.Context(), w)
@@ -63,14 +59,12 @@ func (h *Handler) productsListPage(w http.ResponseWriter, r *http.Request) {
 // stockPage handles GET /inventory/stock.
 func (h *Handler) stockPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Stock Levels", "stock")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
-	result, err := h.svc.GetStockLevels(r.Context(), company.CompanyCode)
+	result, err := h.svc.GetStockLevels(r.Context(), d.CompanyCode)
 	if err != nil {
 		d.FlashMsg = "Failed to load stock levels: " + err.Error()
 		d.FlashKind = "error"
@@ -84,10 +78,8 @@ func (h *Handler) stockPage(w http.ResponseWriter, r *http.Request) {
 // ordersListPage handles GET /sales/orders.
 func (h *Handler) ordersListPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Sales Orders", "orders")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
@@ -103,11 +95,11 @@ func (h *Handler) ordersListPage(w http.ResponseWriter, r *http.Request) {
 		d.FlashKind = "error"
 	}
 
-	result, err := h.svc.ListOrders(r.Context(), company.CompanyCode, statusPtr)
+	result, err := h.svc.ListOrders(r.Context(), d.CompanyCode, statusPtr)
 	if err != nil {
 		d.FlashMsg = "Failed to load orders: " + err.Error()
 		d.FlashKind = "error"
-		result = &app.OrderListResult{CompanyCode: company.CompanyCode}
+		result = &app.OrderListResult{CompanyCode: d.CompanyCode}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -117,26 +109,23 @@ func (h *Handler) ordersListPage(w http.ResponseWriter, r *http.Request) {
 // orderDetailPage handles GET /sales/orders/{ref}.
 func (h *Handler) orderDetailPage(w http.ResponseWriter, r *http.Request) {
 	ref := chi.URLParam(r, "ref")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	d := h.buildAppLayoutData(r, "Order", "orders")
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
-
-	d := h.buildAppLayoutData(r, "Order", "orders")
 
 	if fe := r.URL.Query().Get("flash_error"); fe != "" {
 		d.FlashMsg = fe
 		d.FlashKind = "error"
 	}
 
-	result, err := h.svc.GetOrder(r.Context(), ref, company.CompanyCode)
+	result, err := h.svc.GetOrder(r.Context(), ref, d.CompanyCode)
 	if err != nil {
 		d.FlashMsg = "Order not found: " + err.Error()
 		d.FlashKind = "error"
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = pages.OrderDetail(d, nil, company.CompanyCode).Render(r.Context(), w)
+		_ = pages.OrderDetail(d, nil, d.CompanyCode).Render(r.Context(), w)
 		return
 	}
 
@@ -145,16 +134,14 @@ func (h *Handler) orderDetailPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = pages.OrderDetail(d, result.Order, company.CompanyCode).Render(r.Context(), w)
+	_ = pages.OrderDetail(d, result.Order, d.CompanyCode).Render(r.Context(), w)
 }
 
 // orderWizardPage handles GET /sales/orders/new.
 func (h *Handler) orderWizardPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "New Sales Order", "orders")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
@@ -163,18 +150,18 @@ func (h *Handler) orderWizardPage(w http.ResponseWriter, r *http.Request) {
 		d.FlashKind = "error"
 	}
 
-	customers, err := h.svc.ListCustomers(r.Context(), company.CompanyCode)
+	customers, err := h.svc.ListCustomers(r.Context(), d.CompanyCode)
 	if err != nil {
 		customers = &app.CustomerListResult{}
 	}
 
-	products, err := h.svc.ListProducts(r.Context(), company.CompanyCode)
+	products, err := h.svc.ListProducts(r.Context(), d.CompanyCode)
 	if err != nil {
 		products = &app.ProductListResult{}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = pages.OrderWizard(d, customers, products, company.CompanyCode).Render(r.Context(), w)
+	_ = pages.OrderWizard(d, customers, products, d.CompanyCode).Render(r.Context(), w)
 }
 
 // orderCreateAction handles POST /sales/orders/new — HTML form submission.
@@ -184,14 +171,14 @@ func (h *Handler) orderCreateAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
+	claims := authFromContext(r.Context())
+	if claims == nil || claims.CompanyCode == "" {
 		http.Redirect(w, r, "/sales/orders?flash_error=company+not+found", http.StatusSeeOther)
 		return
 	}
 
 	req := app.CreateOrderRequest{
-		CompanyCode:  company.CompanyCode,
+		CompanyCode:  claims.CompanyCode,
 		CustomerCode: r.FormValue("customer_code"),
 		OrderDate:    r.FormValue("order_date"),
 		Currency:     r.FormValue("currency"),

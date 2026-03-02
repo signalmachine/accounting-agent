@@ -97,3 +97,28 @@ type PayVendorRequest struct {
 	BankAccountCode string
 	PaymentDate     time.Time
 }
+
+// CreateUserRequest is the input for creating a new user.
+type CreateUserRequest struct {
+	CompanyCode string
+	Username    string
+	Email       string
+	Password    string // plain-text; hashed by the service
+	Role        string // ACCOUNTANT | FINANCE_MANAGER | ADMIN
+}
+
+// RegisterCompanyRequest is the input for self-service tenant registration.
+// Creates a new company and its first ADMIN user in a single atomic transaction.
+type RegisterCompanyRequest struct {
+	CompanyName string
+	Username    string
+	Email       string
+	Password    string // plain-text; hashed by the service
+}
+
+// UpdateUserRoleRequest changes the role of a user within a company.
+type UpdateUserRoleRequest struct {
+	CompanyCode string
+	UserID      int
+	Role        string // ACCOUNTANT | FINANCE_MANAGER | ADMIN
+}

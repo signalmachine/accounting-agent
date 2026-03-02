@@ -33,6 +33,8 @@ By combining a deterministic accounting core with a sales order lifecycle, physi
 | **Web UI** | Full server-rendered interface: templ + HTMX + Alpine.js + Tailwind CSS v4. Chat home, dashboard, accounting reports, order/PO lifecycle |
 | **Authentication** | JWT HS256 with httpOnly cookies, bcrypt password hashing, `RequireAuth`/`RequireAuthBrowser` middleware |
 | **Document Upload** | JPG/PNG/WEBP image attachments in AI chat (30-min TTL cleanup) |
+| **REPL** | Interactive terminal interface (`./app.exe`) — permanent power-user tool, independent verification layer, works without a running web server |
+| **Stateless CLI** | One-shot commands (`propose`, `validate`, `commit`, `balances`) — composable in shell pipelines and scripts |
 | **ApplicationService Layer** | Single interface that all adapters call — no business logic in REPL, CLI, or web handlers |
 | **PostgreSQL** | ACID-compliant persistence, row-level locking, hand-written SQL (no ORM) |
 
@@ -347,6 +349,9 @@ All API routes are under `/api/companies/{code}/` and require JWT auth (`Authori
 | `POST` | `/chat/upload` | Upload image attachment (JPG/PNG/WEBP, max 50 MB) |
 
 ### Interactive REPL
+
+The REPL is a **permanent, first-class interface** — not a legacy fallback. It is the fastest way for power users to interact with the system, and it serves as an independent verification layer when the web UI is under development or unavailable.
+
 ```bash
 ./app.exe
 ```
@@ -425,6 +430,9 @@ SESSION
 ```
 
 ### CLI Commands
+
+The stateless CLI is a **permanent feature** designed for automation, scripting, and shell pipeline composition.
+
 ```bash
 # Propose a transaction (outputs JSON)
 ./app.exe propose "Paid $120 for software subscription"

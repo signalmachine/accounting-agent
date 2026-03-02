@@ -54,27 +54,27 @@ templ PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) 
 				<div class="px-4 py-3 bg-green-50 border-b border-gray-200">
 					<h2 class="font-semibold text-green-800 text-sm">Revenue</h2>
 				</div>
-				<table class="w-full text-sm">
-					<tbody class="divide-y divide-gray-100">
+				<table class="data-table">
+					<tbody>
 						if len(report.Revenue) == 0 {
 							<tr>
-								<td class="px-4 py-3 text-slate-400 italic" colspan="2">No revenue activity this period</td>
+								<td class="italic text-slate-400" colspan="2">No revenue activity this period</td>
 							</tr>
 						}
 						for _, line := range report.Revenue {
-							<tr class="hover:bg-gray-50 transition-colors">
-								<td class="px-4 py-2.5 text-slate-800">
+							<tr>
+								<td>
 									<span class="font-mono text-xs text-slate-500 mr-2">{ line.Code }</span>
 									{ line.Name }
 								</td>
-								<td class="px-4 py-2.5 text-right font-mono text-green-700">{ line.Balance.StringFixed(2) }</td>
+								<td class="num num-credit">{ line.Balance.StringFixed(2) }</td>
 							</tr>
 						}
 					</tbody>
 					<tfoot>
-						<tr class="bg-green-50 border-t border-gray-200 font-semibold">
-							<td class="px-4 py-3 text-green-800">Total Revenue</td>
-							<td class="px-4 py-3 text-right font-mono text-green-800">{ plRevenueTotal(report).StringFixed(2) }</td>
+						<tr>
+							<td class="text-green-800">Total Revenue</td>
+							<td class="num text-green-800">{ plRevenueTotal(report).StringFixed(2) }</td>
 						</tr>
 					</tfoot>
 				</table>
@@ -84,27 +84,27 @@ templ PLReport(d layouts.AppLayoutData, report *core.PLReport, year, month int) 
 				<div class="px-4 py-3 bg-red-50 border-b border-gray-200">
 					<h2 class="font-semibold text-red-800 text-sm">Expenses</h2>
 				</div>
-				<table class="w-full text-sm">
-					<tbody class="divide-y divide-gray-100">
+				<table class="data-table">
+					<tbody>
 						if len(report.Expenses) == 0 {
 							<tr>
-								<td class="px-4 py-3 text-slate-400 italic" colspan="2">No expense activity this period</td>
+								<td class="italic text-slate-400" colspan="2">No expense activity this period</td>
 							</tr>
 						}
 						for _, line := range report.Expenses {
-							<tr class="hover:bg-gray-50 transition-colors">
-								<td class="px-4 py-2.5 text-slate-800">
+							<tr>
+								<td>
 									<span class="font-mono text-xs text-slate-500 mr-2">{ line.Code }</span>
 									{ line.Name }
 								</td>
-								<td class="px-4 py-2.5 text-right font-mono text-red-700">{ line.Balance.StringFixed(2) }</td>
+								<td class="num num-debit">{ line.Balance.StringFixed(2) }</td>
 							</tr>
 						}
 					</tbody>
 					<tfoot>
-						<tr class="bg-red-50 border-t border-gray-200 font-semibold">
-							<td class="px-4 py-3 text-red-800">Total Expenses</td>
-							<td class="px-4 py-3 text-right font-mono text-red-800">{ plExpenseTotal(report).StringFixed(2) }</td>
+						<tr>
+							<td class="text-red-800">Total Expenses</td>
+							<td class="num text-red-800">{ plExpenseTotal(report).StringFixed(2) }</td>
 						</tr>
 					</tfoot>
 				</table>

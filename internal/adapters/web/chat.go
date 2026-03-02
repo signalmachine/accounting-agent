@@ -104,6 +104,54 @@ func sendSSE(w http.ResponseWriter, f http.Flusher, event string, data any) {
 	f.Flush()
 }
 
+// ── Enriched proposal types (display-only, never touches commit path) ─────────
+
+// enrichedProposalLine adds a display-only AccountName field.
+// core.ProposalLine must not be modified (strict OpenAI JSON schema).
+type enrichedProposalLine struct {
+	AccountCode string `json:"account_code"`
+	AccountName string `json:"account_name"`
+	IsDebit     bool   `json:"is_debit"`
+	Amount      string `json:"amount"`
+}
+
+type enrichedProposal struct {
+	DocumentTypeCode    string                 `json:"document_type_code"`
+	CompanyCode         string                 `json:"company_code"`
+	TransactionCurrency string                 `json:"transaction_currency"`
+	ExchangeRate        string                 `json:"exchange_rate"`
+	Summary             string                 `json:"summary"`
+	PostingDate         string                 `json:"posting_date"`
+	DocumentDate        string                 `json:"document_date"`
+	Confidence          float64                `json:"confidence"`
+	Reasoning           string                 `json:"reasoning"`
+	Lines               []enrichedProposalLine `json:"lines"`
+}
+
+func buildEnrichedProposal(p *core.Proposal, names map[string]string) enrichedProposal {
+	lines := make([]enrichedProposalLine, len(p.Lines))
+	for i, l := range p.Lines {
+		lines[i] = enrichedProposalLine{
+			AccountCode: l.AccountCode,
+			AccountName: names[l.AccountCode],
+			IsDebit:     l.IsDebit,
+			Amount:      l.Amount,
+		}
+	}
+	return enrichedProposal{
+		DocumentTypeCode:    p.DocumentTypeCode,
+		CompanyCode:         p.CompanyCode,
+		TransactionCurrency: p.TransactionCurrency,
+		ExchangeRate:        p.ExchangeRate,
+		Summary:             p.Summary,
+		PostingDate:         p.PostingDate,
+		DocumentDate:        p.DocumentDate,
+		Confidence:          p.Confidence,
+		Reasoning:           p.Reasoning,
+		Lines:               lines,
+	}
+}
+
 // ── Request / response types ──────────────────────────────────────────────────
 
 type chatMessageRequest struct {
@@ -209,16 +257,28 @@ func (h *Handler) chatMessage(w http.ResponseWriter, r *http.Request) {
 			})
 			break
 		}
+
+		// Enrich proposal lines with account names (best-effort — empty string on error).
+		codes := make([]string, len(aiResult.Proposal.Lines))
+		for i, l := range aiResult.Proposal.Lines {
+			codes[i] = l.AccountCode
+		}
+		nameMap, _ := h.svc.GetAccountNamesByCode(r.Context(), req.CompanyCode, codes)
+		if nameMap == nil {
+			nameMap = map[string]string{}
+		}
+		enriched := buildEnrichedProposal(aiResult.Proposal, nameMap)
+
 		token := uuid.NewString()
 		h.pending.put(token, pendingAction{
 			Kind:        pendingKindJournalEntry,
-			Proposal:    aiResult.Proposal,
+			Proposal:    aiResult.Proposal, // original — commit path is unchanged
 			CompanyCode: req.CompanyCode,
 			CreatedAt:   time.Now(),
 		})
 		sendSSE(w, flusher, "proposal", map[string]any{
 			"token":    token,
-			"proposal": aiResult.Proposal,
+			"proposal": enriched,
 		})
 	}
 

@@ -20,26 +20,29 @@ templ CustomersList(d layouts.AppLayoutData, result *app.CustomerListResult) {
 			<!-- Table -->
 			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
 				if len(result.Customers) == 0 {
-					<div class="p-8 text-center text-slate-500 text-sm">No customers found.</div>
+					<div class="empty-state">
+						<div class="empty-state-icon">👥</div>
+						<div class="empty-state-title">No customers found</div>
+					</div>
 				} else {
-					<table class="w-full text-sm">
+					<table class="data-table">
 						<thead>
-							<tr class="bg-slate-50 border-b border-gray-200">
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Code</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600">Name</th>
-								<th class="text-left px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell">Email</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-36 hidden md:table-cell">Credit Limit</th>
-								<th class="text-right px-4 py-3 font-semibold text-slate-600 w-28 hidden md:table-cell">Pay Terms</th>
+							<tr>
+								<th class="w-28">Code</th>
+								<th>Name</th>
+								<th class="hidden sm:table-cell">Email</th>
+								<th class="w-36 hidden md:table-cell">Credit Limit</th>
+								<th class="w-28 hidden md:table-cell">Pay Terms</th>
 							</tr>
 						</thead>
-						<tbody class="divide-y divide-gray-100">
+						<tbody>
 							for _, c := range result.Customers {
-								<tr class="hover:bg-gray-50 transition-colors">
-									<td class="px-4 py-3 font-mono text-slate-600 text-xs">{ c.Code }</td>
-									<td class="px-4 py-3 text-slate-800 font-medium">{ c.Name }</td>
-									<td class="px-4 py-3 text-slate-500 hidden sm:table-cell">{ c.Email }</td>
-									<td class="px-4 py-3 text-right font-mono text-slate-700 hidden md:table-cell">{ c.CreditLimit.StringFixed(2) }</td>
-									<td class="px-4 py-3 text-right text-slate-500 hidden md:table-cell">{ fmt.Sprintf("%d", c.PaymentTermsDays) }d</td>
+								<tr>
+									<td class="font-mono text-xs text-slate-500">{ c.Code }</td>
+									<td class="font-medium">{ c.Name }</td>
+									<td class="text-slate-500 hidden sm:table-cell">{ c.Email }</td>
+									<td class="num text-slate-700 hidden md:table-cell">{ c.CreditLimit.StringFixed(2) }</td>
+									<td class="num text-slate-500 hidden md:table-cell">{ fmt.Sprintf("%d", c.PaymentTermsDays) }d</td>
 								</tr>
 							}
 						</tbody>

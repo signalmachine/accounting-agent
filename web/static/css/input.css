@@ -1,4 +1,402 @@
+/* Inter variable font (self-hosted).
+   Download Inter.woff2 and Inter-italic.woff2 from https://rsms.me/inter/
+   and place them in web/static/fonts/ before serving in production.
+   Without the font files the browser falls back to ui-sans-serif gracefully. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/fonts/Inter.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/static/fonts/Inter-italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 @import "tailwindcss";
 
 /* Scan templ source files for utility classes */
 @source "../../templates/**/*.templ";
+
+/* ─── Design tokens ────────────────────────────────────────────── */
+@theme {
+  /* Typography */
+  --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand */
+  --color-brand-900: oklch(20.8% .042 265.755);  /* slate-900 — sidebar bg */
+  --color-brand-800: oklch(27.9% .041 260.031);  /* slate-800 — hover */
+  --color-brand-700: oklch(37.2% .044 257.287);  /* slate-700 — active nav */
+
+  /* Surface */
+  --color-surface:        #ffffff;
+  --color-surface-subtle: oklch(98.4% .003 247.858);  /* slate-50 */
+  --color-surface-muted:  oklch(96.8% .007 247.896);  /* slate-100 */
+
+  /* Border */
+  --color-border:        oklch(92.9% .013 255.508);   /* slate-200 */
+  --color-border-subtle: oklch(92.8% .006 264.531);   /* gray-200 */
+
+  /* Text */
+  --color-text-primary:   oklch(20.8% .042 265.755);  /* slate-900 */
+  --color-text-secondary: oklch(44.6% .043 257.281);  /* slate-600 */
+  --color-text-muted:     oklch(55.4% .046 257.417);  /* slate-500 */
+
+  /* Financial semantic colors */
+  --color-debit:    oklch(57.7% .245 27.325);   /* red-600  — debits, negative values */
+  --color-credit:   oklch(52.7% .154 150.069);  /* green-700 — credits, positive values */
+  --color-balanced: oklch(48.8% .243 264.376);  /* blue-700 — balanced totals */
+  --color-warning:  oklch(55.4% .135 66.442);   /* yellow-700 */
+}
+
+/* ─── Component library ────────────────────────────────────────── */
+@layer components {
+
+  /* ── Tabular numbers (monetary columns) ── */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    text-align: right;
+    white-space: nowrap;
+  }
+  .num-debit  { color: var(--color-debit); }
+  .num-credit { color: var(--color-credit); }
+  .num-zero   { color: var(--color-text-muted); }
+  .num-total  {
+    font-weight: 600;
+    border-top: 1px solid var(--color-border);
+    padding-top: 0.25rem;
+  }
+
+  /* ── Data table ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+  .data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .data-table thead th {
+    background-color: var(--color-surface-muted);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.625rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+    text-align: left;
+  }
+  .data-table thead th:last-child,
+  .data-table td:last-child {
+    text-align: right;
+    padding-right: 1.25rem;
+  }
+  .data-table tbody tr {
+    border-bottom: 1px solid var(--color-border-subtle);
+    transition: background-color 0.1s;
+  }
+  .data-table tbody tr:hover {
+    background-color: var(--color-surface-subtle);
+  }
+  .data-table tbody td {
+    padding: 0.625rem 1rem;
+    color: var(--color-text-primary);
+  }
+  .data-table tfoot tr {
+    border-top: 2px solid var(--color-border);
+    background-color: var(--color-surface-muted);
+  }
+  .data-table tfoot td {
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .data-table tr.row-subtotal td {
+    background-color: var(--color-surface-muted);
+    font-weight: 600;
+    border-top: 1px solid var(--color-border);
+  }
+  .data-table tr.row-total td {
+    background-color: oklch(96% .01 255);
+    font-weight: 700;
+    border-top: 2px solid var(--color-border);
+    border-bottom: 2px solid var(--color-border);
+  }
+  .data-table tr.row-section td {
+    background-color: var(--color-surface-muted);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-secondary);
+    padding-top: 1rem;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+  }
+  .page-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    line-height: 1.25;
+  }
+  .page-subtitle {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin-top: 0.125rem;
+  }
+
+  /* ── Card ── */
+  .card {
+    background-color: var(--color-surface);
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  }
+  .card-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--color-border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .card-body { padding: 1.25rem; }
+  .card-body-flush { overflow-x: auto; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary { background-color: var(--color-brand-900); color: white; }
+  .btn-primary:hover  { background-color: var(--color-brand-800); }
+  .btn-primary:active { background-color: oklch(15% .042 265); }
+
+  .btn-secondary {
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+  }
+  .btn-secondary:hover { background-color: var(--color-surface-muted); }
+
+  .btn-danger { background-color: oklch(57.7% .245 27.325); color: white; }
+  .btn-danger:hover { background-color: oklch(50.5% .213 27.518); }
+
+  .btn-ghost { color: var(--color-text-secondary); }
+  .btn-ghost:hover {
+    background-color: var(--color-surface-muted);
+    color: var(--color-text-primary);
+  }
+
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: var(--text-xs); }
+  .btn-lg { padding: 0.625rem 1.25rem; font-size: var(--text-base); }
+
+  /* ── Form inputs ── */
+  .input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--text-sm);
+    color: var(--color-text-primary);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  .input:focus {
+    border-color: var(--color-brand-700);
+    box-shadow: 0 0 0 3px oklch(37.2% .044 257.287 / 0.15);
+  }
+  .input::placeholder { color: var(--color-text-muted); }
+
+  .label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.375rem;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+  .select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25em 1.25em;
+    padding-right: 2.5rem;
+  }
+
+  /* ── Chat markdown ── */
+  .chat-md h1, .chat-md h2, .chat-md h3 {
+    font-weight: 600;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-text-primary);
+  }
+  .chat-md h3 { font-size: var(--text-sm); }
+  .chat-md h2 { font-size: var(--text-base); }
+  .chat-md p  { margin-bottom: 0.5rem; line-height: 1.6; }
+  .chat-md ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+  .chat-md li { margin-bottom: 0.125rem; }
+  .chat-md strong { font-weight: 600; color: var(--color-text-primary); }
+  .chat-md table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-xs);
+    margin-bottom: 0.5rem;
+  }
+  .chat-md th {
+    background-color: var(--color-surface-muted);
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    text-align: left;
+    border: 1px solid var(--color-border);
+  }
+  .chat-md td {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--color-border);
+  }
+  .chat-md td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .chat-md code {
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    background-color: var(--color-surface-muted);
+    padding: 0.1em 0.3em;
+    border-radius: 0.25rem;
+  }
+
+  /* ── Typing indicator (CSS-only animated dots) ── */
+  .typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-text-muted);
+    animation: typing-bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* ── KPI cards (dashboard) ── */
+  .kpi-card {
+    background-color: var(--color-surface);
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border-subtle);
+    border-left: 3px solid;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+  }
+  .kpi-value {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    color: var(--color-text-primary);
+  }
+  .kpi-label {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.375rem;
+  }
+
+  /* ── Empty states ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: var(--color-text-muted);
+    text-align: center;
+  }
+  .empty-state-icon  { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state-title {
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.25rem;
+  }
+  .empty-state-text  { font-size: var(--text-sm); max-width: 20rem; }
+
+  /* ── Status badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-draft     { background: oklch(96.8% .007 247.896); color: oklch(44.6% .043 257.281); }
+  .badge-approved  { background: oklch(97% .014 254.604);   color: oklch(48.8% .243 264.376); }
+  .badge-received  { background: oklch(98.7% .026 102.212); color: oklch(55.4% .135 66.442);  }
+  .badge-invoiced  { background: oklch(97% .014 254.604);   color: oklch(48.8% .243 264.376); }
+  .badge-paid      { background: oklch(98.2% .018 155.826); color: oklch(52.7% .154 150.069); }
+  .badge-cancelled { background: oklch(97.1% .013 17.38);   color: oklch(57.7% .245 27.325);  }
+  .badge-shipped   { background: oklch(97% .014 254.604);   color: oklch(48.8% .243 264.376); }
+
+  /* ── Sidebar nav items (Phase G) ── */
+  .nav-item-active {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-left: 2px solid white;
+    color: white;
+    font-weight: 500;
+  }
+  .nav-item {
+    border-left: 2px solid transparent;
+    color: oklch(75% .02 260);
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.07);
+    color: white;
+  }
+  .sidebar-brand {
+    background: linear-gradient(135deg,
+      oklch(18% .05 270) 0%,
+      oklch(22% .04 260) 100%
+    );
+  }
+}

@@ -40,38 +40,38 @@ templ TrialBalance(d layouts.AppLayoutData, result *app.TrialBalanceResult) {
 			}
 			<!-- Table -->
 			<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-				<table class="w-full text-sm">
+				<table class="data-table">
 					<thead>
-						<tr class="bg-slate-50 border-b border-gray-200">
-							<th class="text-left px-4 py-3 font-semibold text-slate-600 w-28">Code</th>
-							<th class="text-left px-4 py-3 font-semibold text-slate-600">Account Name</th>
-							<th class="text-right px-4 py-3 font-semibold text-slate-600 w-36">Debit</th>
-							<th class="text-right px-4 py-3 font-semibold text-slate-600 w-36">Credit</th>
+						<tr>
+							<th class="w-28">Code</th>
+							<th>Account Name</th>
+							<th class="w-36">Debit</th>
+							<th class="w-36">Credit</th>
 						</tr>
 					</thead>
-					<tbody class="divide-y divide-gray-100">
+					<tbody>
 						for _, acc := range result.Accounts {
-							<tr class="hover:bg-gray-50 transition-colors">
-								<td class="px-4 py-2.5 font-mono text-slate-600 text-xs">{ acc.Code }</td>
-								<td class="px-4 py-2.5 text-slate-800">{ acc.Name }</td>
+							<tr>
+								<td class="font-mono text-xs text-slate-500">{ acc.Code }</td>
+								<td>{ acc.Name }</td>
 								if acc.Balance.GreaterThan(decimal.Zero) {
-									<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ acc.Balance.StringFixed(2) }</td>
-									<td class="px-4 py-2.5 text-right font-mono text-slate-400">—</td>
+									<td class="num">{ acc.Balance.StringFixed(2) }</td>
+									<td class="num text-slate-300">—</td>
 								} else if acc.Balance.LessThan(decimal.Zero) {
-									<td class="px-4 py-2.5 text-right font-mono text-slate-400">—</td>
-									<td class="px-4 py-2.5 text-right font-mono text-slate-800">{ acc.Balance.Neg().StringFixed(2) }</td>
+									<td class="num text-slate-300">—</td>
+									<td class="num">{ acc.Balance.Neg().StringFixed(2) }</td>
 								} else {
-									<td class="px-4 py-2.5 text-right font-mono text-slate-300">—</td>
-									<td class="px-4 py-2.5 text-right font-mono text-slate-300">—</td>
+									<td class="num text-slate-300">—</td>
+									<td class="num text-slate-300">—</td>
 								}
 							</tr>
 						}
 					</tbody>
 					<tfoot>
-						<tr class="bg-slate-50 border-t-2 border-gray-300 font-semibold">
-							<td class="px-4 py-3 text-slate-700" colspan="2">Total</td>
-							<td class="px-4 py-3 text-right font-mono text-slate-900">{ tbDebitTotal(result).StringFixed(2) }</td>
-							<td class="px-4 py-3 text-right font-mono text-slate-900">{ tbCreditTotal(result).StringFixed(2) }</td>
+						<tr>
+							<td colspan="2">Total</td>
+							<td class="num">{ tbDebitTotal(result).StringFixed(2) }</td>
+							<td class="num">{ tbCreditTotal(result).StringFixed(2) }</td>
 						</tr>
 					</tfoot>
 				</table>

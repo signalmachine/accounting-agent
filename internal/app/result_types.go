@@ -59,7 +59,7 @@ type UserSession struct {
 	CompanyID   int    `json:"company_id"`
 }
 
-// UserResult is returned by GetUser.
+// UserResult is returned by GetUser and CreateUser.
 type UserResult struct {
 	UserID      int
 	Username    string
@@ -67,6 +67,11 @@ type UserResult struct {
 	Role        string
 	IsActive    bool
 	CompanyCode string
+}
+
+// UsersResult is returned by ListUsers.
+type UsersResult struct {
+	Users []UserResult
 }
 
 // VendorsResult is returned by ListVendors.

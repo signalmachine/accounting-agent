@@ -66,43 +66,43 @@ func VendorsList(d layouts.AppLayoutData, result *app.VendorsResult) templ.Compo
 				return templ_7745c5c3_Err
 			}
 			if len(result.Vendors) == 0 {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"p-12 text-center text-slate-500\"><div class=\"text-4xl mb-3\">🏢</div><p class=\"font-medium\">No vendors yet</p><p class=\"text-sm mt-1\"><a href=\"/purchases/vendors/new\" class=\"text-slate-700 underline hover:text-slate-900\">Create your first vendor</a></p></div>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"empty-state\"><div class=\"empty-state-icon\">🏢</div><div class=\"empty-state-title\">No vendors yet</div><div class=\"empty-state-text\"><a href=\"/purchases/vendors/new\" class=\"text-slate-700 underline hover:text-slate-900\">Create your first vendor</a></div></div>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<table class=\"w-full text-sm\"><thead><tr class=\"border-b border-gray-200 bg-slate-50\"><th class=\"text-left px-4 py-3 font-semibold text-slate-600\">Code</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600\">Name</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell\">Contact</th><th class=\"text-left px-4 py-3 font-semibold text-slate-600 hidden lg:table-cell\">Email</th><th class=\"text-right px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell\">Payment Terms</th><th class=\"text-right px-4 py-3 font-semibold text-slate-600 hidden sm:table-cell\">AP Account</th><th class=\"px-4 py-3\"></th></tr></thead> <tbody class=\"divide-y divide-gray-100\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<table class=\"data-table\"><thead><tr><th>Code</th><th>Name</th><th class=\"hidden md:table-cell\">Contact</th><th class=\"hidden lg:table-cell\">Email</th><th class=\"hidden sm:table-cell\">Payment Terms</th><th class=\"hidden sm:table-cell\">AP Account</th><th></th></tr></thead> <tbody>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				for _, v := range result.Vendors {
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<tr class=\"hover:bg-gray-50\"><td class=\"px-4 py-3 font-mono text-slate-800 font-medium\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<tr><td class=\"font-mono font-medium\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var4 string
 					templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(v.Code)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/vendors_list.templ`, Line: 54, Col: 76}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/vendors_list.templ`, Line: 54, Col: 51}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</td><td class=\"px-4 py-3 font-medium text-slate-800\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</td><td class=\"font-medium\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
 					var templ_7745c5c3_Var5 string
 					templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(v.Name)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/vendors_list.templ`, Line: 55, Col: 66}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/pages/vendors_list.templ`, Line: 55, Col: 41}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</td><td class=\"px-4 py-3 text-slate-500 hidden md:table-cell\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</td><td class=\"text-slate-500 hidden md:table-cell\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -122,7 +122,7 @@ func VendorsList(d layouts.AppLayoutData, result *app.VendorsResult) templ.Compo
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</td><td class=\"px-4 py-3 text-slate-500 hidden lg:table-cell\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</td><td class=\"text-slate-500 hidden lg:table-cell\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -142,7 +142,7 @@ func VendorsList(d layouts.AppLayoutData, result *app.VendorsResult) templ.Compo
 							return templ_7745c5c3_Err
 						}
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</td><td class=\"px-4 py-3 text-right text-slate-700 hidden sm:table-cell\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</td><td class=\"text-right text-slate-700 hidden sm:table-cell\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -155,7 +155,7 @@ func VendorsList(d layouts.AppLayoutData, result *app.VendorsResult) templ.Compo
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</td><td class=\"px-4 py-3 text-right font-mono text-slate-600 hidden sm:table-cell\">")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</td><td class=\"num font-mono text-slate-500 hidden sm:table-cell\">")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
@@ -168,7 +168,7 @@ func VendorsList(d layouts.AppLayoutData, result *app.VendorsResult) templ.Compo
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}
-					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</td><td class=\"px-4 py-3 text-right\"><a href=\"")
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</td><td class=\"text-right\"><a href=\"")
 					if templ_7745c5c3_Err != nil {
 						return templ_7745c5c3_Err
 					}

@@ -13,9 +13,11 @@ type authClaimsKey struct{}
 
 // AuthClaims holds the authenticated user's identity extracted from the JWT.
 type AuthClaims struct {
-	UserID    int
-	CompanyID int
-	Role      string
+	UserID      int
+	CompanyID   int
+	CompanyCode string
+	Username    string
+	Role        string
 }
 
 // authFromContext returns the auth claims stored in ctx, or nil.
@@ -26,9 +28,11 @@ func authFromContext(ctx context.Context) *AuthClaims {
 
 // jwtClaims is the JWT payload struct used for signing and parsing.
 type jwtClaims struct {
-	UserID    int    `json:"user_id"`
-	CompanyID int    `json:"company_id"`
-	Role      string `json:"role"`
+	UserID      int    `json:"user_id"`
+	CompanyID   int    `json:"company_id"`
+	CompanyCode string `json:"company_code"`
+	Username    string `json:"username"`
+	Role        string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -55,9 +59,11 @@ func (h *Handler) RequireAuth(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), authClaimsKey{}, &AuthClaims{
-			UserID:    claims.UserID,
-			CompanyID: claims.CompanyID,
-			Role:      claims.Role,
+			UserID:      claims.UserID,
+			CompanyID:   claims.CompanyID,
+			CompanyCode: claims.CompanyCode,
+			Username:    claims.Username,
+			Role:        claims.Role,
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -86,12 +92,58 @@ func (h *Handler) RequireAuthBrowser(next http.Handler) http.Handler {
 		}
 
 		ctx := context.WithValue(r.Context(), authClaimsKey{}, &AuthClaims{
-			UserID:    claims.UserID,
-			CompanyID: claims.CompanyID,
-			Role:      claims.Role,
+			UserID:      claims.UserID,
+			CompanyID:   claims.CompanyID,
+			CompanyCode: claims.CompanyCode,
+			Username:    claims.Username,
+			Role:        claims.Role,
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+// hasRole reports whether userRole is in the allowed set.
+func hasRole(userRole string, allowed []string) bool {
+	for _, a := range allowed {
+		if userRole == a {
+			return true
+		}
+	}
+	return false
+}
+
+// RequireRole returns middleware that enforces role-based access on API routes.
+// Callers pass the full set of roles that are permitted, e.g.:
+//
+//	RequireRole("FINANCE_MANAGER", "ADMIN")
+//
+// Returns 403 JSON if the authenticated user's role is not in the allowed set.
+func (h *Handler) RequireRole(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := authFromContext(r.Context())
+			if claims == nil || !hasRole(claims.Role, roles) {
+				writeError(w, r, "insufficient permissions", "FORBIDDEN", http.StatusForbidden)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequireRoleBrowser is RequireRole for browser routes.
+// Redirects to /dashboard?error=forbidden instead of returning 403 JSON.
+func (h *Handler) RequireRoleBrowser(roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			claims := authFromContext(r.Context())
+			if claims == nil || !hasRole(claims.Role, roles) {
+				http.Redirect(w, r, "/dashboard?error=forbidden", http.StatusSeeOther)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // login handles POST /api/auth/login.
@@ -111,9 +163,11 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	claims := &jwtClaims{
-		UserID:    session.UserID,
-		CompanyID: session.CompanyID,
-		Role:      session.Role,
+		UserID:      session.UserID,
+		CompanyID:   session.CompanyID,
+		CompanyCode: session.CompanyCode,
+		Username:    session.Username,
+		Role:        session.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

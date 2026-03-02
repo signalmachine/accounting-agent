@@ -20,10 +20,8 @@ import (
 // vendorsListPage handles GET /purchases/vendors.
 func (h *Handler) vendorsListPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Vendors", "vendors")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
@@ -36,7 +34,7 @@ func (h *Handler) vendorsListPage(w http.ResponseWriter, r *http.Request) {
 		d.FlashKind = "success"
 	}
 
-	result, err := h.svc.ListVendors(r.Context(), company.CompanyCode)
+	result, err := h.svc.ListVendors(r.Context(), d.CompanyCode)
 	if err != nil {
 		d.FlashMsg = "Failed to load vendors: " + err.Error()
 		d.FlashKind = "error"
@@ -67,8 +65,8 @@ func (h *Handler) vendorCreateAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
+	claims := authFromContext(r.Context())
+	if claims == nil || claims.CompanyCode == "" {
 		http.Redirect(w, r, "/purchases/vendors?flash_error=company+not+found", http.StatusSeeOther)
 		return
 	}
@@ -86,7 +84,7 @@ func (h *Handler) vendorCreateAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := app.CreateVendorRequest{
-		CompanyCode:               company.CompanyCode,
+		CompanyCode:               claims.CompanyCode,
 		Code:                      r.FormValue("code"),
 		Name:                      r.FormValue("name"),
 		ContactPerson:             r.FormValue("contact_person"),
@@ -103,7 +101,7 @@ func (h *Handler) vendorCreateAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.svc.CreateVendor(r.Context(), req)
+	_, err := h.svc.CreateVendor(r.Context(), req)
 	if err != nil {
 		http.Redirect(w, r, "/purchases/vendors/new?error="+url.QueryEscape(err.Error()), http.StatusSeeOther)
 		return
@@ -115,10 +113,8 @@ func (h *Handler) vendorCreateAction(w http.ResponseWriter, r *http.Request) {
 // purchaseOrdersListPage handles GET /purchases/orders.
 func (h *Handler) purchaseOrdersListPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "Purchase Orders", "purchase-orders")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
@@ -129,7 +125,7 @@ func (h *Handler) purchaseOrdersListPage(w http.ResponseWriter, r *http.Request)
 		d.FlashKind = "error"
 	}
 
-	result, err := h.svc.ListPurchaseOrders(r.Context(), company.CompanyCode, statusFilter)
+	result, err := h.svc.ListPurchaseOrders(r.Context(), d.CompanyCode, statusFilter)
 	if err != nil {
 		d.FlashMsg = "Failed to load purchase orders: " + err.Error()
 		d.FlashKind = "error"
@@ -143,10 +139,8 @@ func (h *Handler) purchaseOrdersListPage(w http.ResponseWriter, r *http.Request)
 // poWizardPage handles GET /purchases/orders/new.
 func (h *Handler) poWizardPage(w http.ResponseWriter, r *http.Request) {
 	d := h.buildAppLayoutData(r, "New Purchase Order", "purchase-orders")
-
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
 
@@ -155,18 +149,18 @@ func (h *Handler) poWizardPage(w http.ResponseWriter, r *http.Request) {
 		d.FlashKind = "error"
 	}
 
-	vendors, err := h.svc.ListVendors(r.Context(), company.CompanyCode)
+	vendors, err := h.svc.ListVendors(r.Context(), d.CompanyCode)
 	if err != nil {
 		vendors = &app.VendorsResult{}
 	}
 
-	products, err := h.svc.ListProducts(r.Context(), company.CompanyCode)
+	products, err := h.svc.ListProducts(r.Context(), d.CompanyCode)
 	if err != nil {
 		products = &app.ProductListResult{}
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = pages.POWizard(d, vendors, products, company.CompanyCode).Render(r.Context(), w)
+	_ = pages.POWizard(d, vendors, products, d.CompanyCode).Render(r.Context(), w)
 }
 
 // poCreateAction handles POST /purchases/orders/new — HTML form submission.
@@ -176,8 +170,8 @@ func (h *Handler) poCreateAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
+	claims := authFromContext(r.Context())
+	if claims == nil || claims.CompanyCode == "" {
 		http.Redirect(w, r, "/purchases/orders?flash_error=company+not+found", http.StatusSeeOther)
 		return
 	}
@@ -188,7 +182,7 @@ func (h *Handler) poCreateAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req := app.CreatePurchaseOrderRequest{
-		CompanyCode: company.CompanyCode,
+		CompanyCode: claims.CompanyCode,
 		VendorCode:  r.FormValue("vendor_code"),
 		PODate:      poDate,
 		Notes:       r.FormValue("notes"),
@@ -261,25 +255,23 @@ func (h *Handler) poDetailPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	company, err := h.svc.LoadDefaultCompany(r.Context())
-	if err != nil {
-		http.Error(w, "Failed to load company", http.StatusInternalServerError)
+	d := h.buildAppLayoutData(r, "Purchase Order", "purchase-orders")
+	if d.CompanyCode == "" {
+		http.Error(w, "Company not resolved — please log in again", http.StatusUnauthorized)
 		return
 	}
-
-	d := h.buildAppLayoutData(r, "Purchase Order", "purchase-orders")
 
 	if fe := r.URL.Query().Get("flash_error"); fe != "" {
 		d.FlashMsg = fe
 		d.FlashKind = "error"
 	}
 
-	result, err := h.svc.GetPurchaseOrder(r.Context(), company.CompanyCode, poID)
+	result, err := h.svc.GetPurchaseOrder(r.Context(), d.CompanyCode, poID)
 	if err != nil {
 		d.FlashMsg = "Purchase order not found: " + err.Error()
 		d.FlashKind = "error"
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		_ = pages.PODetail(d, nil, company.CompanyCode).Render(r.Context(), w)
+		_ = pages.PODetail(d, nil, d.CompanyCode).Render(r.Context(), w)
 		return
 	}
 
@@ -288,7 +280,7 @@ func (h *Handler) poDetailPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_ = pages.PODetail(d, result.PurchaseOrder, company.CompanyCode).Render(r.Context(), w)
+	_ = pages.PODetail(d, result.PurchaseOrder, d.CompanyCode).Render(r.Context(), w)
 }
 
 // ── API handlers ──────────────────────────────────────────────────────────────
