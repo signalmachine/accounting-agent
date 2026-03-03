@@ -217,7 +217,11 @@ func (h *Handler) chatMessage(w http.ResponseWriter, r *http.Request) {
 	switch result.Kind {
 
 	case app.DomainActionKindAnswer:
-		sendSSE(w, flusher, "answer", map[string]any{"text": result.Answer})
+		answer := result.Answer
+		if answer == "" {
+			answer = "I wasn't able to generate a response. Please try again or rephrase your question."
+		}
+		sendSSE(w, flusher, "answer", map[string]any{"text": answer})
 
 	case app.DomainActionKindClarification:
 		sendSSE(w, flusher, "clarification", map[string]any{

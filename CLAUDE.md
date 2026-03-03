@@ -86,6 +86,12 @@ Layer 1 — Infrastructure
 
 **Monetary precision.** Use `github.com/shopspring/decimal` for all monetary values. Database columns are `NUMERIC(14,2)` or `NUMERIC(15,6)`. Never use `float64` for money.
 
+**Reports always query `journal_lines` directly.** No materialized views for reporting. All reports (`GetTrialBalance`, `GetBalanceSheet`, `GetProfitAndLoss`, `GetAccountStatement`) aggregate from `journal_lines` at query time. Materialized views are not used — they introduce staleness with no staleness indicator.
+
+**Ledger answers financial questions; workflow tables answer operational questions.** Never cross this boundary. AI tools and reports that expose financial balances (account balance, AP, AR, cash position) must source from `journal_lines`. Workflow tables (`purchase_orders`, `sales_orders`, etc.) are valid sources only for operational metrics (open POs, pending shipments, unfulfilled orders). Mixing these sources in a single answer is forbidden. When in doubt: if the question involves a number that would appear on a balance sheet or P&L, the answer comes from the ledger.
+
+**AP account code resolved from `account_rules`, never hardcoded.** Any tool or query targeting the AP account must look up the account code via `account_rules WHERE rule_type = 'AP'` for the company. The same applies to `AR`, `BANK_DEFAULT`, `INVENTORY`, `COGS`, and `RECEIPT_CREDIT` rules. Hardcoding account codes (e.g. `'2000'`) breaks multi-company deployments.
+
 ### REPL Input Classification
 
 The routing rule is simple and has no exceptions:

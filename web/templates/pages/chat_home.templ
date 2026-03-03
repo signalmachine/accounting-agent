@@ -377,6 +377,7 @@ templ ChatHome(d layouts.AppLayoutData) {
 						const decoder = new TextDecoder();
 						let buf = '';
 						let aiMsg = null;
+						let anyResponse = false;
 
 						while (true) {
 							const { done, value } = await reader.read();
@@ -394,6 +395,7 @@ templ ChatHome(d layouts.AppLayoutData) {
 								try {
 									const d = JSON.parse(data);
 									if (event === 'answer') {
+										anyResponse = true;
 										if (!aiMsg) {
 											const raw = d.text || '';
 											aiMsg = { role: 'ai', type: 'text', text: raw, html: marked.parse(raw) };
@@ -405,10 +407,12 @@ templ ChatHome(d layouts.AppLayoutData) {
 										this.saveHistory();
 										this.$nextTick(() => this.scrollToBottom());
 									} else if (event === 'clarification') {
+										anyResponse = true;
 										this.messages.push({ role: 'ai', type: 'text', text: '❓ ' + (d.question || '') });
 										this.saveHistory();
 										this.$nextTick(() => this.scrollToBottom());
 									} else if (event === 'action_card') {
+										anyResponse = true;
 										this.messages.push({
 											role: 'ai', type: 'action_card',
 											token: d.token, tool: d.tool, args: d.args,
@@ -417,6 +421,7 @@ templ ChatHome(d layouts.AppLayoutData) {
 										this.saveHistory();
 										this.$nextTick(() => this.scrollToBottom());
 									} else if (event === 'proposal') {
+										anyResponse = true;
 										this.messages.push({
 											role: 'ai', type: 'proposal',
 											token: d.token, proposal: d.proposal,
@@ -425,6 +430,7 @@ templ ChatHome(d layouts.AppLayoutData) {
 										this.saveHistory();
 										this.$nextTick(() => this.scrollToBottom());
 									} else if (event === 'error') {
+										anyResponse = true;
 										this.messages.push({ role: 'ai', type: 'text', text: '⚠ ' + (d.message || 'Error') });
 										this.saveHistory();
 										this.$nextTick(() => this.scrollToBottom());
@@ -432,6 +438,11 @@ templ ChatHome(d layouts.AppLayoutData) {
 								} catch(e) { console.error('SSE parse error:', e); }
 							}
 						}
+					if (!anyResponse) {
+						this.messages.push({ role: 'ai', type: 'text', text: 'No response received. Please try again.', html: 'No response received. Please try again.' });
+						this.saveHistory();
+						this.$nextTick(() => this.scrollToBottom());
+					}
 					} catch(err) {
 						this.messages.push({ role: 'ai', type: 'text', text: '⚠ Connection error: ' + err.message });
 						this.saveHistory();
@@ -455,7 +466,7 @@ templ ChatHome(d layouts.AppLayoutData) {
 						} else if (resp.ok && data.ok) {
 							msg.status = 'confirmed';
 							const result = data.result;
-							msg.resultText = (result && result.message) ? result.message : 'Done.';
+							msg.resultText = data.message || (result && result.message) || 'Done.';
 						} else {
 							msg.status = 'error';
 							msg.resultText = data.error || 'Failed.';
